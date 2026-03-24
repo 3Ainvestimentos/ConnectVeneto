@@ -7,7 +7,7 @@ import { verifyCorporateRequest } from '@/lib/api-auth';
 // Função para normalizar emails (mesma lógica do AuthContext)
 const normalizeEmail = (email: string | null | undefined): string | null => {
     if (!email) return null;
-    return email.replace(/@3ariva\.com\.br$/, '@3ainvestimentos.com.br');
+    return email.trim().toLowerCase();
 };
 
 

@@ -3,7 +3,7 @@ export default function BIPage() {
     <div className="flex flex-col h-full w-full">
       <div className="flex-grow relative w-full h-full">
         <iframe
-          title="3ARIVA Dashboard"
+          title="Veneto Dashboard"
           width="100%"
           height="100%"
           src="https://dashboard.3arivaconnect.com.br/pages/login.html"

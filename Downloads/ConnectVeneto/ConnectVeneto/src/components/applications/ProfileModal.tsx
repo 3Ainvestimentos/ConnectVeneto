@@ -50,7 +50,7 @@ Nome de Exibição: ${user.displayName}
 [+] DADOS DO FIRESTORE (useCollaborators)
 ------------------------------------------
 ID do Documento: ${currentUserCollab.id}
-ID 3A: ${currentUserCollab.id3a}
+ID Veneto: ${currentUserCollab.idVeneto || currentUserCollab.id3a}
 Email no Firestore: ${currentUserCollab.email}
 Permissões: ${JSON.stringify(currentUserCollab.permissions, null, 2)}
 Versão dos Termos Aceita: ${currentUserCollab.acceptedTermsVersion || 'N/A'}
@@ -124,7 +124,7 @@ URL dos Termos: ${settings.termsUrl}
 
                 {currentUserCollab ? (
                   <div className="space-y-4">
-                      <InfoItem icon={Fingerprint} label="ID 3A RIVA" value={currentUserCollab.id3a} />
+                      <InfoItem icon={Fingerprint} label="ID Veneto" value={currentUserCollab.idVeneto || currentUserCollab.id3a} />
                       <Separator />
                       <InfoItem icon={Briefcase} label="Cargo" value={currentUserCollab.position} />
                       <Separator />

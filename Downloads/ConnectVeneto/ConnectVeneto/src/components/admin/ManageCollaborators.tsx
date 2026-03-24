@@ -60,7 +60,7 @@ const biLinkSchema = z.object({
 
 const collaboratorSchema = z.object({
     id: z.string().optional(),
-    id3a: z.string().min(1, "ID 3A RIVA é obrigatório"),
+    id3a: z.string().min(1, "ID Veneto é obrigatório"),
     name: z.string().min(1, "Nome é obrigatório"),
     email: z.string().email("Email inválido"),
     photoURL: z.string().url("URL da imagem inválida").optional().or(z.literal('')),
@@ -147,8 +147,8 @@ export function ManageCollaborators() {
             items = items.filter(c => {
                 const nameMatch = c.name?.toLowerCase().includes(lowercasedTerm) ?? false;
                 const emailMatch = c.email?.toLowerCase().includes(lowercasedTerm) ?? false;
-                const id3aMatch = c.id3a?.toLowerCase().includes(lowercasedTerm) ?? false;
-                return nameMatch || emailMatch || id3aMatch;
+                const idMatch = c.idVeneto?.toLowerCase().includes(lowercasedTerm) || c.id3a?.toLowerCase().includes(lowercasedTerm) || false;
+                return nameMatch || emailMatch || idMatch;
             });
         }
         
@@ -235,6 +235,7 @@ export function ManageCollaborators() {
     const onSubmit = async (data: CollaboratorFormValues) => {
         const processedData = {
           ...data,
+          idVeneto: data.id3a,
           googleDriveLinks: typeof data.googleDriveLinks === 'string'
             ? data.googleDriveLinks.split('\\n').map(link => link.trim()).filter(Boolean)
             : data.googleDriveLinks || []
@@ -270,13 +271,15 @@ export function ManageCollaborators() {
             header: true,
             skipEmptyLines: true,
             complete: async (results) => {
-                const requiredHeaders = ['id3a', 'name', 'email', 'axis', 'area', 'position', 'segment', 'leader', 'city'];
                 const fileHeaders = results.meta.fields;
-                
-                if (!fileHeaders || !requiredHeaders.every(h => fileHeaders.includes(h))) {
+                const hasLegacyId = !!fileHeaders?.includes('id3a');
+                const hasVenetoId = !!fileHeaders?.includes('idVeneto');
+                const requiredBaseHeaders = ['name', 'email', 'axis', 'area', 'position', 'segment', 'leader', 'city'];
+
+                if (!fileHeaders || !requiredBaseHeaders.every(h => fileHeaders.includes(h)) || (!hasLegacyId && !hasVenetoId)) {
                     toast({
                         title: "Erro no Arquivo CSV",
-                        description: `O arquivo deve conter as seguintes colunas: ${requiredHeaders.join(', ')}.`,
+                        description: "O arquivo deve conter as colunas base e ao menos um identificador: idVeneto (preferencial) ou id3a (legado).",
                         variant: "destructive",
                     });
                     setIsImporting(false);
@@ -285,7 +288,8 @@ export function ManageCollaborators() {
 
                 const newCollaborators = results.data
                     .map(row => ({
-                        id3a: row.id3a?.trim(),
+                        id3a: (row.idVeneto || row.id3a)?.trim(),
+                        idVeneto: (row.idVeneto || row.id3a)?.trim(),
                         name: row.name?.trim(),
                         email: row.email?.trim().toLowerCase(),
                         photoURL: row.photoURL?.trim() || '',
@@ -349,7 +353,7 @@ export function ManageCollaborators() {
         }
 
         const dataToExport = filteredAndSortedCollaborators.map(c => ({
-            id3a: c.id3a,
+            idVeneto: c.idVeneto || c.id3a,
             name: c.name,
             email: c.email,
             photoURL: c.photoURL || '',
@@ -365,7 +369,7 @@ export function ManageCollaborators() {
         const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
         const link = document.createElement('a');
         link.href = URL.createObjectURL(blob);
-        link.setAttribute('download', `colaboradores_3A_RIVA_Connect_${new Date().toISOString().split('T')[0]}.csv`);
+        link.setAttribute('download', `colaboradores_intranet_veneto_${new Date().toISOString().split('T')[0]}.csv`);
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
@@ -522,8 +526,8 @@ export function ManageCollaborators() {
                     <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 mt-4">
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                             <div>
-                                <Label htmlFor="id3a">ID 3A RIVA</Label>
-                                <Input id="id3a" {...register('id3a')} disabled={isFormSubmitting}/>
+                                <Label htmlFor="id3a">ID Veneto</Label>
+                                <Input id="id3a" {...register('id3a')} placeholder="Ex: VNT001" disabled={isFormSubmitting}/>
                                 {errors.id3a && <p className="text-sm text-destructive mt-1">{errors.id3a.message}</p>}
                             </div>
                             <div className="md:col-span-2">
@@ -534,7 +538,7 @@ export function ManageCollaborators() {
                         </div>
                         <div>
                             <Label htmlFor="email">Email</Label>
-                            <Input id="email" type="email" {...register('email')} disabled={isFormSubmitting}/>
+                            <Input id="email" type="email" {...register('email')} placeholder="nome.sobrenome@venetomfo.com.br" disabled={isFormSubmitting}/>
                             {errors.email && <p className="text-sm text-destructive mt-1">{errors.email.message}</p>}
                         </div>
                         <div>
@@ -647,8 +651,9 @@ export function ManageCollaborators() {
                         <ol className="list-decimal list-inside space-y-2 text-sm text-muted-foreground">
                             <li>Crie uma planilha (no Excel, Google Sheets, etc.).</li>
                             <li>A primeira linha **deve** ser um cabeçalho com os seguintes nomes de coluna, exatamente como mostrado:
-                                <code className="block bg-muted p-2 rounded-md my-2 text-xs">id3a,name,email,axis,area,position,segment,leader,city,photoURL,googleDriveLinks</code>
+                                <code className="block bg-muted p-2 rounded-md my-2 text-xs">idVeneto,name,email,axis,area,position,segment,leader,city,photoURL,googleDriveLinks</code>
                             </li>
+                            <li>Compatibilidade: `id3a` também é aceito temporariamente durante a migração.</li>
                              <li>As colunas `photoURL` e `googleDriveLinks` são opcionais. Para múltiplos links do Drive, separe-os por vírgula no campo.</li>
                             <li>Preencha as linhas com os dados de cada colaborador.</li>
                             <li>Exporte ou salve o arquivo no formato **CSV (Valores Separados por Vírgula)**.</li>

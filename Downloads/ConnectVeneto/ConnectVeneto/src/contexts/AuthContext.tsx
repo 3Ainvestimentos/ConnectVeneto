@@ -7,11 +7,12 @@ import { getFirebaseApp, googleProvider } from '@/lib/firebase';
 import { getAuth, signInWithPopup, signOut as firebaseSignOut, onAuthStateChanged, GoogleAuthProvider } from 'firebase/auth';
 import { useRouter } from 'next/navigation';
 import { toast } from '@/hooks/use-toast';
-import { Collaborator, CollaboratorPermissions } from './CollaboratorsContext';
+import { Collaborator, CollaboratorPermissions, getCollaboratorUserId } from './CollaboratorsContext';
 import { addDocumentToCollection, getCollection, updateDocumentInCollection as updateFirestoreDoc } from '@/lib/firestore-service';
 import { useSystemSettings } from './SystemSettingsContext';
 import { getFirestore, collection, onSnapshot, query, where } from "firebase/firestore";
 import type { FirebaseError } from 'firebase/app';
+import { normalizeEmail } from '@/lib/email-utils';
 
 const scopes = [
   'https://www.googleapis.com/auth/calendar.readonly',
@@ -43,14 +44,9 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 const _firebaseApp = getFirebaseApp();
 const _auth = getAuth(_firebaseApp);
 
-const normalizeEmail = (email: string | null | undefined): string | null => {
-    if (!email) return null;
-    return email.replace(/@3ariva\.com\.br$/, '@3ainvestimentos.com.br');
-}
-
 const isCorporateEmail = (email: string | null | undefined): boolean => {
   if (!email) return false;
-  return email.toLowerCase().endsWith(`@${CORPORATE_EMAIL_DOMAIN}`);
+  return normalizeEmail(email)?.endsWith(`@${CORPORATE_EMAIL_DOMAIN}`) ?? false;
 }
 
 const defaultPermissions: CollaboratorPermissions = {
@@ -159,7 +155,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             
             const collaborator = await fetchAndSetCollaborator(firebaseUser);
 
-            const isAllowedDuringMaintenance = collaborator ? allowedUserIds.includes(collaborator.id3a) : false;
+            const collaboratorUserId = getCollaboratorUserId(collaborator);
+            const isAllowedDuringMaintenance = collaboratorUserId ? allowedUserIds.includes(collaboratorUserId) : false;
 
             if (maintenanceMode && !isSuper && !isAllowedDuringMaintenance) {
                 await firebaseSignOut(auth);
@@ -277,7 +274,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       const isSuper = !!normalizedEmail && (normalizedAdminEmails.includes(normalizedEmail) || superAdminEmails.includes(normalizedEmail));
 
       if (maintenanceMode) {
-          const isAllowedDuringMaintenance = !!collaborator && (allowedUserIds || []).includes(collaborator.id3a);
+          const collaboratorUserId = getCollaboratorUserId(collaborator);
+          const isAllowedDuringMaintenance = !!collaboratorUserId && (allowedUserIds || []).includes(collaboratorUserId);
           if (!isSuper && !isAllowedDuringMaintenance) {
               await firebaseSignOut(auth);
               toast({ title: "Manutenção em Andamento", description: maintenanceMessage, duration: 9000 });
@@ -294,7 +292,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         
         await addDocumentToCollection('audit_logs', {
             eventType: 'login',
-            userId: collaborator?.id3a || firebaseUser.uid,
+            userId: getCollaboratorUserId(collaborator) || firebaseUser.uid,
             userName: collaborator?.name || firebaseUser.displayName || 'Super Admin',
             timestamp: new Date().toISOString(),
             details: {}

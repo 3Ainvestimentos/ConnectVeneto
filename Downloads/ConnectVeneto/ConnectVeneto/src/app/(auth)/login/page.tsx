@@ -8,6 +8,8 @@ import { Loader2, AlertTriangle, Construction } from 'lucide-react';
 import Image from 'next/image';
 import { useSystemSettings } from '@/contexts/SystemSettingsContext';
 import { useTheme } from '@/contexts/ThemeContext';
+import logoVenetoDark from '../../../../docs/PNG/logotipo_vênetoPrancheta 1.png';
+import logoVenetoLight from '../../../../docs/PNG/logotipo_vênetoPrancheta_3_upscaled.png';
 
 const GoogleIcon = (props: React.SVGProps<SVGSVGElement>) => (
     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="20px" height="20px" {...props}>
@@ -27,34 +29,21 @@ export default function LoginPage() {
   const loading = authLoading || settingsLoading;
   const maintenanceMode = settings.maintenanceMode;
 
-  const logoUrl = theme === 'dark' 
-    ? "https://firebasestorage.googleapis.com/v0/b/a-riva-hub.firebasestorage.app/o/Imagens%20institucionais%20(logos%20e%20etc)%2Flogo_oficial_branca.png?alt=media&token=329d139b-cca1-4aed-95c7-a699fa32f0bb" 
-    : "https://firebasestorage.googleapis.com/v0/b/a-riva-hub.firebasestorage.app/o/Imagens%20institucionais%20(logos%20e%20etc)%2Flogo%20oficial%20preta.png?alt=media&token=ce88dc80-01cd-4295-b443-951e6c0210aa";
+  const logoAsset = theme === 'dark' ? logoVenetoLight : logoVenetoDark;
 
   return (
-    <main className="relative flex h-screen w-screen items-center justify-center overflow-hidden bg-black">
-      {/* Background Video */}
-      <video
-        autoPlay
-        loop
-        muted
-        playsInline
-        className="absolute top-0 left-0 w-full h-full object-cover z-0"
-        src="https://firebasestorage.googleapis.com/v0/b/a-riva-hub.firebasestorage.app/o/Tela%20de%20login%2Fbanner-inicial-3a-invest.mp4?alt=media&token=3a0b4f47-fe59-4aa7-b7db-4390dc59d8da"
-      />
-      
-      {/* Overlay */}
-      <div className="absolute inset-0 bg-black/50 z-10" />
+    <main className="relative flex h-screen w-screen items-center justify-center overflow-hidden bg-[#0d1d2c]">
+      <div className="absolute inset-0 z-10 bg-gradient-to-b from-black/25 via-black/35 to-black/55" />
 
       {/* Login Card */}
-      <div className="relative z-20 flex w-full max-w-sm flex-col items-center justify-center rounded-lg bg-card p-8 shadow-2xl">
+      <div className="relative z-20 flex w-full max-w-md flex-col items-center justify-center rounded-xl bg-card px-12 py-8 shadow-2xl">
         <Image
-          src={logoUrl}
-          alt="3A RIVA Investimentos Logo"
-          width={250}
-          height={60}
+          src={logoAsset}
+          alt="Logo Veneto Family Office"
+          width={200}
+          height={48}
           priority
-          className="mb-8"
+          className="mb-6"
         />
         {maintenanceMode && (
           <div className="mb-4 w-full p-4 rounded-md border border-amber-500/50 bg-amber-500/10 text-amber-700 text-center">
@@ -82,8 +71,8 @@ export default function LoginPage() {
 
       {/* Footer Text */}
       <footer className="absolute bottom-4 left-0 right-0 z-20 text-center text-xs text-white/60 p-4">
-        <p>Sujeito aos Termos de uso 3A RIVA e à Política de Privacidade da 3A RIVA.</p>
-        <p>O modelo Bob 1.0 pode cometer erros. Por isso, é bom checar as respostas. Todos os direitos reservados.</p>
+        <p>Sujeito aos Termos de Uso e a Politica de Privacidade da Veneto Family Office.</p>
+        <p>Todos os direitos reservados.</p>
       </footer>
     </main>
   );

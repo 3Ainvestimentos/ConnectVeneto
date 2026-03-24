@@ -1,27 +1,22 @@
 /**
- * Utilitários para normalização de emails
- * 
- * Este arquivo centraliza a lógica de normalização de emails para garantir
- * comparações consistentes entre @3ariva.com.br e @3ainvestimentos.com.br
+ * Utilitários para normalização de emails.
  */
 
 /**
- * Normaliza emails do domínio 3ariva para 3ainvestimentos
+ * Normaliza email para comparação consistente.
  * @param email - Email a ser normalizado
  * @returns Email normalizado ou null se email for inválido
  */
 export const normalizeEmail = (email: string | null | undefined): string | null => {
     if (!email) return null;
-    return email.toLowerCase().replace(/@3ariva\.com\.br$/, '@3ainvestimentos.com.br');
+    return email.trim().toLowerCase();
 };
 
 /**
- * Busca colaborador por email com normalização automática
- * Compara emails normalizados para encontrar colaboradores independente
- * de usarem @3ariva ou @3ainvestimentos
+ * Busca colaborador por email com normalização automática.
  * 
  * @param collaborators - Lista de colaboradores
- * @param userEmail - Email do usuário (pode ser @3ariva ou @3ainvestimentos)
+ * @param userEmail - Email do usuário
  * @returns Colaborador encontrado ou undefined
  */
 export const findCollaboratorByEmail = <T extends { email: string }>(

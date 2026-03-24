@@ -65,6 +65,7 @@ Garantir migração sem regressão funcional, mantendo o sistema estável durant
 - Tela de Sistema / Gestão de usuários com textos, labels e placeholders já no padrão Veneto.
 - Tela de Login com identidade Veneto (incluindo mensagens de erro/sucesso e textos de apoio sem referência a 3A/3ariva).
 - Política de autenticação: aceitar somente e-mails `@venetomfo.com.br` no login.
+- Substituição de branding no layout principal com mapeamento aprovado de logos (desktop + mobile).
 
 ## Arquivos prioritários
 
@@ -73,9 +74,18 @@ Garantir migração sem regressão funcional, mantendo o sistema estável durant
 - [src/components/admin/ManageCollaborators.tsx](src/components/admin/ManageCollaborators.tsx)
 - [src/components/admin/ManageCollaborators.tsx](src/components/admin/ManageCollaborators.tsx) (labels/placeholders de cadastro)
 - [src/app/login/page.tsx](src/app/login/page.tsx)
+- [src/components/layout/Header.tsx](src/components/layout/Header.tsx)
+- [src/components/layout/AppLayout.tsx](src/components/layout/AppLayout.tsx)
 - [src/app/(app)/dashboard/page.tsx](src/app/%28app%29/dashboard/page.tsx)
 - [src/components/documents/DocumentRepositoryClient.tsx](src/components/documents/DocumentRepositoryClient.tsx)
 - [src/app/(app)/applications/page.tsx](src/app/%28app%29/applications/page.tsx)
+
+## Mapeamento de logos aprovado
+
+- Header desktop (fundo escuro): `docs/PNG/logotipo_vênetoPrancheta 3.png` (logo branca completa).
+- Sidebar em fundo claro: `docs/PNG/logotipo_vênetoPrancheta 1.png` (logo azul marinho completa).
+- Header mobile: ícone isolado (sem wordmark), preferencialmente `docs/PNG/logotipo_vênetoPrancheta 9.png`.
+- Estratégia de publicação: copiar assets aprovados para `public/veneto/` e referenciar por caminhos estáveis.
 
 ## Checklist obrigatório de substituição (`3ariva` -> `Veneto`)
 
@@ -88,6 +98,11 @@ Garantir migração sem regressão funcional, mantendo o sistema estável durant
   - placeholders de e-mail em domínio Veneto;
   - campo principal de identificação em `idVeneto`;
   - remoção de qualquer rótulo/texto legado com `id3a`/3A/3ariva.
+- Branding visual (logo)
+  - header desktop usando `Prancheta 3`;
+  - sidebar clara usando `Prancheta 1`;
+  - mobile usando ícone isolado;
+  - ausência de logos 3A nas áreas alteradas.
 - Fluxo de permissão e associação
   - vinculação de `authUid` no primeiro login de colaborador Veneto;
   - filtros e permissões funcionando por `idVeneto`.
@@ -109,6 +124,7 @@ Garantir migração sem regressão funcional, mantendo o sistema estável durant
 - Tela de criação/edição de usuário sem referência a 3A e com placeholders do domínio Veneto.
 - Tela de login sem referências a 3A/3ariva e com identidade textual Veneto.
 - Busca textual no código sem ocorrências funcionais legadas de `3ariva` em UI/UX do fluxo de autenticação e cadastro.
+- Header, sidebar e versão mobile exibindo os logos aprovados com contraste adequado.
 - Lint, typecheck e build sem erros.
 - `createdAt` segue automático em ISO string no cliente (como definido).
 

@@ -50,7 +50,7 @@ type PrivacyFormValues = z.infer<typeof privacySchema>;
 // Função para normalizar emails (mesma lógica do AuthContext)
 const normalizeEmail = (email: string | null | undefined): string | null => {
     if (!email) return null;
-    return email.replace(/@3ariva\.com\.br$/, '@3ainvestimentos.com.br');
+    return email.trim().toLowerCase();
 };
 
 function SuperAdminsCard() {
@@ -128,7 +128,7 @@ function SuperAdminsCard() {
          <div className="flex gap-2">
             <Input 
                 type="email" 
-                placeholder="novo.admin@3a.com.br"
+                placeholder="novo.admin@venetomfo.com.br"
                 value={newAdminEmail}
                 onChange={(e) => setNewAdminEmail(e.target.value)}
                 disabled={isSubmitting}

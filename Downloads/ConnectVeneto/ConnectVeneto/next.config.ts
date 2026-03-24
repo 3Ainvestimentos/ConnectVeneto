@@ -1,6 +1,5 @@
 
 import type {NextConfig} from 'next';
-import { withSentryConfig } from '@sentry/nextjs';
 import path from 'path';
 
 const nextConfig: NextConfig = {
@@ -40,8 +39,8 @@ const nextConfig: NextConfig = {
                 "media-src 'self' https://firebasestorage.googleapis.com blob:",
                 // Permissivo em dev para evitar timeouts/HMR; mais restrito em prod
                 isProd
-                  ? "connect-src 'self' https://www.3arivaconnect.com.br https://3arivaconnect.com.br https://www.google.com https://apis.google.com https://accounts.google.com https://*.googleapis.com https://content-firebaseappcheck.googleapis.com https://*.firebaseio.com https://*.cloudfunctions.net https://firebasestorage.googleapis.com wss://*.firebaseio.com https://*.ingest.sentry.io https://*.sentry.io https://connect-backup-five.vercel.app https://connect-backup-git-master-henriques-projects-7f498294.vercel.app https://connect-backup-65lxk0nm1-henriques-projects-7f498294.vercel.app"
-                  : "connect-src 'self' http://localhost:3000 ws://localhost:3000 http://127.0.0.1:3000 ws://127.0.0.1:3000 https://www.google.com https://apis.google.com https://accounts.google.com https://*.googleapis.com https://content-firebaseappcheck.googleapis.com https://*.firebaseio.com https://*.cloudfunctions.net https://firebasestorage.googleapis.com wss://*.firebaseio.com https://*.ingest.sentry.io https://*.sentry.io https://connect-backup-five.vercel.app https://connect-backup-git-master-henriques-projects-7f498294.vercel.app https://connect-backup-65lxk0nm1-henriques-projects-7f498294.vercel.app",
+                  ? "connect-src 'self' https://www.3arivaconnect.com.br https://3arivaconnect.com.br https://www.google.com https://apis.google.com https://accounts.google.com https://*.googleapis.com https://content-firebaseappcheck.googleapis.com https://*.firebaseio.com https://*.cloudfunctions.net https://firebasestorage.googleapis.com wss://*.firebaseio.com https://connect-backup-five.vercel.app https://connect-backup-git-master-henriques-projects-7f498294.vercel.app https://connect-backup-65lxk0nm1-henriques-projects-7f498294.vercel.app"
+                  : "connect-src 'self' http://localhost:3000 ws://localhost:3000 http://127.0.0.1:3000 ws://127.0.0.1:3000 https://www.google.com https://apis.google.com https://accounts.google.com https://*.googleapis.com https://content-firebaseappcheck.googleapis.com https://*.firebaseio.com https://*.cloudfunctions.net https://firebasestorage.googleapis.com wss://*.firebaseio.com https://connect-backup-five.vercel.app https://connect-backup-git-master-henriques-projects-7f498294.vercel.app https://connect-backup-65lxk0nm1-henriques-projects-7f498294.vercel.app",
                 "frame-src 'self' https://www.youtube.com https://s.tradingview.com https://tradingview-widget.com https://*.tradingview-widget.com https://www.google.com https://*.google.com https://*.googleapis.com https://*.firebaseapp.com https://*.web.app https://www.recaptcha.net https://firebasestorage.googleapis.com https://calendar.google.com https://drive.google.com https://docs.google.com https://content.googleapis.com https://studio--datavisor-44i5m.us-central1.hosted.app https://studio--studio-9152494730-25d31.us-central1.hosted.app https://studio--studio-1518788599-dba08.us-central1.hosted.app https://bob-1-0-backup.vercel.app https://bob-1-0-vercel.vercel.app/ https://connect-backup-five.vercel.app https://connect-backup-git-master-henriques-projects-7f498294.vercel.app https://connect-backup-65lxk0nm1-henriques-projects-7f498294.vercel.app https://nina-prod-backup.vercel.app/ https://*.powerbi.com https://app.powerbi.com https://*.pbidedicated.windows.net https://*.analysis.windows.net https://studio--ted-10.us-central1.hosted.app/  https://ted-plan.vercel.app/ https://ted-cyan.vercel.app https://radarfin.com.br/latest https://radarfin.com.br/ https://www.radarfin.com.br https://*.radarfin.com.br https://forms.office.com https://*.forms.office.com https://dashboard.3arivaconnect.com.br",
                 "worker-src 'self' blob:",
                 "object-src 'none'",
@@ -116,24 +115,6 @@ const nextConfig: NextConfig = {
     ],
   },
 };
-
-// Configuração do Sentry
-const sentryWebpackPluginOptions = {
-  // Apenas fazer upload de source maps se habilitado
-  silent: true,
-  org: process.env.SENTRY_ORG || '3a-riva-investimentos',
-  project: process.env.SENTRY_PROJECT || 'javascript-nextjs',
-  
-  // Auth token para upload de source maps
-  authToken: process.env.SENTRY_AUTH_TOKEN,
-  
-  // Não fazer upload em desenvolvimento
-  dryRun: process.env.NODE_ENV !== 'production',
-};
-
-// Exportar config com Sentry (apenas se DSN configurado)
-export default process.env.NEXT_PUBLIC_SENTRY_DSN
-  ? withSentryConfig(nextConfig, sentryWebpackPluginOptions)
-  : nextConfig;
+export default nextConfig;
 
   

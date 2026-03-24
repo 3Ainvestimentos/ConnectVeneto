@@ -25,7 +25,7 @@ export default function FabMessagesAdminPage() {
     const { fabMessages } = useFabMessages();
     const [searchTerm, setSearchTerm] = useState('');
     const [selectedUserIds, setSelectedUserIds] = useState<string[]>(() => 
-        collaborators.filter(c => c.axis === 'Comercial' || ['desenvolvedor@3ariva.com.br', 'matheus@3ainvestimentos.com.br'].includes(c.email)).map(c => c.id3a)
+        collaborators.filter(c => c.axis === 'Comercial' || ['desenvolvedor@venetomfo.com.br', 'matheus@venetomfo.com.br'].includes(c.email)).map(c => c.id3a)
     );
     
     const [filters, setFilters] = useState<{
@@ -39,8 +39,8 @@ export default function FabMessagesAdminPage() {
 
     const commercialUsers = useMemo(() => {
         const testUsers = [
-            'desenvolvedor@3ariva.com.br',
-            'matheus@3ainvestimentos.com.br'
+            'desenvolvedor@venetomfo.com.br',
+            'matheus@venetomfo.com.br'
         ];
         if (!collaborators || !Array.isArray(collaborators)) return [];
         return collaborators

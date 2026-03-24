@@ -22,10 +22,6 @@ Use as mesmas variaveis em `Production`, `Preview` e `Development` (a menos que 
 | `FIREBASE_ADMIN_PROJECT_ID` | `<PROJECT_ID_GCP_NOVO>` | Production, Preview, Development | Obrigatorio se usar rotas server-side com Firebase Admin (ex.: billing) |
 | `FIREBASE_ADMIN_CLIENT_EMAIL` | `<SERVICE_ACCOUNT_CLIENT_EMAIL>` | Production, Preview, Development | Obrigatorio se usar billing |
 | `FIREBASE_ADMIN_PRIVATE_KEY` | `<PRIVATE_KEY_COM_\\n_ESCAPADO>` | Production, Preview, Development | Obrigatorio se usar billing |
-| `NEXT_PUBLIC_SENTRY_DSN` | `<SENTRY_DSN>` | Production, Preview, Development | Somente se usa Sentry |
-| `SENTRY_AUTH_TOKEN` | `<SENTRY_AUTH_TOKEN>` | Production (e opcional Preview) | Segredo |
-| `SENTRY_ORG` | `3a-riva-investimentos` (ou sua org) | Production, Preview, Development | Opcional |
-| `SENTRY_PROJECT` | `javascript-nextjs` (ou seu projeto) | Production, Preview, Development | Opcional |
 | `FERIADOS_API_BASE_URL` | `https://feriadosapi.com` | Production, Preview, Development | Opcional |
 | `FERIADOS_API_KEY` | `<FERIADOS_API_KEY>` | Production, Preview, Development | Segredo |
 
@@ -43,10 +39,6 @@ NEXT_PUBLIC_FIREBASE_APP_ID=
 FIREBASE_ADMIN_PROJECT_ID=
 FIREBASE_ADMIN_CLIENT_EMAIL=
 FIREBASE_ADMIN_PRIVATE_KEY=
-NEXT_PUBLIC_SENTRY_DSN=
-SENTRY_AUTH_TOKEN=
-SENTRY_ORG=
-SENTRY_PROJECT=
 FERIADOS_API_BASE_URL=https://feriadosapi.com
 FERIADOS_API_KEY=
 ```

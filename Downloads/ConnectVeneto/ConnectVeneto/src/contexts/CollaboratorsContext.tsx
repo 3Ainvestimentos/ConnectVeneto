@@ -31,7 +31,8 @@ export interface BILink {
 
 export interface Collaborator {
   id: string;
-  id3a: string;      // ID interno da 3A RIVA
+  id3a: string;      // Legado: manter durante fase de compatibilidade
+  idVeneto?: string; // Novo identificador principal
   name: string;
   email: string;
   photoURL?: string; // Link da imagem do colaborador
@@ -48,6 +49,11 @@ export interface Collaborator {
   createdAt?: string; // ISO String for creation timestamp
   authUid?: string; // Firebase Auth UID
 }
+
+export const getCollaboratorUserId = (collaborator: Partial<Collaborator> | null | undefined): string | null => {
+  if (!collaborator) return null;
+  return collaborator.idVeneto || collaborator.id3a || null;
+};
 
 interface CollaboratorsContextType {
   collaborators: Collaborator[];

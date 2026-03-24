@@ -19,7 +19,7 @@ import { useNews, type NewsItemType } from '@/contexts/NewsContext';
 import { useMessages, type MessageType } from '@/contexts/MessagesContext';
 import { useQuickLinks } from '@/contexts/QuickLinksContext';
 import { useAuth } from '@/contexts/AuthContext';
-import { useCollaborators } from '@/contexts/CollaboratorsContext';
+import { useCollaborators, getCollaboratorUserId } from '@/contexts/CollaboratorsContext';
 import { toast } from '@/hooks/use-toast';
 import { addDocumentToCollection } from '@/lib/firestore-service';
 import GoogleCalendar from '@/components/dashboard-v2/GoogleCalendar';
@@ -47,6 +47,7 @@ export default function DashboardV2Page() {
       if (!user || !collaborators) return null;
       return findCollaboratorByEmail(collaborators, user.email) || null;
   }, [user, collaborators]);
+  const currentUserId = useMemo(() => getCollaboratorUserId(currentUserCollab), [currentUserCollab]);
 
   useEffect(() => {
     const getGreeting = () => {
@@ -66,26 +67,26 @@ export default function DashboardV2Page() {
   }, [greeting, user, currentUserCollab]);
 
   const userMessages = useMemo(() => {
-    if (!currentUserCollab) return [];
+    if (!currentUserCollab || !currentUserId) return [];
     const sortedMessages = [...messages].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
       
     return sortedMessages.filter(msg => {
-        if (msg.deletedBy && msg.deletedBy.includes(currentUserCollab.id3a)) {
+        if (msg.deletedBy && msg.deletedBy.includes(currentUserId)) {
             return false;
         }
         const recipients = getMessageRecipients(msg, collaborators);
-        return recipients.some(r => r.id3a === currentUserCollab.id3a);
+        return recipients.some(r => getCollaboratorUserId(r) === currentUserId);
     });
-  }, [messages, currentUserCollab, collaborators, getMessageRecipients]);
+  }, [messages, currentUserCollab, currentUserId, collaborators, getMessageRecipients]);
   
   const quickLinks = useMemo(() => {
     return getVisibleLinksForUser(currentUserCollab, collaborators);
   }, [currentUserCollab, collaborators, getVisibleLinksForUser]);
 
   const unreadCount = useMemo(() => {
-    if (!currentUserCollab) return 0;
-    return userMessages.filter(msg => !msg.readBy.includes(currentUserCollab.id3a)).length;
-  }, [userMessages, currentUserCollab]);
+    if (!currentUserId) return 0;
+    return userMessages.filter(msg => !msg.readBy.includes(currentUserId)).length;
+  }, [userMessages, currentUserId]);
   
   const unreadLabel = useMemo(() => {
     if (unreadCount === 0) return null;
@@ -96,16 +97,16 @@ export default function DashboardV2Page() {
   const activeHighlights = useMemo(() => newsItems.filter(item => item.isHighlight && item.status === 'published').slice(0, 3), [newsItems]);
 
   const handleViewMessage = (messageToView: MessageType) => {
-    if (!currentUserCollab) return;
-    markMessageAsRead(messageToView.id, currentUserCollab.id3a);
+    if (!currentUserId) return;
+    markMessageAsRead(messageToView.id, currentUserId);
     setSelectedMessage(messageToView);
   };
 
   const logContentView = (item: NewsItemType) => {
-    if (!currentUserCollab) return;
+    if (!currentUserCollab || !currentUserId) return;
     addDocumentToCollection('audit_logs', {
         eventType: 'content_view',
-        userId: currentUserCollab.id3a,
+        userId: currentUserId,
         userName: currentUserCollab.name,
         timestamp: new Date().toISOString(),
         details: {
@@ -122,10 +123,10 @@ export default function DashboardV2Page() {
   };
   
   const handleUserDeleteMessage = async () => {
-    if (!selectedMessage || !currentUserCollab || isDeleting) return;
+    if (!selectedMessage || !currentUserId || isDeleting) return;
     setIsDeleting(true);
     try {
-        await markMessageAsDeleted(selectedMessage.id, currentUserCollab.id3a);
+        await markMessageAsDeleted(selectedMessage.id, currentUserId);
         toast({ title: "Mensagem movida para a lixeira." });
         setSelectedMessage(null);
     } catch (error) {
@@ -324,7 +325,7 @@ export default function DashboardV2Page() {
                         <ScrollArea className="h-full">
                             <div className="space-y-4 p-6 pt-0">
                                 {userMessages.map((msg) => {
-                                    const isRead = currentUserCollab ? msg.readBy.includes(currentUserCollab.id3a) : false;
+                                    const isRead = currentUserId ? msg.readBy.includes(currentUserId) : false;
                                     return (
                                     <div key={msg.id} className="p-3 rounded-lg border bg-card flex flex-col gap-2 cursor-pointer hover:bg-muted/50 transition-colors" onClick={() => handleViewMessage(msg)}>
                                         <div className="flex justify-between items-start gap-2">

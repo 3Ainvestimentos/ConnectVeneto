@@ -15,7 +15,7 @@ import {
 } from '@/components/ui/sidebar';
 import { Header } from './Header';
 import Link from 'next/link';
-import { Home, Newspaper, FolderOpen, LogOut, UserCircle, Bot, FlaskConical, ShoppingCart, LayoutGrid, Sun, Moon, Laptop, HelpCircle, Settings, Shield, BarChart, BarChart2, Mailbox, Workflow, FileText, ListTodo, Fingerprint, Edit, LayoutDashboard, TestTube2, Briefcase, Target, PanelsTopLeft, ListChecks, Award, MessageSquarePlus, NotebookPen, Rss, Video, Plane } from 'lucide-react';
+import { Home, Newspaper, FolderOpen, LogOut, UserCircle, FlaskConical, ShoppingCart, Sun, Moon, HelpCircle, Shield, BarChart, BarChart2, Mailbox, Workflow, ListTodo, Fingerprint, Edit, Target, PanelsTopLeft, Award, NotebookPen, Plane } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRouter, usePathname } from 'next/navigation';
 import Image from 'next/image';
@@ -48,10 +48,10 @@ import { useApplications } from '@/contexts/ApplicationsContext';
 import PollTrigger from '@/components/polls/PollTrigger';
 import { useSystemSettings } from '@/contexts/SystemSettingsContext';
 import { TermsOfUseModal } from '../auth/TermsOfUseModal';
-import NotificationFAB from '../fab/NotificationFAB';
-import { useFabMessages } from '@/contexts/FabMessagesContext';
 import { DailyRssModal } from '../rss/DailyRssModal';
 import { findCollaboratorByEmail } from '@/lib/email-utils';
+import { getCollaboratorUserId } from '@/contexts/CollaboratorsContext';
+import logoSidebar from '../../../docs/PNG/logotipo_vênetoPrancheta 1.png';
 
 
 export const navItems = [
@@ -63,9 +63,7 @@ export const navItems = [
   { href: '/rankings', label: 'Rankings e Campanhas', icon: Award, external: false, permission: 'canViewRankings' },
   { href: '/bi', label: 'Business Intelligence', icon: BarChart, external: false, permission: 'canViewBI' },
   { href: '/bi-leaders', label: 'BI Líderes', icon: BarChart2, external: false, permission: 'canViewBILeaders' },
-  { href: 'https://www.store-3ariva.com.br/', label: 'Store', icon: ShoppingCart, external: true, permission: null },
-  { href: '/chatbot', label: 'Bob', icon: Bot, external: false, permission: null },
-  { href: '/meet-analyses', label: 'Bob Meet Análises', icon: Video, external: false, permission: 'canViewMeetAnalyses' },
+  { href: 'https://www.venetostore.com.br/', label: 'Veneto Store', icon: ShoppingCart, external: true, permission: null },
 ];
 
 function UserNav({ onProfileClick, hasPendingRequests, hasPendingTasks }: { onProfileClick: () => void; hasPendingRequests: boolean; hasPendingTasks: boolean; }) {
@@ -190,8 +188,6 @@ function UserNav({ onProfileClick, hasPendingRequests, hasPendingTasks }: { onPr
             <DropdownMenuGroup>
                 <DropdownMenuLabel className="text-xs text-muted-foreground font-normal">Painéis de controle</DropdownMenuLabel>
                 {permissions.canManageContent && <DropdownMenuItem asChild><Link href="/admin/content" className="cursor-pointer font-body"><Edit className="mr-2 h-4 w-4" /><span>Conteúdo</span></Link></DropdownMenuItem>}
-                {isSuperAdmin && <DropdownMenuItem asChild><Link href="/admin/fab-messages" className="cursor-pointer font-body"><MessageSquarePlus className="mr-2 h-4 w-4" /><span>Mensagens FAB</span></Link></DropdownMenuItem>}
-                {permissions.canManageWorkflows && <DropdownMenuItem asChild><Link href="/admin/workflows" className="cursor-pointer font-body"><Workflow className="mr-2 h-4 w-4" /><span>Workflows</span></Link></DropdownMenuItem>}
                 {(permissions.canManageTripsBirthdays || permissions.canManageVacation) && <DropdownMenuItem asChild><Link href="/admin/travel-birthdays" className="cursor-pointer font-body"><Plane className="mr-2 h-4 w-4" /><span>Viagens/Férias</span></Link></DropdownMenuItem>}
                 {isSuperAdmin && (
                   <>
@@ -220,7 +216,6 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
   const { settings, loading: settingsLoading } = useSystemSettings();
   const { theme, setTheme } = useTheme();
   const { requests, loading: workflowsLoading } = useWorkflows();
-  const { fabMessages } = useFabMessages();
   const { workflowDefinitions } = useApplications();
   const router = useRouter();
   const pathname = usePathname();
@@ -228,7 +223,6 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
   
   const isFullscreenPage = false;
   const noZoomRoutes = [
-    '/chatbot',
     '/admin/crm',
     '/admin/strategic-panel',
     '/bi',
@@ -247,13 +241,6 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
     if (!user) return null;
     return findCollaboratorByEmail(collaborators, user.email) || null;
   }, [user, collaborators]);
-
-  const hasActiveCampaign = useMemo(() => {
-    if (!currentUserCollab) return false;
-    const messageForUser = fabMessages.find(msg => msg.userId === currentUserCollab.id3a);
-    return messageForUser && (messageForUser.status === 'pending_cta' || messageForUser.status === 'pending_follow_up');
-  }, [fabMessages, currentUserCollab]);
-
 
   useEffect(() => {
     if (loading || collaboratorsLoading || settingsLoading || isSuperAdmin) return;
@@ -304,9 +291,11 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
     if (!user || workflowsLoading || !requests.length) return false;
     const currentUserCollab = findCollaboratorByEmail(collaborators, user.email);
     if (!currentUserCollab) return false;
+    const currentUserId = getCollaboratorUserId(currentUserCollab);
+    if (!currentUserId) return false;
     
     const hasNewTask = requests.some(req => {
-      if (req.isArchived || req.assignee?.id !== currentUserCollab.id3a) {
+      if (req.isArchived || req.assignee?.id !== currentUserId) {
         return false;
       }
       const definition = workflowDefinitions.find(d => d.name === req.type);
@@ -323,7 +312,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
       if (req.isArchived) return false;
       const actionRequestsForStatus = req.actionRequests?.[req.status] || [];
       return actionRequestsForStatus.some(
-        ar => ar.userId === currentUserCollab.id3a && ar.status === 'pending'
+        ar => ar.userId === currentUserId && ar.status === 'pending'
       );
     });
 
@@ -335,10 +324,11 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (user && pathname) {
         const currentUserCollab = findCollaboratorByEmail(collaborators, user.email);
-        if (currentUserCollab) {
+        const currentUserId = getCollaboratorUserId(currentUserCollab);
+        if (currentUserCollab && currentUserId) {
             addDocumentToCollection('audit_logs', {
                 eventType: 'page_view',
-                userId: currentUserCollab.id3a,
+                userId: currentUserId,
                 userName: currentUserCollab.name,
                 timestamp: new Date().toISOString(),
                 details: {
@@ -391,7 +381,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
   if (loading || !user) {
      return (
         <div className="flex h-screen w-screen items-center justify-center">
-          <LoadingSpinner message="Carregando 3A RIVA Connect" />
+          <LoadingSpinner message="Carregando Intranet Veneto" />
         </div>
      );
   }
@@ -410,6 +400,11 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
         {!isFullscreenPage && (
           <Sidebar collapsible="icon" variant="sidebar"> 
             <SidebarContent className="flex-1 p-2">
+              <div className="mb-4 px-2 py-1">
+                <Link href="/dashboard" onClick={handleLinkClick} className="flex items-center justify-center rounded-md p-2 hover:bg-muted">
+                  <Image src={logoSidebar} alt="Logo Veneto Family Office" width={140} height={36} className="h-auto w-auto max-h-8" priority />
+                </Link>
+              </div>
               <SidebarMenu>
                 {navItems.map((item) => {
                   if (item.permission && !permissions[item.permission as keyof typeof permissions]) {
@@ -472,7 +467,6 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
           ) : (
             children
           )}
-          <NotificationFAB hasPendingRequests={hasPendingRequests} hasPendingTasks={hasPendingTasks} />
         </main>
       </div>
       <PollTrigger />

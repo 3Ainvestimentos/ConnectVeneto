@@ -48,8 +48,8 @@
     --sidebar-border: 0 0% 89%; /* Light gray border */
     --sidebar-ring: 38 59% 68%; /* #DFB87F */
 
-    --header-height: 3.25rem; /* 52px, was 4rem */
-    --header-background: 30 2% 16%; /* #2B2A27 */
+    --header-height: 3.5rem; /* 56px */
+    --header-background: 216 45% 15%; /* azul marinho Veneto */
     --header-foreground: 0 0% 100%;
   }
 
@@ -97,8 +97,8 @@
     --sidebar-border: 210 20% 12%;
     --sidebar-ring: 38 59% 68%; /* Unchanged */
     
-    --header-background: 30 2% 16%; /* Unchanged */
-    --header-foreground: 0 0% 100%; /* Unchanged */
+    --header-background: 210 20% 14%; /* dark header in dark mode */
+    --header-foreground: 210 20% 95%;
   }
 }
 
