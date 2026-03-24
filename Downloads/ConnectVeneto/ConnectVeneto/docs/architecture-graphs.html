@@ -1,0 +1,643 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ConnectVeneto — Grafos de Arquitetura</title>
+  <script src="https://unpkg.com/vis-network/standalone/umd/vis-network.min.js"></script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; background: #0f1923; color: #e0e0e0; }
+    .header { background: #0d1d2c; padding: 20px 32px; border-bottom: 2px solid #2d58a5; display: flex; align-items: center; gap: 16px; }
+    .header h1 { font-size: 22px; color: #e1ca5f; font-weight: 700; }
+    .header span { color: #a9a9a8; font-size: 14px; }
+    .tabs { display: flex; gap: 4px; padding: 12px 32px; background: #141f2b; border-bottom: 1px solid #1e3045; flex-wrap: wrap; }
+    .tab { padding: 10px 20px; border-radius: 8px 8px 0 0; cursor: pointer; font-size: 13px; font-weight: 600; color: #a9a9a8; background: transparent; border: 1px solid transparent; transition: all 0.2s; }
+    .tab:hover { color: #e1ca5f; background: #1a2a3a; }
+    .tab.active { color: #e1ca5f; background: #0d1d2c; border-color: #2d58a5; border-bottom-color: #0d1d2c; }
+    .graph-container { width: 100%; height: calc(100vh - 140px); background: #0d1d2c; }
+    .legend { position: fixed; bottom: 16px; right: 16px; background: rgba(13,29,44,0.95); border: 1px solid #2d58a5; border-radius: 10px; padding: 16px; font-size: 12px; max-width: 260px; z-index: 10; }
+    .legend h3 { color: #e1ca5f; margin-bottom: 8px; font-size: 13px; }
+    .legend-item { display: flex; align-items: center; gap: 8px; margin: 4px 0; }
+    .legend-dot { width: 12px; height: 12px; border-radius: 50%; flex-shrink: 0; }
+    .info-panel { position: fixed; top: 120px; right: 16px; background: rgba(13,29,44,0.95); border: 1px solid #2d58a5; border-radius: 10px; padding: 16px; font-size: 12px; max-width: 300px; z-index: 10; display: none; }
+    .info-panel h3 { color: #e1ca5f; margin-bottom: 8px; }
+    .info-panel .close { position: absolute; top: 8px; right: 12px; cursor: pointer; color: #a9a9a8; font-size: 16px; }
+    .badge-critical { background: #dc2626; color: white; padding: 2px 8px; border-radius: 4px; font-size: 10px; font-weight: 700; }
+    .badge-high { background: #f59e0b; color: #1a1a1a; padding: 2px 8px; border-radius: 4px; font-size: 10px; font-weight: 700; }
+    .badge-medium { background: #3b82f6; color: white; padding: 2px 8px; border-radius: 4px; font-size: 10px; font-weight: 700; }
+  </style>
+</head>
+<body>
+
+<div class="header">
+  <h1>ConnectVeneto — Arquitetura</h1>
+  <span>Grafos interativos | Arraste os nós, use scroll para zoom</span>
+</div>
+
+<div class="tabs" id="tabs">
+  <div class="tab active" onclick="showGraph('arch')">Arquitetura Geral</div>
+  <div class="tab" onclick="showGraph('auth')">Fluxo de Auth</div>
+  <div class="tab" onclick="showGraph('data')">Fluxo de Dados</div>
+  <div class="tab" onclick="showGraph('providers')">Árvore de Providers</div>
+  <div class="tab" onclick="showGraph('permissions')">Permissões e Rotas</div>
+  <div class="tab" onclick="showGraph('failures')">Pontos de Falha</div>
+</div>
+
+<div class="graph-container" id="graph"></div>
+
+<div class="legend" id="legend"></div>
+<div class="info-panel" id="info-panel">
+  <span class="close" onclick="document.getElementById('info-panel').style.display='none'">&times;</span>
+  <h3 id="info-title"></h3>
+  <div id="info-body"></div>
+</div>
+
+<script>
+let network = null;
+const container = document.getElementById('graph');
+
+const COLORS = {
+  blue: '#2d58a5',
+  darkBlue: '#0d1d2c',
+  gold: '#e1ca5f',
+  gray: '#a9a9a8',
+  green: '#10b981',
+  red: '#ef4444',
+  orange: '#f59e0b',
+  purple: '#8b5cf6',
+  cyan: '#06b6d4',
+  pink: '#ec4899',
+  white: '#ffffff',
+  lime: '#84cc16',
+  teal: '#14b8a6',
+  rose: '#f43f5e',
+  amber: '#f59e0b',
+  indigo: '#6366f1',
+};
+
+const defaultOptions = {
+  physics: {
+    forceAtlas2Based: { gravitationalConstant: -40, centralGravity: 0.005, springLength: 150, springConstant: 0.06, damping: 0.4 },
+    solver: 'forceAtlas2Based',
+    stabilization: { iterations: 200 },
+  },
+  interaction: { hover: true, tooltipDelay: 100, zoomView: true, dragView: true },
+  nodes: {
+    font: { color: '#e0e0e0', size: 13, face: 'Segoe UI', strokeWidth: 2, strokeColor: '#0d1d2c' },
+    borderWidth: 2,
+    shadow: { enabled: true, color: 'rgba(0,0,0,0.3)', size: 8 },
+  },
+  edges: {
+    color: { color: '#2d58a555', highlight: '#e1ca5f', hover: '#2d58a5' },
+    width: 1.5,
+    smooth: { type: 'continuous' },
+    font: { color: '#a9a9a8', size: 10, strokeWidth: 2, strokeColor: '#0d1d2c' },
+  },
+};
+
+function n(id, label, color, shape='dot', size=20, extra={}) {
+  return { id, label, color: { background: color, border: color, highlight: { background: COLORS.gold, border: COLORS.gold } }, shape, size, ...extra };
+}
+
+function e(from, to, label='', dashes=false, width=1.5, color=null) {
+  const edge = { from, to, label, dashes, width };
+  if (color) edge.color = { color, highlight: COLORS.gold, hover: color };
+  return edge;
+}
+
+// ========== GRAPH 1: ARQUITETURA GERAL ==========
+function graphArch() {
+  const nodes = new vis.DataSet([
+    n('browser', 'Browser\n(Client)', COLORS.blue, 'diamond', 35),
+    n('rootLayout', 'RootLayout', COLORS.blue, 'dot', 22),
+    n('rootProviders', 'AppProviders ROOT\n(15 providers)', COLORS.orange, 'dot', 28),
+    n('authLayout', '(auth)/layout', COLORS.purple, 'dot', 18),
+    n('appLayout', '(app)/layout', COLORS.green, 'dot', 18),
+    n('appProviders2', 'AppProviders APP\n(20 providers)', COLORS.red, 'dot', 28),
+    n('appLayoutWrapper', 'AppLayoutWrapper\n(sidebar+header)', COLORS.green, 'dot', 22),
+    n('loginPage', '/login', COLORS.purple, 'box', 16),
+    n('dashboard', '/dashboard', COLORS.cyan, 'box', 16),
+    n('news', '/news', COLORS.cyan, 'box', 14),
+    n('apps', '/applications', COLORS.cyan, 'box', 14),
+    n('documents', '/documents', COLORS.cyan, 'box', 14),
+    n('admin', '/admin/**', COLORS.rose, 'box', 16),
+    n('audit', '/audit/**', COLORS.rose, 'box', 14),
+    n('bi', '/bi', COLORS.teal, 'box', 14),
+    n('rankings', '/rankings', COLORS.teal, 'box', 14),
+    n('otherPages', '... +18 páginas', COLORS.gray, 'box', 14),
+
+    n('firebaseAuth', 'Firebase Auth\n(Google OAuth)', COLORS.orange, 'star', 28),
+    n('firestore', 'Cloud Firestore\n(~20 coleções)', COLORS.orange, 'star', 30),
+    n('storage', 'Firebase Storage', COLORS.orange, 'star', 22),
+    n('firestoreRules', 'firestore.rules', COLORS.red, 'triangle', 20),
+
+    n('apiBilling', '/api/billing', COLORS.lime, 'box', 14),
+    n('apiHolidays', '/api/holidays', COLORS.lime, 'box', 14),
+    n('apiRss', '/api/rss', COLORS.red, 'box', 14),
+
+    n('adminSDK', 'Firebase Admin SDK', COLORS.amber, 'dot', 20),
+
+    n('googleCal', 'Google Calendar', COLORS.indigo, 'dot', 16),
+    n('googleDrive', 'Google Drive', COLORS.indigo, 'dot', 16),
+    n('tradingView', 'TradingView', COLORS.gray, 'dot', 14),
+    n('venetoStore', 'Veneto Store', COLORS.gray, 'dot', 14),
+    n('feriadosAPI', 'API Feriados', COLORS.gray, 'dot', 14),
+    n('rssFeeds', 'Feeds RSS', COLORS.gray, 'dot', 14),
+  ]);
+
+  const edges = new vis.DataSet([
+    e('browser', 'rootLayout', '', false, 3, COLORS.blue),
+    e('rootLayout', 'rootProviders', 'envolve tudo'),
+    e('rootProviders', 'authLayout'),
+    e('rootProviders', 'appLayout'),
+    e('authLayout', 'loginPage'),
+    e('appLayout', 'appProviders2', 'DUPLICA providers', false, 2, COLORS.red),
+    e('appProviders2', 'appLayoutWrapper'),
+    e('appLayoutWrapper', 'dashboard'),
+    e('appLayoutWrapper', 'news'),
+    e('appLayoutWrapper', 'apps'),
+    e('appLayoutWrapper', 'documents'),
+    e('appLayoutWrapper', 'admin'),
+    e('appLayoutWrapper', 'audit'),
+    e('appLayoutWrapper', 'bi'),
+    e('appLayoutWrapper', 'rankings'),
+    e('appLayoutWrapper', 'otherPages'),
+
+    e('loginPage', 'firebaseAuth', 'signInWithPopup', false, 2, COLORS.orange),
+    e('rootProviders', 'firebaseAuth', 'onAuthStateChanged', true),
+    e('rootProviders', 'firestore', 'listeners + queries', false, 2, COLORS.orange),
+    e('appProviders2', 'firestore', 'listeners DUPLICADOS', false, 2, COLORS.red),
+    e('appLayoutWrapper', 'storage', 'uploadFile'),
+    e('firestoreRules', 'firestore', 'protege', false, 2, COLORS.red),
+
+    e('apiBilling', 'adminSDK', 'verifyIdToken'),
+    e('apiHolidays', 'adminSDK', 'verifyIdToken'),
+    e('apiRss', 'rssFeeds', 'SEM AUTH', false, 2, COLORS.red),
+    e('apiHolidays', 'feriadosAPI', 'proxy'),
+
+    e('dashboard', 'googleCal', 'accessToken'),
+    e('dashboard', 'googleDrive', 'accessToken'),
+    e('dashboard', 'tradingView', 'embed'),
+    e('appLayoutWrapper', 'venetoStore', 'iframe'),
+  ]);
+
+  setLegend([
+    { color: COLORS.blue, label: 'Layout / Estrutura' },
+    { color: COLORS.orange, label: 'Firebase Services' },
+    { color: COLORS.cyan, label: 'Páginas públicas (autenticadas)' },
+    { color: COLORS.rose, label: 'Páginas admin/super' },
+    { color: COLORS.lime, label: 'API Routes' },
+    { color: COLORS.red, label: 'Problemas identificados' },
+    { color: COLORS.indigo, label: 'Integrações externas' },
+    { color: COLORS.gray, label: 'Serviços externos' },
+  ]);
+
+  return { nodes, edges };
+}
+
+// ========== GRAPH 2: AUTH FLOW ==========
+function graphAuth() {
+  const nodes = new vis.DataSet([
+    n('user', 'Usuário', COLORS.blue, 'icon', 30, { icon: { face: 'Segoe UI', code: '\u{1F464}', size: 40, color: COLORS.blue } }),
+    n('loginPage2', '/login\n(LoginPage)', COLORS.purple, 'dot', 25),
+    n('authCtx', 'AuthContext\n(380 linhas)', COLORS.orange, 'dot', 30),
+    n('googlePopup', 'Google\nsignInWithPopup', COLORS.green, 'star', 22),
+    n('corpCheck', 'Email\n@venetomfo.com.br?', COLORS.gold, 'diamond', 22),
+    n('collabFetch', 'Busca em\ncollaborators', COLORS.cyan, 'dot', 20),
+    n('matchUid', 'Match por\nauthUid', COLORS.cyan, 'dot', 16),
+    n('matchEmail', 'Match por\nemail', COLORS.cyan, 'dot', 16),
+    n('superCheck', 'É SuperAdmin?\n(lista dinâmica)', COLORS.rose, 'diamond', 20),
+    n('maintCheck', 'maintenanceMode?', COLORS.amber, 'diamond', 18),
+    n('setPerms', 'Aplica\nPermissions', COLORS.green, 'dot', 18),
+    n('auditLog', 'audit_logs\n(login)', COLORS.teal, 'dot', 16),
+    n('dashRedirect', 'router.push\n(/dashboard)', COLORS.green, 'dot', 20),
+    n('signOutDeny', 'signOut()\n+ Toast', COLORS.red, 'dot', 18),
+    n('appLayout2', 'AppLayout', COLORS.blue, 'dot', 22),
+    n('adminGuard', 'AdminGuard', COLORS.rose, 'dot', 18),
+    n('superGuard', 'SuperAdminGuard', COLORS.rose, 'dot', 18),
+    n('inactivity', 'Timer 24h\nInatividade', COLORS.amber, 'dot', 16),
+    n('termsModal', 'TermsOfUseModal', COLORS.purple, 'dot', 16),
+    n('pageView', 'page_view\naudit_log', COLORS.teal, 'dot', 14),
+    n('realtimeSync', 'onSnapshot\ncollaborators\n(2 listeners)', COLORS.cyan, 'dot', 18),
+  ]);
+
+  const edges = new vis.DataSet([
+    e('user', 'loginPage2', 'acessa /login', false, 2),
+    e('loginPage2', 'authCtx', 'signInWithGoogle()'),
+    e('authCtx', 'googlePopup', 'popup OAuth'),
+    e('googlePopup', 'corpCheck', 'FirebaseUser'),
+    e('corpCheck', 'signOutDeny', 'NÃO', false, 2, COLORS.red),
+    e('corpCheck', 'collabFetch', 'SIM'),
+    e('collabFetch', 'matchUid'),
+    e('collabFetch', 'matchEmail', 'fallback'),
+    e('matchUid', 'superCheck'),
+    e('matchEmail', 'superCheck'),
+    e('superCheck', 'maintCheck'),
+    e('maintCheck', 'signOutDeny', 'bloqueado', false, 1.5, COLORS.red),
+    e('maintCheck', 'setPerms', 'OK'),
+    e('superCheck', 'setPerms', 'super=true\nall perms'),
+    e('setPerms', 'auditLog'),
+    e('auditLog', 'dashRedirect'),
+    e('dashRedirect', 'appLayout2'),
+    e('appLayout2', 'adminGuard', 'rotas /admin'),
+    e('appLayout2', 'superGuard', 'rotas /audit'),
+    e('appLayout2', 'inactivity', 'monitora'),
+    e('appLayout2', 'termsModal', 'verifica versão'),
+    e('appLayout2', 'pageView', 'cada navegação'),
+    e('authCtx', 'realtimeSync', 'após login'),
+  ]);
+
+  setLegend([
+    { color: COLORS.purple, label: 'Página de Login' },
+    { color: COLORS.orange, label: 'AuthContext (core)' },
+    { color: COLORS.green, label: 'Fluxo de sucesso' },
+    { color: COLORS.red, label: 'Negação / bloqueio' },
+    { color: COLORS.cyan, label: 'Busca de colaborador' },
+    { color: COLORS.rose, label: 'Guards de rota' },
+    { color: COLORS.amber, label: 'Verificações' },
+    { color: COLORS.teal, label: 'Auditoria' },
+  ]);
+
+  return { nodes, edges };
+}
+
+// ========== GRAPH 3: DATA FLOW ==========
+function graphData() {
+  const nodes = new vis.DataSet([
+    n('firestoreDB', 'Cloud Firestore', COLORS.orange, 'star', 35),
+    n('service', 'firestore-service.ts\n(camada central)', COLORS.gold, 'dot', 30),
+    n('dataSan', 'data-sanitizer.ts', COLORS.amber, 'dot', 16),
+    n('pathSan', 'path-sanitizer.ts', COLORS.amber, 'dot', 16),
+
+    n('ctx_auth', 'AuthContext', COLORS.purple, 'dot', 22),
+    n('ctx_collab', 'CollaboratorsCtx', COLORS.blue, 'dot', 18),
+    n('ctx_news', 'NewsContext', COLORS.cyan, 'dot', 18),
+    n('ctx_docs', 'DocumentsCtx', COLORS.cyan, 'dot', 18),
+    n('ctx_wf', 'WorkflowsCtx', COLORS.green, 'dot', 18),
+    n('ctx_wfdef', 'ApplicationsCtx', COLORS.green, 'dot', 18),
+    n('ctx_polls', 'PollsCtx', COLORS.teal, 'dot', 18),
+    n('ctx_msgs', 'MessagesCtx', COLORS.cyan, 'dot', 16),
+    n('ctx_labs', 'LabsCtx', COLORS.cyan, 'dot', 16),
+    n('ctx_rank', 'RankingsCtx', COLORS.indigo, 'dot', 16),
+    n('ctx_fab', 'FabMsgsCtx', COLORS.pink, 'dot', 16),
+    n('ctx_contacts', 'ContactsCtx', COLORS.gray, 'dot', 16),
+    n('ctx_links', 'QuickLinksCtx', COLORS.gray, 'dot', 16),
+    n('ctx_vacation', 'VacationCtx', COLORS.lime, 'dot', 16),
+    n('ctx_trips', 'TripsCtx', COLORS.lime, 'dot', 16),
+    n('ctx_meet', 'MeetAnalysesCtx', COLORS.teal, 'dot', 16),
+    n('ctx_requests', 'RequestsCtx', COLORS.green, 'dot', 16),
+    n('ctx_settings', 'SystemSettingsCtx', COLORS.amber, 'dot', 18),
+    n('ctx_other', '... +5 contexts', COLORS.gray, 'dot', 14),
+
+    n('rqCache', 'React Query Cache\nstaleTime: 5min / Infinity', COLORS.blue, 'box', 22),
+
+    n('pages', 'Pages (32)', COLORS.rose, 'dot', 20),
+    n('adminComps', 'Admin Components\n(36 arquivos)', COLORS.rose, 'dot', 20),
+    n('dashComps', 'Dashboard v2\nComponents', COLORS.cyan, 'dot', 18),
+
+    n('storageFB', 'Firebase Storage', COLORS.orange, 'star', 20),
+  ]);
+
+  const edges = new vis.DataSet([
+    e('firestoreDB', 'service', 'onSnapshot / getDocs', false, 3, COLORS.orange),
+    e('service', 'dataSan', 'cleanData antes de write'),
+    e('service', 'pathSan', 'sanitiza paths'),
+    e('service', 'storageFB', 'uploadFile'),
+
+    e('service', 'ctx_auth'),
+    e('service', 'ctx_collab'),
+    e('service', 'ctx_news'),
+    e('service', 'ctx_docs'),
+    e('service', 'ctx_wf'),
+    e('service', 'ctx_wfdef'),
+    e('service', 'ctx_polls'),
+    e('service', 'ctx_msgs'),
+    e('service', 'ctx_labs'),
+    e('service', 'ctx_rank'),
+    e('service', 'ctx_fab'),
+    e('service', 'ctx_contacts'),
+    e('service', 'ctx_links'),
+    e('service', 'ctx_vacation'),
+    e('service', 'ctx_trips'),
+    e('service', 'ctx_meet'),
+    e('service', 'ctx_requests'),
+    e('service', 'ctx_settings'),
+    e('service', 'ctx_other'),
+
+    e('ctx_news', 'rqCache', 'setQueryData'),
+    e('ctx_docs', 'rqCache'),
+    e('ctx_wf', 'rqCache'),
+    e('ctx_polls', 'rqCache'),
+    e('ctx_collab', 'rqCache'),
+    e('ctx_settings', 'rqCache'),
+    e('ctx_other', 'rqCache'),
+
+    e('rqCache', 'pages', 'useQuery hooks', false, 2),
+    e('rqCache', 'adminComps'),
+    e('rqCache', 'dashComps'),
+
+    e('pages', 'service', 'mutations', true, 1.5, COLORS.green),
+    e('adminComps', 'service', 'CRUD admin', true, 1.5, COLORS.rose),
+  ]);
+
+  setLegend([
+    { color: COLORS.orange, label: 'Firebase' },
+    { color: COLORS.gold, label: 'Camada de serviço' },
+    { color: COLORS.cyan, label: 'Contexts de conteúdo' },
+    { color: COLORS.green, label: 'Contexts de workflow' },
+    { color: COLORS.purple, label: 'Auth' },
+    { color: COLORS.blue, label: 'Cache (React Query)' },
+    { color: COLORS.rose, label: 'UI / Pages' },
+    { color: COLORS.lime, label: 'Contexts de férias/viagens' },
+  ]);
+
+  return { nodes, edges };
+}
+
+// ========== GRAPH 4: PROVIDERS ==========
+function graphProviders() {
+  const nodes = new vis.DataSet([
+    n('html', '<html>', COLORS.gray, 'box', 16),
+    n('p_theme', 'ThemeProvider', COLORS.purple, 'dot', 20),
+    n('p_rq', 'ReactQueryProvider', COLORS.blue, 'dot', 20),
+    n('p_settings', 'SystemSettingsProvider', COLORS.amber, 'dot', 20),
+    n('p_auth', 'AuthProvider', COLORS.orange, 'dot', 22),
+
+    n('root_collab', 'CollaboratorsProvider', COLORS.red, 'dot', 18),
+    n('root_wfAreas', 'WorkflowAreasProvider', COLORS.red, 'dot', 16),
+    n('root_apps', 'ApplicationsProvider', COLORS.red, 'dot', 16),
+    n('root_docs', 'DocumentsProvider', COLORS.red, 'dot', 16),
+    n('root_news', 'NewsProvider', COLORS.red, 'dot', 16),
+    n('root_msgs', 'MessagesProvider', COLORS.red, 'dot', 16),
+    n('root_labs', 'LabsProvider', COLORS.red, 'dot', 16),
+    n('root_wf', 'WorkflowsProvider', COLORS.red, 'dot', 16),
+    n('root_links', 'QuickLinksProvider', COLORS.red, 'dot', 16),
+    n('root_polls', 'PollsProvider', COLORS.red, 'dot', 16),
+    n('root_rank', 'RankingsProvider', COLORS.red, 'dot', 16),
+    n('root_fab', 'FabMessagesProvider', COLORS.red, 'dot', 16),
+    n('root_idle', 'IdleFabMsgsProvider', COLORS.red, 'dot', 16),
+    n('root_contacts', 'ContactsProvider', COLORS.red, 'dot', 16),
+
+    n('login', '/login\n(recebe TODOS)', COLORS.purple, 'box', 18),
+
+    n('app_collab', 'CollaboratorsProvider\nDUPLICADO', COLORS.rose, 'dot', 18),
+    n('app_wfAreas', 'WorkflowAreasProvider\nDUPLICADO', COLORS.rose, 'dot', 16),
+    n('app_more', '... +12 DUPLICADOS', COLORS.rose, 'dot', 18),
+    n('app_meet', 'MeetingAnalysesProvider\n(ÚNICO aqui)', COLORS.green, 'dot', 18),
+    n('app_trips', 'TripsBirthdaysProvider\n(ÚNICO aqui)', COLORS.green, 'dot', 16),
+    n('app_vac', 'VacationProvider\n(ÚNICO aqui)', COLORS.green, 'dot', 16),
+    n('app_vacReq', 'VacationRequestsProvider\n(ÚNICO aqui)', COLORS.green, 'dot', 16),
+    n('app_vacApp', 'VacationApproversProvider\n(ÚNICO aqui)', COLORS.green, 'dot', 16),
+    n('app_requests', 'RequestsProvider\n(ÚNICO aqui)', COLORS.green, 'dot', 16),
+
+    n('pages2', '32 Pages\n(recebem providers\nduplicados)', COLORS.cyan, 'dot', 22),
+  ]);
+
+  const edges = new vis.DataSet([
+    e('html', 'p_theme', '', false, 2),
+    e('p_theme', 'p_rq'),
+    e('p_rq', 'p_settings'),
+    e('p_settings', 'p_auth'),
+    e('p_auth', 'root_collab', '', false, 2, COLORS.red),
+    e('root_collab', 'root_wfAreas', '', false, 1, COLORS.red),
+    e('root_wfAreas', 'root_apps', '', false, 1, COLORS.red),
+    e('root_apps', 'root_docs', '', false, 1, COLORS.red),
+    e('root_docs', 'root_news', '', false, 1, COLORS.red),
+    e('root_news', 'root_msgs', '', false, 1, COLORS.red),
+    e('root_msgs', 'root_labs', '', false, 1, COLORS.red),
+    e('root_labs', 'root_wf', '', false, 1, COLORS.red),
+    e('root_wf', 'root_links', '', false, 1, COLORS.red),
+    e('root_links', 'root_polls', '', false, 1, COLORS.red),
+    e('root_polls', 'root_rank', '', false, 1, COLORS.red),
+    e('root_rank', 'root_fab', '', false, 1, COLORS.red),
+    e('root_fab', 'root_idle', '', false, 1, COLORS.red),
+    e('root_idle', 'root_contacts', '', false, 1, COLORS.red),
+
+    e('root_contacts', 'login', 'login recebe\n15 providers\ndesnecessários', false, 2, COLORS.red),
+    e('root_contacts', 'app_collab', 'entra no (app)'),
+
+    e('app_collab', 'app_wfAreas', '', false, 1.5, COLORS.rose),
+    e('app_wfAreas', 'app_more', '', false, 1.5, COLORS.rose),
+    e('app_more', 'app_meet'),
+    e('app_more', 'app_trips'),
+    e('app_more', 'app_vac'),
+    e('app_more', 'app_vacReq'),
+    e('app_more', 'app_vacApp'),
+    e('app_more', 'app_requests'),
+    e('app_requests', 'pages2', '', false, 2),
+  ]);
+
+  setLegend([
+    { color: COLORS.purple, label: 'Providers essenciais (root)' },
+    { color: COLORS.orange, label: 'Auth Provider' },
+    { color: COLORS.red, label: 'Providers DUPLICADOS no root' },
+    { color: COLORS.rose, label: 'Providers DUPLICADOS no (app)' },
+    { color: COLORS.green, label: 'Providers exclusivos do (app)' },
+    { color: COLORS.cyan, label: 'Páginas (consumers)' },
+  ]);
+
+  return { nodes, edges };
+}
+
+// ========== GRAPH 5: PERMISSIONS ==========
+function graphPermissions() {
+  const nodes = new vis.DataSet([
+    n('anyUser', 'Colaborador\nAutenticado', COLORS.blue, 'dot', 30),
+    n('r_dash', '/dashboard', COLORS.cyan, 'box', 16),
+    n('r_news', '/news', COLORS.cyan, 'box', 14),
+    n('r_apps', '/applications', COLORS.cyan, 'box', 14),
+    n('r_docs', '/documents', COLORS.cyan, 'box', 14),
+    n('r_labs', '/labs', COLORS.cyan, 'box', 14),
+    n('r_store', '/store', COLORS.cyan, 'box', 14),
+    n('r_tasks', '/me/tasks', COLORS.cyan, 'box', 14),
+
+    n('perm_bi', 'canViewBI', COLORS.amber, 'diamond', 16),
+    n('perm_biL', 'canViewBILeaders', COLORS.amber, 'diamond', 16),
+    n('perm_rank', 'canViewRankings', COLORS.amber, 'diamond', 16),
+    n('perm_dir', 'canViewDirectoria', COLORS.amber, 'diamond', 16),
+    n('perm_meet', 'canViewMeetAnalyses', COLORS.amber, 'diamond', 16),
+    n('r_bi', '/bi', COLORS.teal, 'box', 14),
+    n('r_biL', '/bi-leaders', COLORS.teal, 'box', 14),
+    n('r_rank', '/rankings', COLORS.teal, 'box', 14),
+    n('r_panel', '/personal-panel', COLORS.teal, 'box', 14),
+    n('r_meet', '/meet-analyses', COLORS.teal, 'box', 14),
+
+    n('adminGuard2', 'AdminGuard\n(isAdmin=true)', COLORS.rose, 'diamond', 22),
+    n('r_admin', '/admin', COLORS.rose, 'box', 14),
+    n('r_adminC', '/admin/content', COLORS.rose, 'box', 14),
+    n('r_adminW', '/admin/workflows', COLORS.rose, 'box', 14),
+    n('r_adminF', '/admin/fab-messages', COLORS.rose, 'box', 14),
+    n('r_requests', '/requests', COLORS.rose, 'box', 14),
+
+    n('superGuard2', 'SuperAdminGuard\n(isSuperAdmin)', COLORS.red, 'diamond', 22),
+    n('r_audit', '/audit/**', COLORS.red, 'box', 14),
+    n('r_crm', '/admin/crm', COLORS.red, 'box', 14),
+    n('r_strategic', '/admin/strategic-panel', COLORS.red, 'box', 14),
+
+    n('perm_trips', 'canManageTrips\nOR canManageVac', COLORS.lime, 'diamond', 16),
+    n('r_travel', '/admin/travel-birthdays', COLORS.lime, 'box', 14),
+
+    n('ff_labs', 'Feature Flag:\nlabs=true', COLORS.gray, 'triangle', 14),
+    n('ff_rank', 'Feature Flag:\nrankings=true', COLORS.gray, 'triangle', 14),
+    n('ff_bi', 'Feature Flag:\nBI=false', COLORS.red, 'triangle', 14),
+    n('ff_biL', 'Feature Flag:\nBILeaders=false', COLORS.red, 'triangle', 14),
+
+    n('broken', '/opportunity-map\nQUEBRADO', COLORS.red, 'box', 16),
+  ]);
+
+  const edges = new vis.DataSet([
+    e('anyUser', 'r_dash'), e('anyUser', 'r_news'), e('anyUser', 'r_apps'),
+    e('anyUser', 'r_docs'), e('anyUser', 'r_store'), e('anyUser', 'r_tasks'),
+    e('anyUser', 'r_labs'), e('r_labs', 'ff_labs', '', true),
+
+    e('anyUser', 'perm_bi'), e('perm_bi', 'r_bi'), e('r_bi', 'ff_bi', 'DESABILITADO', true, 1.5, COLORS.red),
+    e('anyUser', 'perm_biL'), e('perm_biL', 'r_biL'), e('r_biL', 'ff_biL', 'DESABILITADO', true, 1.5, COLORS.red),
+    e('anyUser', 'perm_rank'), e('perm_rank', 'r_rank'), e('r_rank', 'ff_rank', '', true),
+    e('anyUser', 'perm_dir'), e('perm_dir', 'r_panel'),
+    e('anyUser', 'perm_meet'), e('perm_meet', 'r_meet'),
+
+    e('anyUser', 'adminGuard2', 'alguma perm = true', false, 2),
+    e('adminGuard2', 'r_admin'), e('adminGuard2', 'r_adminC'),
+    e('adminGuard2', 'r_adminW'), e('adminGuard2', 'r_adminF'),
+    e('adminGuard2', 'r_requests'),
+
+    e('anyUser', 'superGuard2', 'email em superAdminEmails', false, 2),
+    e('superGuard2', 'r_audit'), e('superGuard2', 'r_crm'), e('superGuard2', 'r_strategic'),
+
+    e('anyUser', 'perm_trips'), e('perm_trips', 'r_travel'),
+
+    e('anyUser', 'broken', 'page sem export', false, 2, COLORS.red),
+  ]);
+
+  setLegend([
+    { color: COLORS.blue, label: 'Usuário autenticado' },
+    { color: COLORS.cyan, label: 'Acesso livre (autenticado)' },
+    { color: COLORS.amber, label: 'Requer permissão específica' },
+    { color: COLORS.teal, label: 'Rotas com permissão' },
+    { color: COLORS.rose, label: 'Área Admin (AdminGuard)' },
+    { color: COLORS.red, label: 'SuperAdmin / Problemas' },
+    { color: COLORS.lime, label: 'Permissão de viagens/férias' },
+    { color: COLORS.gray, label: 'Feature Flags' },
+  ]);
+
+  return { nodes, edges };
+}
+
+// ========== GRAPH 6: FAILURE POINTS ==========
+function graphFailures() {
+  const nodes = new vis.DataSet([
+    n('app', 'ConnectVeneto\nApp', COLORS.blue, 'dot', 35),
+
+    n('s1', 'S1: Sem middleware.ts\n(proteção só client-side)', COLORS.red, 'box', 22),
+    n('s2', 'S2: /api/rss\nsem autenticação\n(risco SSRF)', COLORS.red, 'box', 22),
+    n('s3', 'S3: SuperAdmin\nhardcoded nas\nFirestore Rules', COLORS.red, 'box', 22),
+    n('s4', 'S4: ~15 coleções\nSEM regras Firestore', COLORS.red, 'box', 25),
+    n('s5', 'S5: TS + ESLint\nignorados no build', COLORS.orange, 'box', 18),
+    n('s6', 'S6: Debug logs\nem produção', COLORS.orange, 'box', 18),
+    n('s7', 'S7: Feature flags\nhardcoded\n(sem toggle runtime)', COLORS.amber, 'box', 16),
+
+    n('e1', 'E1: 15 Providers\nDUPLICADOS\n(listeners x2)', COLORS.red, 'box', 22),
+    n('e2', 'E2: Providers\ncarregam na /login\n(sem usuário)', COLORS.red, 'box', 20),
+    n('e3', 'E3: 27 contexts\nindependentes\n(explosão de conexões)', COLORS.orange, 'box', 20),
+    n('e4', 'E4: /opportunity-map\npage.tsx quebrado', COLORS.orange, 'box', 16),
+    n('e5', 'E5: Sem Error\nBoundaries', COLORS.red, 'box', 20),
+    n('e6', 'E6: Audit log\na cada navegação\n(custo Firestore)', COLORS.orange, 'box', 18),
+    n('e7', 'E7: staleTime Infinity\n(dados podem ficar\ndesatualizados)', COLORS.amber, 'box', 16),
+
+    n('m1', 'M1: AuthContext\nfaz tudo (380 linhas)\nViola SRP', COLORS.purple, 'box', 18),
+    n('m2', 'M2: AppLayout\nfaz tudo (312 linhas)\nViola SRP', COLORS.purple, 'box', 18),
+    n('m3', 'M3: Novo domínio =\nalterar 2 AppProviders\nViola OCP', COLORS.purple, 'box', 18),
+    n('m4', 'M4: Sem abstração\nde repositório\nViola DIP', COLORS.purple, 'box', 18),
+    n('m5', 'M5: src/shared/\nduplicação massiva\n(~30 componentes)', COLORS.indigo, 'box', 18),
+    n('m6', 'M6: Tipos espalhados\nem 27 contexts\n(sem src/types/)', COLORS.indigo, 'box', 16),
+    n('m7', 'M7: Padrão de context\nrepetido 27x\n(sem factory)', COLORS.indigo, 'box', 16),
+
+    n('cat_sec', 'SEGURANÇA', COLORS.red, 'diamond', 22),
+    n('cat_stab', 'ESTABILIDADE', COLORS.orange, 'diamond', 22),
+    n('cat_maint', 'MANUTENIBILIDADE', COLORS.purple, 'diamond', 22),
+  ]);
+
+  const edges = new vis.DataSet([
+    e('app', 'cat_sec', '', false, 3, COLORS.red),
+    e('app', 'cat_stab', '', false, 3, COLORS.orange),
+    e('app', 'cat_maint', '', false, 3, COLORS.purple),
+
+    e('cat_sec', 's1', 'CRITICO', false, 2, COLORS.red),
+    e('cat_sec', 's2', 'ALTO', false, 2, COLORS.red),
+    e('cat_sec', 's3', 'ALTO', false, 2, COLORS.red),
+    e('cat_sec', 's4', 'CRITICO', false, 2, COLORS.red),
+    e('cat_sec', 's5', 'MEDIO', false, 1.5, COLORS.orange),
+    e('cat_sec', 's6', 'MEDIO', false, 1.5, COLORS.orange),
+    e('cat_sec', 's7', 'BAIXO', false, 1, COLORS.amber),
+
+    e('cat_stab', 'e1', 'ALTO', false, 2, COLORS.red),
+    e('cat_stab', 'e2', 'ALTO', false, 2, COLORS.red),
+    e('cat_stab', 'e3', 'ALTO', false, 2, COLORS.orange),
+    e('cat_stab', 'e4', 'MEDIO', false, 1.5, COLORS.orange),
+    e('cat_stab', 'e5', 'ALTO', false, 2, COLORS.red),
+    e('cat_stab', 'e6', 'MEDIO', false, 1.5, COLORS.orange),
+    e('cat_stab', 'e7', 'MEDIO', false, 1, COLORS.amber),
+
+    e('cat_maint', 'm1', 'SRP', false, 1.5, COLORS.purple),
+    e('cat_maint', 'm2', 'SRP', false, 1.5, COLORS.purple),
+    e('cat_maint', 'm3', 'OCP', false, 1.5, COLORS.purple),
+    e('cat_maint', 'm4', 'DIP', false, 1.5, COLORS.purple),
+    e('cat_maint', 'm5', 'DRY', false, 1.5, COLORS.indigo),
+    e('cat_maint', 'm6', 'DRY', false, 1.5, COLORS.indigo),
+    e('cat_maint', 'm7', 'DRY', false, 1.5, COLORS.indigo),
+
+    e('s4', 'e1', 'rules + listeners\namplificam risco', true, 1, COLORS.gray),
+    e('e1', 'e3', 'relacionados', true, 1, COLORS.gray),
+    e('m3', 'e1', 'causa raiz', true, 1, COLORS.gray),
+    e('m1', 'm2', 'mesmo padrão', true, 1, COLORS.gray),
+    e('m7', 'm6', 'relacionados', true, 1, COLORS.gray),
+  ]);
+
+  setLegend([
+    { color: COLORS.red, label: 'Risco CRITICO / ALTO' },
+    { color: COLORS.orange, label: 'Risco MEDIO / Estabilidade' },
+    { color: COLORS.amber, label: 'Risco BAIXO' },
+    { color: COLORS.purple, label: 'Violação SOLID' },
+    { color: COLORS.indigo, label: 'Violação DRY' },
+    { color: COLORS.blue, label: 'Aplicação' },
+  ]);
+
+  return { nodes, edges };
+}
+
+// ========== RENDER ==========
+const graphs = { arch: graphArch, auth: graphAuth, data: graphData, providers: graphProviders, permissions: graphPermissions, failures: graphFailures };
+
+function setLegend(items) {
+  document.getElementById('legend').innerHTML = '<h3>Legenda</h3>' + items.map(i =>
+    `<div class="legend-item"><div class="legend-dot" style="background:${i.color}"></div><span>${i.label}</span></div>`
+  ).join('');
+}
+
+function showGraph(key) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  event.target.classList.add('active');
+  document.getElementById('info-panel').style.display = 'none';
+
+  const { nodes, edges } = graphs[key]();
+  if (network) network.destroy();
+  network = new vis.Network(container, { nodes, edges }, defaultOptions);
+
+  network.on('click', (params) => {
+    if (params.nodes.length > 0) {
+      const nodeId = params.nodes[0];
+      const node = nodes.get(nodeId);
+      if (node) {
+        document.getElementById('info-title').textContent = node.label.replace(/\n/g, ' ');
+        document.getElementById('info-body').innerHTML = `<p style="color:#a9a9a8">ID: <code>${node.id}</code></p>`;
+        document.getElementById('info-panel').style.display = 'block';
+      }
+    }
+  });
+}
+
+showGraph('arch');
+</script>
+</body>
+</html>

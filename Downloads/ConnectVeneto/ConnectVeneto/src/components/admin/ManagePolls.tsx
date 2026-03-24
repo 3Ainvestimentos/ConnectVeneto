@@ -20,7 +20,7 @@ import { RecipientSelectionModal } from './RecipientSelectionModal';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { Switch } from '../ui/switch';
 import Link from 'next/link';
-import { navItems } from '@/components/layout/AppLayout';
+import { navItems } from '@/components/layout/navigation';
 import { RadioGroup, RadioGroupItem } from '../ui/radio-group';
 
 type PollFormValues = Zod.infer<typeof pollSchema>;

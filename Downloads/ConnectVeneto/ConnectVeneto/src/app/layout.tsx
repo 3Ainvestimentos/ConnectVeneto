@@ -23,6 +23,10 @@ const fontArchivo = Archivo({
 export const metadata: Metadata = {
   title: 'Vêneto Connect',
   description: 'Plataforma interna Veneto Family Office',
+  icons: {
+    icon: '/icon.png',
+    apple: '/apple-icon.png',
+  },
 };
 
 export default function RootLayout({
@@ -34,8 +38,6 @@ export default function RootLayout({
     <html lang="pt-BR" suppressHydrationWarning>
       <head>
         <meta charSet="utf-8" />
-        <link rel="icon" href="/favicon-veneto.png" type="image/png" />
-        <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
       </head>
       <body className={cn("font-sans antialiased", fontRoboto.variable, fontArchivo.variable)}>
         <AppProviders>

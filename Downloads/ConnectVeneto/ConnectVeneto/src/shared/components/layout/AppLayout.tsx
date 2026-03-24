@@ -6,18 +6,16 @@ import { LoadingSpinner } from '@/components/ui/loading-spinner';
 import {
   SidebarProvider,
   Sidebar,
-  SidebarHeader,
   SidebarContent,
   SidebarFooter,
   SidebarMenu,
   SidebarMenuItem,
   SidebarMenuButton,
-  SidebarInset,
   useSidebar,
 } from '@/shared/components/ui/sidebar';
 import { Header } from './Header';
 import Link from 'next/link';
-import { Home, Newspaper, FolderOpen, LogOut, UserCircle, Bot, FlaskConical, ShoppingCart, LayoutGrid, Sun, Moon, Laptop, HelpCircle, Settings, Shield, BarChart, Mailbox, Workflow, FileText, ListTodo, Fingerprint, Edit, LayoutDashboard, TestTube2, Briefcase, Target, PanelsTopLeft, ListChecks, Award, MessageSquarePlus, Compass, Video } from 'lucide-react';
+import { LogOut, UserCircle, Sun, Moon, HelpCircle, Shield, Mailbox, ListTodo, Fingerprint, Edit, Plane } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRouter, usePathname } from 'next/navigation';
 import Image from 'next/image';
@@ -50,26 +48,13 @@ import { useApplications } from '@/contexts/ApplicationsContext';
 import PollTrigger from '@/components/polls/PollTrigger';
 import { useSystemSettings } from '@/contexts/SystemSettingsContext';
 import { TermsOfUseModal } from '@/features/auth/components/TermsOfUseModal';
-import NotificationFAB from '@/components/fab/NotificationFAB';
-import { useFabMessages } from '@/contexts/FabMessagesContext';
-import { findCollaboratorByEmail, emailsMatch } from '@/lib/email-utils';
-
-
-export const navItems = [
-  { href: '/dashboard', label: 'Painel Inicial', icon: Home, external: false, permission: null },
-  { href: '/news', label: 'Feed de Notícias', icon: Newspaper, external: false, permission: null },
-  { href: '/applications', label: 'Solicitações', icon: Workflow, external: false, permission: null },
-  { href: '/documents', label: 'Documentos', icon: FolderOpen, external: false, permission: null },
-  { href: '/labs', label: 'Labs', icon: FlaskConical, external: false, permission: null },
-  { href: '/rankings', label: 'Rankings e Campanhas', icon: Award, external: false, permission: 'canViewRankings' },
-  { href: '/bi', label: 'Business Intelligence', icon: BarChart, external: false, permission: 'canViewBI' },
-  { href: 'https://www.store-3ariva.com.br/', label: 'Store', icon: ShoppingCart, external: true, permission: null },
-  { href: '/chatbot', label: 'Bob', icon: Bot, external: false, permission: null },
-  { href: '/meet-analyses', label: 'Bob Meet Análises', icon: Video, external: false, permission: 'canViewMeetAnalyses' },
-];
+import { findCollaboratorByEmail } from '@/lib/email-utils';
+import { getCollaboratorUserId } from '@/contexts/CollaboratorsContext';
+import { navItems, noZoomRoutes } from '@/components/layout/navigation';
+import logoSidebar from '../../../../docs/PNG/logotipo_vênetoPrancheta 1.png';
 
 function UserNav({ onProfileClick, hasPendingRequests, hasPendingTasks }: { onProfileClick: () => void; hasPendingRequests: boolean; hasPendingTasks: boolean; }) {
-  const { user, signOut, loading, isAdmin, isSuperAdmin, permissions } = useAuth();
+  const { user, signOut, loading, isSuperAdmin, permissions } = useAuth();
   const { theme, setTheme } = useTheme();
   const { collaborators } = useCollaborators();
 
@@ -85,8 +70,13 @@ function UserNav({ onProfileClick, hasPendingRequests, hasPendingTasks }: { onPr
   const displayEmail = currentUserCollaborator?.email || user.email;
   const displayPhotoUrl = currentUserCollaborator?.photoURL || user.photoURL || undefined;
 
-  const hasTools = permissions.canManageRequests || permissions.canViewTasks || permissions.canViewCRM || permissions.canViewStrategicPanel || permissions.canViewDirectoria;
-  const hasAdminPanels = permissions.canManageContent || permissions.canManageWorkflows || isSuperAdmin;
+  const hasTools = permissions.canManageRequests || permissions.canViewTasks;
+  const hasAdminPanels =
+    permissions.canManageContent ||
+    permissions.canManageWorkflows ||
+    permissions.canManageTripsBirthdays ||
+    permissions.canManageVacation ||
+    isSuperAdmin;
 
   return (
     <DropdownMenu>
@@ -166,15 +156,6 @@ function UserNav({ onProfileClick, hasPendingRequests, hasPendingTasks }: { onPr
                     </Link>
                 </DropdownMenuItem>
             )}
-            {permissions.canViewCRM && (
-                <DropdownMenuItem asChild><Link href="/admin/crm" className="cursor-pointer font-body"><Briefcase className="mr-2 h-4 w-4" /><span>CRM Interno</span></Link></DropdownMenuItem>
-            )}
-            {permissions.canViewStrategicPanel && (
-                <DropdownMenuItem asChild><Link href="/admin/strategic-panel" className="cursor-pointer font-body"><Target className="mr-2 h-4 w-4" /><span>Painel Estratégico</span></Link></DropdownMenuItem>
-            )}
-            {permissions.canViewDirectoria && (
-                <DropdownMenuItem asChild><Link href="/personal-panel" className="cursor-pointer font-body"><PanelsTopLeft className="mr-2 h-4 w-4" /><span>Diretoria</span></Link></DropdownMenuItem>
-            )}
             </DropdownMenuGroup>
         )}
         
@@ -185,8 +166,14 @@ function UserNav({ onProfileClick, hasPendingRequests, hasPendingTasks }: { onPr
             <DropdownMenuGroup>
                 <DropdownMenuLabel className="text-xs text-muted-foreground font-normal">Painéis de controle</DropdownMenuLabel>
                 {permissions.canManageContent && <DropdownMenuItem asChild><Link href="/admin/content" className="cursor-pointer font-body"><Edit className="mr-2 h-4 w-4" /><span>Conteúdo</span></Link></DropdownMenuItem>}
-                {isSuperAdmin && <DropdownMenuItem asChild><Link href="/admin/fab-messages" className="cursor-pointer font-body"><MessageSquarePlus className="mr-2 h-4 w-4" /><span>Mensagens FAB</span></Link></DropdownMenuItem>}
-                {permissions.canManageWorkflows && <DropdownMenuItem asChild><Link href="/admin/workflows" className="cursor-pointer font-body"><Workflow className="mr-2 h-4 w-4" /><span>Workflows</span></Link></DropdownMenuItem>}
+                {(permissions.canManageTripsBirthdays || permissions.canManageVacation) && (
+                  <DropdownMenuItem asChild>
+                    <Link href="/admin/travel-birthdays" className="cursor-pointer font-body">
+                      <Plane className="mr-2 h-4 w-4" />
+                      <span>Viagens/Férias</span>
+                    </Link>
+                  </DropdownMenuItem>
+                )}
                 {isSuperAdmin && (
                   <>
                      <DropdownMenuItem asChild><Link href="/audit" className="cursor-pointer font-body text-destructive focus:bg-destructive/10 focus:text-destructive"><Fingerprint className="mr-2 h-4 w-4" /><span>Auditoria</span></Link></DropdownMenuItem>
@@ -212,15 +199,14 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
   const { user, loading, signOut, permissions, isSuperAdmin } = useAuth();
   const { collaborators, loading: collaboratorsLoading } = useCollaborators();
   const { settings, loading: settingsLoading } = useSystemSettings();
-  const { theme, setTheme } = useTheme();
   const { requests, loading: workflowsLoading } = useWorkflows();
-  const { fabMessages } = useFabMessages();
   const { workflowDefinitions } = useApplications();
   const router = useRouter();
   const pathname = usePathname();
   const { setOpen: setSidebarOpen } = useSidebar();
   
-  const isFullscreenPage = ['/chatbot', '/admin/crm', '/admin/strategic-panel', '/personal-panel'].includes(pathname);
+  const isFullscreenPage = false;
+  const shouldApplyContentZoom = !noZoomRoutes.some((route) => pathname === route || pathname.startsWith(`${route}/`));
   
   const [isFaqModalOpen, setIsFaqModalOpen] = useState(false);
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
@@ -230,13 +216,6 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
     if (!user) return null;
     return findCollaboratorByEmail(collaborators, user.email) || null;
   }, [user, collaborators]);
-
-  const hasActiveCampaign = useMemo(() => {
-    if (!currentUserCollab) return false;
-    const messageForUser = fabMessages.find(msg => msg.userId === currentUserCollab.id3a);
-    return messageForUser && (messageForUser.status === 'pending_cta' || messageForUser.status === 'pending_follow_up');
-  }, [fabMessages, currentUserCollab]);
-
 
   useEffect(() => {
     if (loading || collaboratorsLoading || settingsLoading || isSuperAdmin) return;
@@ -277,7 +256,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
     return requests.some(req => {
         if (req.isArchived) return false;
         
-        const isOwnerWithUnassignedTask = emailsMatch(req.ownerEmail, user.email) && !req.assignee;
+        const isOwnerWithUnassignedTask = (req.ownerEmail === user.email) && !req.assignee;
         
         return isOwnerWithUnassignedTask;
     });
@@ -287,9 +266,11 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
     if (!user || workflowsLoading || !requests.length) return false;
     const currentUserCollab = findCollaboratorByEmail(collaborators, user.email);
     if (!currentUserCollab) return false;
+    const currentUserId = getCollaboratorUserId(currentUserCollab);
+    if (!currentUserId) return false;
     
     const hasNewTask = requests.some(req => {
-      if (req.isArchived || req.assignee?.id !== currentUserCollab.id3a) {
+      if (req.isArchived || req.assignee?.id !== currentUserId) {
         return false;
       }
       const definition = workflowDefinitions.find(d => d.name === req.type);
@@ -306,7 +287,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
       if (req.isArchived) return false;
       const actionRequestsForStatus = req.actionRequests?.[req.status] || [];
       return actionRequestsForStatus.some(
-        ar => ar.userId === currentUserCollab.id3a && ar.status === 'pending'
+        ar => ar.userId === currentUserId && ar.status === 'pending'
       );
     });
 
@@ -318,10 +299,11 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (user && pathname) {
         const currentUserCollab = findCollaboratorByEmail(collaborators, user.email);
-        if (currentUserCollab) {
+        const currentUserId = getCollaboratorUserId(currentUserCollab);
+        if (currentUserCollab && currentUserId) {
             addDocumentToCollection('audit_logs', {
                 eventType: 'page_view',
-                userId: currentUserCollab.id3a,
+                userId: currentUserId,
                 userName: currentUserCollab.name,
                 timestamp: new Date().toISOString(),
                 details: {
@@ -374,7 +356,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
   if (loading || !user) {
      return (
         <div className="flex h-screen w-screen items-center justify-center">
-          <LoadingSpinner message="Carregando 3A RIVA Connect" />
+          <LoadingSpinner message="Carregando Intranet Veneto" />
         </div>
      );
   }
@@ -391,90 +373,74 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
       <Header userNav={<UserNav onProfileClick={() => setIsProfileModalOpen(true)} hasPendingRequests={hasPendingRequests} hasPendingTasks={hasPendingTasks} />} showSidebarTrigger={!isFullscreenPage} showDashboardButton={isFullscreenPage} />
       <div className="flex flex-1"> 
         {!isFullscreenPage && (
-          <>
-            <Sidebar collapsible="icon"> 
-              <SidebarHeader className="border-b border-sidebar-border p-4">
-                <Link href="/dashboard" className="flex items-center justify-center">
-                  <Image 
-                    src="https://firebasestorage.googleapis.com/v0/b/a-riva-hub.firebasestorage.app/o/Imagens%20institucionais%20(logos%20e%20etc)%2Flogo_preto.png?alt=media&token=66e2cd24-a4b4-453b-bb03-c7d0a65976bb"
-                    alt="Logo 3A RIVA" 
-                    width={120} 
-                    height={40}
-                    className="object-contain group-data-[collapsible=icon]:hidden"
-                    priority 
-                  />
-                  <Image 
-                    src="https://firebasestorage.googleapis.com/v0/b/a-riva-hub.firebasestorage.app/o/Tela%20de%20login%2FIntranet%20sem%20A.svg?alt=media&token=64ffd9b2-f82e-41bb-b43f-9f66f6db1ebd"
-                    alt="Logo 3A RIVA Mini" 
-                    width={32} 
-                    height={32}
-                    className="object-contain hidden group-data-[collapsible=icon]:block"
-                    priority 
-                  />
+          <Sidebar collapsible="icon" variant="sidebar"> 
+            <SidebarContent className="flex-1 p-2">
+              <div className="mb-4 px-2 py-1">
+                <Link href="/dashboard" onClick={handleLinkClick} className="flex items-center justify-center rounded-md p-2 hover:bg-muted">
+                  <Image src={logoSidebar} alt="Logo Veneto Family Office" width={140} height={36} className="h-auto w-auto max-h-8" priority />
                 </Link>
-              </SidebarHeader>
-              <SidebarContent>
-                <SidebarMenu>
-                  {navItems.map((item) => {
-                    if (item.permission && !permissions[item.permission as keyof typeof permissions]) {
-                      return null;
-                    }
-                    return (
-                      <SidebarMenuItem key={item.href}>
-                        <SidebarMenuButton
-                          asChild
-                          isActive={!item.external && (pathname === item.href || (item.href !== '/dashboard' && pathname.startsWith(item.href)))}
-                          tooltip={item.label}
+              </div>
+              <SidebarMenu>
+                {navItems.map((item) => {
+                  if (item.permission && !permissions[item.permission as keyof typeof permissions]) {
+                    return null;
+                  }
+                  return (
+                    <SidebarMenuItem key={item.href}>
+                      <SidebarMenuButton
+                        asChild
+                        isActive={!item.external && (pathname === item.href || (item.href !== '/dashboard' && pathname.startsWith(item.href)))}
+                        tooltip={{children: item.label, className: "font-body"}}
+                        onClick={handleLinkClick}
+                        className="font-body"
+                      >
+                       <Link
+                          href={item.href}
+                          {...(item.external ? { target: '_blank', rel: 'noopener noreferrer' } : {})}
                         >
-                         <Link
-                            href={item.href}
-                            {...(item.external ? { target: '_blank', rel: 'noopener noreferrer' } : {})}
-                          >
-                            <item.icon />
-                            <span>{item.label}</span>
-                          </Link>
-                        </SidebarMenuButton>
-                      </SidebarMenuItem>
-                    );
-                  })}
-                </SidebarMenu>
-              </SidebarContent>
-              <SidebarFooter>
-                <SidebarMenu>
-                  <SidebarMenuItem>
-                    <SidebarMenuButton
-                      tooltip="Guias e FAQ"
-                      onClick={() => {
-                          handleLinkClick();
-                          setIsFaqModalOpen(true);
-                      }}
-                    >
-                      <HelpCircle />
-                      <span>Guias e FAQ</span>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                  <SidebarMenuItem>
-                    <SidebarMenuButton onClick={signOut} tooltip="Sair">
-                      <LogOut />
-                      <span>Sair</span>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                </SidebarMenu>
-              </SidebarFooter>
-            </Sidebar>
-            <SidebarInset>
-              <main className="flex-1 overflow-auto">
-                {children}
-                <NotificationFAB hasPendingRequests={hasPendingRequests} hasPendingTasks={hasPendingTasks} />
-              </main>
-            </SidebarInset>
-          </>
+                          <item.icon />
+                          <span>{item.label}</span>
+                        </Link>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                  );
+                })}
+              </SidebarMenu>
+            </SidebarContent>
+            <SidebarFooter className="p-2 mt-auto">
+              <SidebarMenu>
+                <SidebarMenuItem>
+                  <SidebarMenuButton
+                    tooltip={{ children: "Guias e FAQ", className: "font-body" }}
+                    onClick={() => {
+                        handleLinkClick();
+                        setIsFaqModalOpen(true);
+                    }}
+                    className="font-body"
+                  >
+                    <HelpCircle />
+                    <span>Guias e FAQ</span>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+                <SidebarMenuItem>
+                  <SidebarMenuButton onClick={signOut} tooltip={{ children: "Sair", className: "font-body" }} className="font-body">
+                    <LogOut />
+                    <span>Sair</span>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              </SidebarMenu>
+            </SidebarFooter>
+          </Sidebar>
         )}
-        {isFullscreenPage && (
-          <main className="flex-1">
-            {children}
-          </main>
-        )}
+        <main className={cn("flex-1", !isFullscreenPage && "md:ml-[var(--sidebar-width-icon)]")}>
+          {shouldApplyContentZoom ? (
+            <div style={{ zoom: "0.85" }}>
+              {children}
+            </div>
+          ) : (
+            children
+          )}
+        </main>
       </div>
       <PollTrigger />
       <FAQModal open={isFaqModalOpen} onOpenChange={setIsFaqModalOpen} />

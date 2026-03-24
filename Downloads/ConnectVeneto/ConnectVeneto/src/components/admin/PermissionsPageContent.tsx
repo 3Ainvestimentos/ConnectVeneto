@@ -8,29 +8,31 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Switch } from '@/components/ui/switch';
 import { toast } from '@/hooks/use-toast';
-import { Shield, Loader2, Search, DollarSign, Award, Filter, ChevronDown, ChevronUp, Target, Briefcase, Compass } from 'lucide-react';
+import { Shield, Loader2, Search, DollarSign, Award, Filter, ChevronDown, ChevronUp } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { FEATURE_FLAGS } from '@/config/features';
 
-const permissionLabels: { key: keyof CollaboratorPermissions; label: string }[] = [
+const allPermissionLabels: { key: keyof CollaboratorPermissions; label: string; featureFlag?: keyof typeof FEATURE_FLAGS }[] = [
     { key: 'canManageContent', label: 'Conteúdo' },
     { key: 'canManageWorkflows', label: 'Workflows' },
     { key: 'canManageRequests', label: 'Solicitações' },
     { key: 'canManageTripsBirthdays', label: 'Viagens/Aniversários' },
     { key: 'canManageVacation', label: 'Férias' },
     { key: 'canViewTasks', label: 'Minhas Tarefas' },
-    { key: 'canViewBI', label: 'Business Intelligence' },
+    { key: 'canViewBI', label: 'Business Intelligence', featureFlag: 'businessIntelligence' },
     { key: 'canViewRankings', label: 'Rankings' },
     { key: 'canViewOpportunityMap', label: 'Mapa de Oportunidades' },
-    { key: 'canViewCRM', label: 'CRM Interno' },
-    { key: 'canViewStrategicPanel', label: 'Painel Estratégico' },
-    { key: 'canViewDirectoria', label: 'Diretoria' },
     { key: 'canViewMeetAnalyses', label: 'Bob Meet Análises' },
-    { key: 'canViewBILeaders', label: 'BI Líderes' },
+    { key: 'canViewBILeaders', label: 'BI Líderes', featureFlag: 'businessIntelligenceLeaders' },
 ];
+
+const permissionLabels = allPermissionLabels.filter((item) =>
+  item.featureFlag ? FEATURE_FLAGS[item.featureFlag] : true
+);
 
 function PermissionsTable() {
     const { collaborators, loading, updateCollaboratorPermissions } = useCollaborators();
