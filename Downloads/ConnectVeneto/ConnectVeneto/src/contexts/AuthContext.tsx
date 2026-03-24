@@ -18,6 +18,12 @@ const scopes = [
   'https://www.googleapis.com/auth/drive.readonly'
 ];
 scopes.forEach(scope => googleProvider.addScope(scope));
+googleProvider.setCustomParameters({
+  hd: 'venetomfo.com.br',
+  prompt: 'select_account',
+});
+
+const CORPORATE_EMAIL_DOMAIN = 'venetomfo.com.br';
 
 interface AuthContextType {
   user: User | null;
@@ -40,6 +46,11 @@ const _auth = getAuth(_firebaseApp);
 const normalizeEmail = (email: string | null | undefined): string | null => {
     if (!email) return null;
     return email.replace(/@3ariva\.com\.br$/, '@3ainvestimentos.com.br');
+}
+
+const isCorporateEmail = (email: string | null | undefined): boolean => {
+  if (!email) return false;
+  return email.toLowerCase().endsWith(`@${CORPORATE_EMAIL_DOMAIN}`);
 }
 
 const defaultPermissions: CollaboratorPermissions = {
@@ -127,6 +138,19 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setLoading(true);
       if (firebaseUser) {
         try {
+            if (!isCorporateEmail(firebaseUser.email)) {
+              await firebaseSignOut(auth);
+              setUser(null);
+              setCurrentUserCollab(null);
+              toast({
+                title: "Acesso Negado",
+                description: `Apenas contas @${CORPORATE_EMAIL_DOMAIN} podem acessar a plataforma.`,
+                variant: 'destructive'
+              });
+              setLoading(false);
+              return;
+            }
+
             const { maintenanceMode, maintenanceMessage, allowedUserIds, superAdminEmails } = systemSettingsRef.current;
             const normalizedEmail = normalizeEmail(firebaseUser.email);
             // Normaliza também os emails da lista para comparar corretamente
@@ -234,6 +258,17 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       logAuthDebug('signInWithGoogle:start');
       const result = await signInWithPopup(auth, googleProvider);
       const firebaseUser = result.user;
+
+      if (!isCorporateEmail(firebaseUser.email)) {
+        await firebaseSignOut(auth);
+        toast({
+          title: "Acesso Negado",
+          description: `Apenas contas @${CORPORATE_EMAIL_DOMAIN} podem acessar a plataforma.`,
+          variant: "destructive"
+        });
+        setLoading(false);
+        return;
+      }
       
       const collaborator = await fetchAndSetCollaborator(firebaseUser);
       const normalizedEmail = normalizeEmail(firebaseUser.email);

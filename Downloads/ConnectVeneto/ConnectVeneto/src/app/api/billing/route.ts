@@ -1,14 +1,15 @@
 
 import { NextResponse } from 'next/server';
-import { getAuth } from 'firebase-admin/auth';
 import { getFirebaseAdminApp } from '@/lib/firebase-admin';
 import { getFirestore } from 'firebase-admin/firestore';
+import { verifyCorporateRequest } from '@/lib/api-auth';
 
 // Função para normalizar emails (mesma lógica do AuthContext)
 const normalizeEmail = (email: string | null | undefined): string | null => {
     if (!email) return null;
     return email.replace(/@3ariva\.com\.br$/, '@3ainvestimentos.com.br');
 };
+
 
 // Exemplo de dados de faturamento. Em um cenário real, estes dados viriam
 // de uma consulta ao BigQuery onde os dados de faturamento do Google Cloud são exportados.
@@ -29,15 +30,8 @@ export async function GET(request: Request) {
   try {
     // --- Autenticação e Autorização ---
     const authorizationHeader = request.headers.get('Authorization');
-    if (!authorizationHeader || !authorizationHeader.startsWith('Bearer ')) {
-      return NextResponse.json({ error: 'Não autorizado: Token não fornecido.' }, { status: 401 });
-    }
-    const idToken = authorizationHeader.split('Bearer ')[1];
-    
-    // Inicializa o Firebase Admin SDK para verificar o token
+    const decodedToken = await verifyCorporateRequest(authorizationHeader);
     const app = getFirebaseAdminApp();
-    const auth = getAuth(app);
-    const decodedToken = await auth.verifyIdToken(idToken);
 
     // --- Verificação de Super Admin ---
     // Busca as configurações do sistema para obter a lista de Super Admins
@@ -84,7 +78,15 @@ export async function GET(request: Request) {
 
   } catch (error: any) {
     console.error("Erro na API de Faturamento:", error);
-    
+
+    if (error?.message === 'UNAUTHORIZED_MISSING_TOKEN' || error?.message === 'UNAUTHORIZED_INVALID_TOKEN') {
+      return NextResponse.json({ error: 'Não autorizado: Token não fornecido.' }, { status: 401 });
+    }
+
+    if (error?.message === 'FORBIDDEN_NON_CORPORATE_EMAIL') {
+      return NextResponse.json({ error: 'Acesso negado: apenas contas corporativas podem acessar.' }, { status: 403 });
+    }
+
     if (error.code === 'auth/id-token-expired' || error.code === 'auth/argument-error') {
        return NextResponse.json({ error: 'Token de autenticação inválido ou expirado.' }, { status: 401 });
     }

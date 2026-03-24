@@ -1,3 +1,6 @@
+import { getAuth } from "firebase/auth";
+import { getFirebaseApp } from "@/lib/firebase";
+
 export interface HolidayItem {
   dateISO: string;
   name: string;
@@ -54,7 +57,17 @@ export async function fetchHolidays(query: HolidaysQuery): Promise<HolidayItem[]
   const params = new URLSearchParams();
   params.set("year", String(query.year));
 
-  const response = await fetch(`/api/holidays?${params.toString()}`);
+  const auth = getAuth(getFirebaseApp());
+  const idToken = await auth.currentUser?.getIdToken();
+  if (!idToken) {
+    throw new Error("Nao foi possivel validar autenticacao para consultar feriados.");
+  }
+
+  const response = await fetch(`/api/holidays?${params.toString()}`, {
+    headers: {
+      Authorization: `Bearer ${idToken}`,
+    },
+  });
   if (!response.ok) {
     throw new Error("Nao foi possivel carregar os feriados.");
   }

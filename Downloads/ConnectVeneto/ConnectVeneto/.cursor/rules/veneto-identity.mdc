@@ -1,0 +1,73 @@
+---
+description: Identidade visual e dados de referência da Intranet Veneto. Sempre consultar ao criar/editar páginas, componentes e estilos.
+alwaysApply: true
+---
+
+# Intranet Veneto — Referência de Design e Dados
+
+## Cores (Manual da Marca)
+
+Primárias:
+- Azul escuro (header, fundo principal): `#0d1d2c` — HSL `210 54% 11%` — Pantone 296 C
+- Branco (contraste): `#ffffff`
+
+Secundárias:
+- Azul: `#2d58a5`
+- Amarelo/dourado: `#e1ca5f`
+- Cinza: `#a9a9a8`
+
+## Logos (em `docs/PNG/`)
+
+- Prancheta 1: logo azul marinho (fundo claro) — usar na sidebar
+- Prancheta 2: logo preta (fundo claro)
+- Prancheta 3: logo branca (fundo transparente) — usar no header
+- Prancheta 4-5: variações horizontais azul/preto
+
+Logos de produção devem ficar em `public/` copiadas de `docs/PNG/`.
+
+## Redes Sociais
+
+- Instagram: https://www.instagram.com/venetomfo/
+- LinkedIn: https://www.linkedin.com/company/venetofamilyoffice/
+
+## Veneto Store
+
+- URL: https://www.venetostore.com.br/
+
+## Documento de referência do Wix
+
+Todos os dados de conteúdo, links, formulários e estrutura das páginas originais do Wix estão em:
+`docs/Estrutura - Intranet Vêneto WIX.docx`
+
+Esse documento contém:
+- Links de cada assessor (MESA, CLIENTE, CX) para a página Consulta
+- Links de formulários por área (Google Forms, Monday.com) para Solicitações
+- Links de Lâminas Asset (PDFs dos fundos)
+- Conteúdo de Regras Comerciais (Framework de Reuniões + Mix de Serviços)
+- Links da Área Logada (Appsmith, Área do Cliente, Manual)
+- Links institucionais da Home (calendário, suporte TI, materiais)
+- Contatos e links rápidos
+
+Sempre consultar esse documento ao criar ou editar páginas que usam conteúdo migrado do Wix.
+
+## Fontes
+
+- Título: Roboto Bold (sans-serif)
+- Corpo: Archivo Light (sans-serif)
+
+## Padrão de layout para páginas novas
+
+Todas as páginas novas (Consulta, Solicitações, Regras Comerciais, Área Logada) devem seguir o layout das páginas existentes no Connect:
+- Usar `PageHeader` para título e descrição no topo.
+- Usar os mesmos componentes de UI (Card, CardHeader, CardContent, Button, Dialog/Modal) do ShadCN já configurados no projeto.
+- Manter mesma posição de cards, botões e grids (ex: `flex flex-wrap justify-center gap-4` para hubs de cards como em `/applications`).
+- Manter mesma estrutura de padding/spacing (`p-6 md:p-8`, `space-y-6` ou `space-y-8`).
+- Modais seguem o padrão Dialog do projeto (DialogContent, DialogHeader, DialogTitle).
+- Responsividade: mesmas breakpoints (`md:`, `lg:`) e grid patterns já usados.
+
+## Regras funcionais adicionais
+
+- O menu do usuário deve manter o mesmo formato/estrutura visual atual do Connect; apenas atualizar rótulos e links para a realidade da Intranet Veneto.
+- A seção Viagens/Férias deve continuar existindo no menu, porém em modo simples:
+  - sem lógica de requisição/aprovação;
+  - cada usuário cria e gerencia sua própria viagem/férias.

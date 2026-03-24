@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { verifyCorporateRequest } from "@/lib/api-auth";
 
 interface FeriadosApiHoliday {
   data: string;
@@ -48,6 +49,9 @@ async function callFeriadosApi(url: string, apiKey: string) {
 
 export async function GET(request: Request) {
   try {
+    const authorizationHeader = request.headers.get("Authorization");
+    await verifyCorporateRequest(authorizationHeader);
+
     const { apiBaseUrl, apiKey } = getApiConfig();
     if (!apiKey) {
       return NextResponse.json(
@@ -75,6 +79,15 @@ export async function GET(request: Request) {
     return NextResponse.json({ holidays: normalized });
   } catch (error) {
     console.error("Erro ao carregar feriados:", error);
+
+    if ((error as Error)?.message === "UNAUTHORIZED_MISSING_TOKEN" || (error as Error)?.message === "UNAUTHORIZED_INVALID_TOKEN") {
+      return NextResponse.json({ error: "Nao autorizado: token nao fornecido." }, { status: 401 });
+    }
+
+    if ((error as Error)?.message === "FORBIDDEN_NON_CORPORATE_EMAIL") {
+      return NextResponse.json({ error: "Acesso negado: apenas contas corporativas podem acessar." }, { status: 403 });
+    }
+
     return NextResponse.json({ error: "Nao foi possivel carregar os feriados." }, { status: 500 });
   }
 }
