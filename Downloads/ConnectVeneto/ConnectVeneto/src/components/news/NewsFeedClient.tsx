@@ -8,10 +8,10 @@ import Image from 'next/image';
 import { Search, CalendarDays, Link as LinkIcon } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '../ui/button';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose } from '@/components/ui/dialog';
 import { ScrollArea } from '../ui/scroll-area';
 import { useAuth } from '@/contexts/AuthContext';
-import { useCollaborators } from '@/contexts/CollaboratorsContext';
+import { getCollaboratorUserId, useCollaborators } from '@/contexts/CollaboratorsContext';
 import { addDocumentToCollection } from '@/lib/firestore-service';
 import { findCollaboratorByEmail } from '@/lib/email-utils';
 
@@ -38,7 +38,7 @@ export default function NewsFeedClient({ initialNewsItems }: NewsFeedClientProps
 
     addDocumentToCollection('audit_logs', {
         eventType: 'content_view',
-        userId: currentUserCollab.id3a,
+        userId: getCollaboratorUserId(currentUserCollab),
         userName: currentUserCollab.name,
         timestamp: new Date().toISOString(),
         details: {

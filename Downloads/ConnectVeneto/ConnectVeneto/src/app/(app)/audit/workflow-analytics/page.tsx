@@ -5,9 +5,9 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/sha
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/shared/components/ui/table';
 import { Bar, BarChart as BarChartComponent, PieChart, Pie, Cell, ResponsiveContainer, XAxis, YAxis, Tooltip, Legend } from 'recharts';
 import { useApplications } from '@/contexts/ApplicationsContext';
-import { useWorkflows, WorkflowRequest } from '@/contexts/WorkflowsContext';
+import { useWorkflows } from '@/contexts/WorkflowsContext';
 import { useMemo } from 'react';
-import { FileClock, Timer, Hourglass, ListChecks, Workflow as WorkflowIcon } from 'lucide-react';
+import { Timer, Hourglass, ListChecks, Workflow as WorkflowIcon } from 'lucide-react';
 import { differenceInBusinessDays, parseISO, compareAsc, startOfDay, endOfDay, isWithinInterval } from 'date-fns';
 import { useAudit } from '@/contexts/AuditContext';
 import { ScrollArea } from '@/shared/components/ui/scroll-area';
@@ -137,7 +137,7 @@ export default function WorkflowAnalyticsPage() {
         timePerType[req.type] = { 'Em aberto': [], 'Em processamento': [] };
       }
 
-      let history = [...req.history].sort((a, b) => compareAsc(parseISO(a.timestamp), parseISO(b.timestamp)));
+      const history = [...req.history].sort((a, b) => compareAsc(parseISO(a.timestamp), parseISO(b.timestamp)));
 
       for (let i = 0; i < history.length; i++) {
         const currentLog = history[i];
@@ -166,9 +166,9 @@ export default function WorkflowAnalyticsPage() {
     });
 
     return Object.entries(timePerType).map(([typeName, statusTimes]) => {
-      const avgTimes: { [key: string]: any } = { name: typeName };
+      const avgTimes: Record<string, number | string> = { name: typeName };
       let totalTime = 0;
-      let categories = ['Em aberto', 'Em processamento'] as const;
+      const categories = ['Em aberto', 'Em processamento'] as const;
 
       categories.forEach(statusName => {
         const times = statusTimes[statusName];
@@ -184,7 +184,7 @@ export default function WorkflowAnalyticsPage() {
       avgTimes.totalTime = totalTime;
       return avgTimes;
     })
-    .sort((a, b) => b.totalTime - a.totalTime);
+    .sort((a, b) => Number(b.totalTime) - Number(a.totalTime));
 
   }, [filteredRequests, loadingRequests, workflowDefinitions]);
 

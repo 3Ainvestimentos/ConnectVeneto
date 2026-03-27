@@ -2,7 +2,6 @@
 
 import { PageHeader } from '@/components/layout/PageHeader';
 import DocumentRepositoryClient from '@/components/documents/DocumentRepositoryClient';
-import { FolderOpen } from 'lucide-react';
 import { useDocuments } from '@/contexts/DocumentsContext';
 import type { DocumentType } from '@/contexts/DocumentsContext';
 

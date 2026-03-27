@@ -1,6 +1,6 @@
 
 "use client";
-import React, { useState, useMemo } from 'react';
+import React, { useState } from 'react';
 import { useQuickLinks, type QuickLinkType, quickLinkSchema } from '@/contexts/QuickLinksContext';
 import { useCollaborators } from '@/contexts/CollaboratorsContext';
 import { Button } from '@/components/ui/button';
@@ -8,7 +8,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { useForm, Controller } from 'react-hook-form';
+import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { PlusCircle, Edit, Trash2, Loader2, Users, AlertTriangle } from 'lucide-react';
@@ -24,7 +24,7 @@ const formSchema = quickLinkSchema;
 type QuickLinkFormValues = z.infer<typeof formSchema>;
 
 export function ManageQuickLinks() {
-    const { quickLinks, addQuickLink, updateQuickLink, deleteQuickLinkMutation, loading } = useQuickLinks();
+    const { quickLinks, addQuickLink, updateQuickLink, deleteQuickLinkMutation } = useQuickLinks();
     const { collaborators } = useCollaborators();
     const [isFormOpen, setIsFormOpen] = useState(false);
     const [isSelectionModalOpen, setIsSelectionModalOpen] = useState(false);
@@ -137,7 +137,7 @@ export function ManageQuickLinks() {
                             </TableRow>
                         </TableHeader>
                         <TableBody>
-                            {quickLinks.map((item, index) => (
+                            {quickLinks.map((item) => (
                                 <TableRow key={item.id}>
                                     <TableCell>
                                         <Input

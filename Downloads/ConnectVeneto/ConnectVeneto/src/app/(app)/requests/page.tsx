@@ -4,7 +4,6 @@
 import AdminGuard from '@/components/auth/AdminGuard';
 import { PageHeader } from '@/components/layout/PageHeader';
 import { ManageRequests } from '@/components/requests/ManageRequests';
-import { Mailbox } from 'lucide-react';
 
 export default function RequestsPage() {
     return (

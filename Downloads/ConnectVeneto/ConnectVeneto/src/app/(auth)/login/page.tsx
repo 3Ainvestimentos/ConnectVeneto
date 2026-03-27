@@ -4,7 +4,7 @@
 import React from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
-import { Loader2, AlertTriangle, Construction } from 'lucide-react';
+import { Loader2, Construction } from 'lucide-react';
 import Image from 'next/image';
 import { useSystemSettings } from '@/contexts/SystemSettingsContext';
 import { useTheme } from '@/contexts/ThemeContext';

@@ -6,8 +6,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from './AuthContext';
 import type { Timestamp } from 'firebase/firestore';
 import { collection, query, where, getDocs, onSnapshot } from 'firebase/firestore';
-import { getFirestore } from 'firebase/firestore';
-import { getFirebaseApp } from '@/lib/firebase';
+import { getClientFirestore } from '@/lib/firebase';
 
 export interface Participant {
   email: string | null;
@@ -80,7 +79,7 @@ export const MeetingAnalysesProvider = ({ children }: { children: ReactNode }) =
     if (!user?.email) return [];
     
     try {
-      const db = getFirestore(getFirebaseApp());
+      const db = getClientFirestore();
       const collectionRef = collection(db, COLLECTION_NAME);
       
       // Adicionar filtro por user_email
@@ -110,7 +109,7 @@ export const MeetingAnalysesProvider = ({ children }: { children: ReactNode }) =
     if (!user?.email) return;
     
     try {
-      const db = getFirestore(getFirebaseApp());
+      const db = getClientFirestore();
       const collectionRef = collection(db, COLLECTION_NAME);
       
       // Criar query com filtro para o listener também

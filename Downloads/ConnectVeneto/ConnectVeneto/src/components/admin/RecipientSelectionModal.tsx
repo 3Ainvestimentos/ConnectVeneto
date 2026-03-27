@@ -1,7 +1,7 @@
 
 "use client";
 import React, { useState, useMemo, useEffect } from 'react';
-import type { Collaborator } from '@/contexts/CollaboratorsContext';
+import { getCollaboratorUserId, type Collaborator } from '@/contexts/CollaboratorsContext';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -9,7 +9,6 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Checkbox } from '@/components/ui/checkbox';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Search, ChevronDown, ChevronUp } from 'lucide-react';
-import { cn } from '@/lib/utils';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../ui/select';
 
 type SortKey = keyof Collaborator | '';
@@ -41,7 +40,7 @@ export function RecipientSelectionModal({
         if (isOpen) {
             // If the incoming selection is ['all'], initialize the local state with all collaborator IDs.
             if (selectedIds.includes('all')) {
-                setLocalSelectedIds(new Set(allCollaborators.map(c => c.id3a)));
+                setLocalSelectedIds(new Set(allCollaborators.map(c => getCollaboratorUserId(c)).filter((id): id is string => !!id)));
             } else {
                 setLocalSelectedIds(new Set(selectedIds));
             }
@@ -57,13 +56,19 @@ export function RecipientSelectionModal({
 
         let items = allCollaborators.filter(c => {
             // Garantir que o colaborador existe e tem propriedades necessárias
-            return c && typeof c === 'object' && c.id3a;
+            return c && typeof c === 'object' && !!getCollaboratorUserId(c);
         });
         
         if (viewFilter === 'selected') {
-            items = items.filter(c => c.id3a && localSelectedIds.has(c.id3a));
+            items = items.filter(c => {
+                const id = getCollaboratorUserId(c);
+                return !!id && localSelectedIds.has(id);
+            });
         } else if (viewFilter === 'unselected') {
-            items = items.filter(c => c.id3a && !localSelectedIds.has(c.id3a));
+            items = items.filter(c => {
+                const id = getCollaboratorUserId(c);
+                return !!id && !localSelectedIds.has(id);
+            });
         }
 
         if (searchTerm) {
@@ -109,10 +114,10 @@ export function RecipientSelectionModal({
 
     const handleSelectAllInView = (checked: boolean) => {
         if (checked) {
-            const idsToAdd = filteredAndSortedCollaborators.map(c => c.id3a);
+            const idsToAdd = filteredAndSortedCollaborators.map(c => getCollaboratorUserId(c)).filter((id): id is string => !!id);
             setLocalSelectedIds(prev => new Set([...prev, ...idsToAdd]));
         } else {
-            const idsToRemove = new Set(filteredAndSortedCollaborators.map(c => c.id3a));
+            const idsToRemove = new Set(filteredAndSortedCollaborators.map(c => getCollaboratorUserId(c)).filter((id): id is string => !!id));
             setLocalSelectedIds(prev => {
                 const newSet = new Set(prev);
                 idsToRemove.forEach(id => newSet.delete(id));
@@ -146,7 +151,10 @@ export function RecipientSelectionModal({
     
     const isAllInViewSelected = useMemo(() => {
         if (filteredAndSortedCollaborators.length === 0) return false;
-        return filteredAndSortedCollaborators.every(c => localSelectedIds.has(c.id3a));
+        return filteredAndSortedCollaborators.every(c => {
+            const id = getCollaboratorUserId(c);
+            return !!id && localSelectedIds.has(id);
+        });
     }, [filteredAndSortedCollaborators, localSelectedIds]);
     
     const SortableHeader = ({ tkey, label }: { tkey: SortKey, label: string }) => (
@@ -210,8 +218,11 @@ export function RecipientSelectionModal({
                                     <TableRow key={c.id}>
                                         <TableCell>
                                             <Checkbox
-                                                checked={localSelectedIds.has(c.id3a)}
-                                                onCheckedChange={(checked) => handleSelectOne(c.id3a, !!checked)}
+                                                checked={(() => { const id = getCollaboratorUserId(c); return !!id && localSelectedIds.has(id); })()}
+                                                onCheckedChange={(checked) => {
+                                                    const id = getCollaboratorUserId(c);
+                                                    if (id) handleSelectOne(id, !!checked);
+                                                }}
                                                 aria-label={`Selecionar ${c.name}`}
                                             />
                                         </TableCell>

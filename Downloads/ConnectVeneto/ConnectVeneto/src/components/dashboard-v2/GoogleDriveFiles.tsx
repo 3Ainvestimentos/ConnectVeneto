@@ -4,7 +4,7 @@
 import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { HardDrive, AlertCircle, ExternalLink, FolderOpen, ChevronRight, File as FileIcon } from 'lucide-react';
+import { AlertCircle, ExternalLink, FolderOpen, ChevronRight } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Button } from '../ui/button';
@@ -13,11 +13,26 @@ import { ScrollArea } from '../ui/scroll-area';
 import { useCollaborators } from '@/contexts/CollaboratorsContext';
 import { findCollaboratorByEmail } from '@/lib/email-utils';
 
-declare global {
-    interface Window {
-        gapi: any;
-    }
-}
+type DriveGapi = {
+  load: (api: string, callback: () => void) => void;
+  client: {
+    init: (config: {
+      apiKey: string | undefined;
+      discoveryDocs: string[];
+    }) => Promise<void>;
+    setToken: (token: { access_token: string }) => void;
+    drive: {
+      files: {
+        list: (params: Record<string, string | number>) => Promise<{
+          result?: { files?: DriveFile[] };
+        }>;
+        get: (params: { fileId: string; fields: string }) => Promise<{
+          result: FolderInfo;
+        }>;
+      };
+    };
+  };
+};
 
 interface DriveFile {
   id: string;
@@ -60,9 +75,10 @@ export default function GoogleDriveFiles() {
         throw new Error("Usuário não autenticado ou token de acesso inválido.");
     }
     
-    window.gapi.client.setToken({ access_token: accessToken });
+    const gapi = (window as unknown as Window & { gapi: DriveGapi }).gapi;
+    gapi.client.setToken({ access_token: accessToken });
     
-    const response = await window.gapi.client.drive.files.list({
+    const response = await gapi.client.drive.files.list({
         q: `'${folderId}' in parents and trashed = false`,
         pageSize: 100,
         fields: "nextPageToken, files(id, name, modifiedTime, webViewLink, iconLink, mimeType)",
@@ -80,9 +96,13 @@ export default function GoogleDriveFiles() {
 
 
   const fetchFolderDetails = useCallback(async (folderId: string): Promise<FolderInfo> => {
-    window.gapi.client.setToken({ access_token: accessToken });
+    if (!accessToken) {
+      throw new Error("Token de acesso ausente para consultar pasta no Drive.");
+    }
+    const gapi = (window as unknown as Window & { gapi: DriveGapi }).gapi;
+    gapi.client.setToken({ access_token: accessToken });
     try {
-      const response = await window.gapi.client.drive.files.get({
+      const response = await gapi.client.drive.files.get({
         fileId: folderId,
         fields: 'id, name',
       });
@@ -125,21 +145,22 @@ export default function GoogleDriveFiles() {
     const init = async () => {
         try {
             await new Promise<void>((resolve, reject) => {
-                window.gapi.load('client', () => {
-                    window.gapi.client.init({
+                const gapi = (window as unknown as Window & { gapi: DriveGapi }).gapi;
+                gapi.load('client', () => {
+                    gapi.client.init({
                         apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
                         discoveryDocs: ["https://www.googleapis.com/discovery/v1/apis/drive/v3/rest"],
-                    }).then(() => resolve(), (err: any) => reject(err));
+                    }).then(() => resolve(), (err: unknown) => reject(err));
                 });
             });
             await initializeDriveState();
-        } catch (e: any) {
+        } catch (e: unknown) {
              console.error("Erro ao inicializar ou buscar arquivos do Drive:", e);
              setError("Falha ao carregar os arquivos. Por favor, saia e faça login novamente para reautenticar.");
         }
     };
 
-     if (typeof window.gapi !== 'undefined' && typeof window.gapi.load !== 'undefined') {
+     if (typeof (window as unknown as Window & { gapi?: DriveGapi }).gapi !== 'undefined') {
         init();
     } else {
         setError("Não foi possível carregar a API do Google. Verifique sua conexão ou tente fazer login novamente.");
@@ -149,6 +170,8 @@ export default function GoogleDriveFiles() {
   useEffect(() => {
     if (user && accessToken) {
         initializeGapiClient();
+    } else if (user && !accessToken) {
+        setError("Sua sessão de acesso ao Google Drive expirou. Faça login novamente para reautenticar.");
     } else if (!user) {
         setError("Usuário não autenticado.");
     }
@@ -162,7 +185,7 @@ export default function GoogleDriveFiles() {
         }
         setCurrentFolder(newFolder);
         await listFiles(folder.id);
-    } catch (e) {
+    } catch {
         setError("Ocorreu um erro ao carregar os arquivos. Por favor, saia e faça login novamente para reautenticar.");
     }
   };
@@ -176,7 +199,7 @@ export default function GoogleDriveFiles() {
         setCurrentFolder(folder);
         setFolderHistory(prev => prev.slice(0, index));
         await listFiles(folder.id);
-    } catch (e) {
+    } catch {
         setError("Ocorreu um erro ao carregar os arquivos. Por favor, saia e faça login novamente para reautenticar.");
     }
   }
@@ -231,6 +254,7 @@ export default function GoogleDriveFiles() {
                       {isFolder ? (
                         <FolderOpen className="w-5 h-5 flex-shrink-0 text-muted-foreground" />
                       ) : (
+                        // eslint-disable-next-line @next/next/no-img-element
                         <img src={(item as DriveFile).iconLink} alt="file icon" className="w-5 h-5 flex-shrink-0" />
                       )}
                       <div className="flex-grow truncate">

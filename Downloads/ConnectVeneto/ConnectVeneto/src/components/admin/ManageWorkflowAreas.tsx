@@ -4,7 +4,7 @@
 import React, { useState } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { PlusCircle, Edit, Trash2, Loader2, FolderOpen, ListOrdered } from 'lucide-react';
+import { PlusCircle, Edit, Trash2, Loader2, ListOrdered } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose } from '@/components/ui/dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -18,6 +18,7 @@ import { iconList, getIcon } from '@/lib/icons';
 import { useWorkflowAreas, WorkflowArea, workflowAreaSchema } from '@/contexts/WorkflowAreasContext';
 import { OrderWorkflowsModal } from './OrderWorkflowsModal';
 import { useApplications } from '@/contexts/ApplicationsContext';
+import { LoadingSpinner } from '../ui/loading-spinner';
 
 type AreaFormValues = Omit<WorkflowArea, 'id'>;
 
@@ -101,7 +102,11 @@ export default function ManageWorkflowAreas() {
                             <TableBody>
                                 {loading ? (
                                     <TableRow>
-                                        <TableCell colSpan={4} className="text-center">Carregando áreas...</TableCell>
+                                        <TableCell colSpan={4} className="py-6">
+                                            <div className="flex justify-center">
+                                                <LoadingSpinner className="h-5 w-5" />
+                                            </div>
+                                        </TableCell>
                                     </TableRow>
                                 ) : workflowAreas.map(area => {
                                     const Icon = getIcon(area.icon);

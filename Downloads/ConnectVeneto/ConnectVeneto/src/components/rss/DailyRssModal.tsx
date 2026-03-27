@@ -15,94 +15,57 @@ interface DailyRssModalProps {
 export function DailyRssModal({ forceOpen = false, onOpenChange }: DailyRssModalProps) {
   const { settings, loading: settingsLoading } = useSystemSettings();
   const [lastSeen, setLastSeen] = useLocalStorage<string>('dailyRssLastSeen', '');
-  const [hidePermanently, setHidePermanently] = useLocalStorage<boolean>('hideDailyRss', false);
+  const [hidePermanently] = useLocalStorage<boolean>('hideDailyRss', false);
   const [isOpen, setIsOpen] = useState(false);
 
   const newsletterUrl = settings.rssNewsletterUrl;
 
-  // Log inicial para debug
   useEffect(() => {
-    console.log('[DailyRssModal] Componente montado/atualizado', {
-      forceOpen,
-      settingsLoading,
-      isRssNewsletterActive: settings.isRssNewsletterActive,
-      newsletterUrl,
-      hidePermanently,
-      lastSeen,
-      isOpen,
-    });
-  }, [forceOpen, settingsLoading, settings.isRssNewsletterActive, newsletterUrl, hidePermanently, lastSeen, isOpen]);
-
-  useEffect(() => {
-    console.log('[DailyRssModal] useEffect executado', {
-      forceOpen,
-      settingsLoading,
-      isRssNewsletterActive: settings.isRssNewsletterActive,
-      newsletterUrl,
-      hidePermanently,
-      lastSeen,
-    });
-
     if (forceOpen) {
-      console.log('[DailyRssModal] forceOpen é true, abrindo modal');
       setIsOpen(true);
       return;
     }
 
     if (settingsLoading) {
-      console.log('[DailyRssModal] Settings ainda carregando, aguardando...');
       return;
     }
 
     if (!settings.isRssNewsletterActive) {
-      console.log('[DailyRssModal] Newsletter não está ativa');
       return;
     }
 
     if (hidePermanently) {
-      console.log('[DailyRssModal] Usuário escondeu permanentemente');
       return;
     }
 
     if (!newsletterUrl) {
-      console.log('[DailyRssModal] URL da newsletter não configurada');
       return;
     }
 
     const today = new Date().toISOString().split('T')[0];
-    console.log('[DailyRssModal] Verificando data', { today, lastSeen, isEqual: lastSeen === today });
-
     if (lastSeen !== today) {
-      console.log('[DailyRssModal] Criando timer para abrir modal em 2.5s');
       const timer = setTimeout(() => {
-        console.log('[DailyRssModal] Timer executado, abrindo modal');
         setIsOpen(true);
       }, 2500); // Delay opening the modal
 
       return () => {
-        console.log('[DailyRssModal] Limpando timer');
         clearTimeout(timer);
       };
-    } else {
-      console.log('[DailyRssModal] Já foi visto hoje, não abrindo modal');
     }
   }, [settingsLoading, settings.isRssNewsletterActive, lastSeen, hidePermanently, forceOpen, newsletterUrl]);
 
   const handleClose = () => {
-    console.log('[DailyRssModal] Modal fechado', { forceOpen });
     if (forceOpen && onOpenChange) {
       onOpenChange(false);
     } else {
       const today = new Date().toISOString().split('T')[0];
       // Atualiza lastSeen para hoje, impedindo que apareça novamente hoje
-      console.log('[DailyRssModal] Atualizando lastSeen para', today);
       setLastSeen(today);
     }
     setIsOpen(false);
   };
 
   if (!newsletterUrl) {
-    console.log('[DailyRssModal] Retornando null - newsletterUrl não configurada');
     return null;
   }
 

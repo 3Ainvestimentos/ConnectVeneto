@@ -3,7 +3,7 @@
 "use client";
 
 import React, { useState, useMemo, useEffect } from 'react';
-import { useWorkflows, WorkflowRequest, WorkflowStatus } from '@/contexts/WorkflowsContext';
+import { useWorkflows, WorkflowRequest } from '@/contexts/WorkflowsContext';
 import { useApplications } from '@/contexts/ApplicationsContext';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -12,7 +12,7 @@ import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { format, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { Mailbox, Eye, Filter, FileDown, User, Users, Archive, Loader2 } from 'lucide-react';
+import { Mailbox, Eye, Filter, FileDown, Users, Archive, Loader2 } from 'lucide-react';
 import { RequestApprovalModal } from './RequestApprovalModal';
 import {
   DropdownMenu,
@@ -36,7 +36,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
 import Papa from 'papaparse';
-import { useCollaborators } from '@/contexts/CollaboratorsContext';
+import { getCollaboratorUserId, useCollaborators } from '@/contexts/CollaboratorsContext';
 import { Avatar, AvatarFallback } from '../ui/avatar';
 import { useAuth } from '@/contexts/AuthContext';
 import { findCollaboratorByEmail, emailsMatch } from '@/lib/email-utils';
@@ -49,17 +49,18 @@ export function ManageRequests() {
     const { workflowDefinitions } = useApplications();
     const { collaborators } = useCollaborators();
     const [selectedRequest, setSelectedRequest] = useState<WorkflowRequest | null>(null);
-    const [assigneeFilter, setAssigneeFilter] = useState('all'); // 'all', 'unassigned', or collaborator id3a
+    const [assigneeFilter, setAssigneeFilter] = useState('all'); // 'all', 'unassigned', or collaborator idVeneto
     
     const [statusFilter, setStatusFilter] = useState<string[]>([]);
     
     useEffect(() => {
         const currentUserCollab = findCollaboratorByEmail(collaborators, user?.email);
-        if (permissions.canManageRequests && currentUserCollab?.id3a) {
+        const currentUserId = getCollaboratorUserId(currentUserCollab);
+        if (permissions.canManageRequests && currentUserId) {
             const ownedRequestIds = requests
                 .filter(req => emailsMatch(req.ownerEmail, user?.email))
                 .map(req => req.id);
-            markRequestsAsViewedBy(currentUserCollab.id3a, ownedRequestIds);
+            markRequestsAsViewedBy(currentUserId, ownedRequestIds);
         }
     }, [user, permissions.canManageRequests, collaborators, markRequestsAsViewedBy, requests]);
 
@@ -91,7 +92,10 @@ export function ManageRequests() {
           assigneeIds.add(req.assignee.id);
         }
       });
-      return collaborators.filter(c => assigneeIds.has(c.id3a));
+      return collaborators.filter(c => {
+        const collaboratorId = getCollaboratorUserId(c);
+        return collaboratorId ? assigneeIds.has(collaboratorId) : false;
+      });
     }, [activeRequests, collaborators]);
 
 
@@ -127,7 +131,7 @@ export function ManageRequests() {
         try {
             await archiveRequestMutation.mutateAsync(id);
             toast({ title: "Sucesso!", description: "A solicitação foi arquivada." });
-        } catch(error) {
+        } catch {
             toast({ title: "Erro ao Arquivar", description: "Não foi possível arquivar a solicitação.", variant: "destructive" });
         }
     }
@@ -266,7 +270,7 @@ export function ManageRequests() {
     const getAssigneeFilterLabel = () => {
         if (assigneeFilter === 'all') return 'Todos';
         if (assigneeFilter === 'unassigned') return 'Não Atribuídos';
-        const collab = collaborators.find(c => c.id3a === assigneeFilter);
+        const collab = collaborators.find(c => getCollaboratorUserId(c) === assigneeFilter);
         return collab ? collab.name : 'Desconhecido';
     }
 
@@ -298,7 +302,7 @@ export function ManageRequests() {
                                             <DropdownMenuRadioItem value="unassigned">Não Atribuídos</DropdownMenuRadioItem>
                                             {availableAssignees.length > 0 && <DropdownMenuSeparator />}
                                             {availableAssignees.map(c => (
-                                                <DropdownMenuRadioItem key={c.id} value={c.id3a}>
+                                                <DropdownMenuRadioItem key={c.id} value={getCollaboratorUserId(c) || c.id}>
                                                     {c.name}
                                                 </DropdownMenuRadioItem>
                                             ))}

@@ -13,9 +13,13 @@ interface MeetingAnalysisDetailProps {
   analysis: MeetingAnalysis;
 }
 
+type DateLike = {
+  toDate: () => Date;
+};
+
 // Função helper para obter a data mais apropriada para exibição
 // Prioriza: assessment_completed_at > created_at > updated_at
-const getDisplayDate = (analysis: MeetingAnalysis): string | any => {
+const getDisplayDate = (analysis: MeetingAnalysis): string | DateLike | undefined => {
   return analysis.assessment_completed_at || analysis.created_at || analysis.updated_at;
 };
 
@@ -32,7 +36,7 @@ const priorityLabels = {
 };
 
 export default function MeetingAnalysisDetail({ analysis }: MeetingAnalysisDetailProps) {
-  const formatDate = (date: string | any): string => {
+  const formatDate = (date: string | DateLike | undefined): string => {
     try {
       const parsedDate = typeof date === 'string' ? parseISO(date) : date?.toDate();
       if (!parsedDate || !isValid(parsedDate)) return 'Data inválida';
@@ -146,7 +150,7 @@ function OpportunityAccordionItem({ opportunity, index }: OpportunityAccordionIt
                     <ul className="list-disc list-inside space-y-2 text-xs text-muted-foreground ml-2">
                       {mentions.map((mention, mentionIndex) => (
                         <li key={mentionIndex} className="leading-relaxed">
-                          "{mention}"
+                          &quot;{mention}&quot;
                         </li>
                       ))}
                     </ul>

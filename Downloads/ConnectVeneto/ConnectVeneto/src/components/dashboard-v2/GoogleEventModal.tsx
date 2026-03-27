@@ -2,7 +2,7 @@
 "use client";
 
 import React, { useEffect, useState } from 'react';
-import { useForm, Controller } from 'react-hook-form';
+import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose } from '@/components/ui/dialog';
@@ -39,7 +39,7 @@ export function GoogleEventModal({ isOpen, onClose, event, selectedDate, onSave,
   const [isSaving, setIsSaving] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
 
-  const { control, register, handleSubmit, reset, formState: { errors } } = useForm<EventFormValues>({
+  const { register, handleSubmit, reset, formState: { errors } } = useForm<EventFormValues>({
     resolver: zodResolver(eventSchema),
   });
 

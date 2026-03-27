@@ -4,14 +4,14 @@
 import React, { useState, useMemo } from 'react';
 import { useWorkflows, WorkflowRequest } from '@/contexts/WorkflowsContext';
 import { useApplications } from '@/contexts/ApplicationsContext';
-import { useCollaborators } from '@/contexts/CollaboratorsContext';
+import { getCollaboratorUserId, useCollaborators } from '@/contexts/CollaboratorsContext';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { format, parseISO, differenceInHours } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { ListChecks, User, Search, FileDown, ChevronUp, ChevronDown, Archive, Eye, Filter, AlertTriangle } from 'lucide-react';
+import { ListChecks, Search, FileDown, ChevronUp, ChevronDown, Archive, Eye, Filter, AlertTriangle } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
 import { Input } from '../ui/input';
 import { Button } from '../ui/button';
@@ -93,7 +93,8 @@ export function AllRequestsView() {
 
         if (sortKey) {
             items.sort((a, b) => {
-                let valA: any, valB: any;
+                let valA: unknown;
+                let valB: unknown;
 
                 switch (sortKey) {
                     case 'submittedBy':
@@ -105,8 +106,8 @@ export function AllRequestsView() {
                         valB = b.assignee?.name || '';
                         break;
                     case 'ownerEmail':
-                        valA = getOwnerName(a.ownerEmail);
-                        valB = getOwnerName(b.ownerEmail);
+                        valA = findCollaboratorByEmail(collaborators, a.ownerEmail)?.name || a.ownerEmail;
+                        valB = findCollaboratorByEmail(collaborators, b.ownerEmail)?.name || b.ownerEmail;
                         break;
                     case 'submittedAt':
                         valA = new Date(a.submittedAt).getTime();
@@ -125,10 +126,19 @@ export function AllRequestsView() {
                         valB = b[sortKey as keyof WorkflowRequest];
                 }
 
+                const comparableA =
+                    typeof valA === 'number' ? valA :
+                    typeof valA === 'boolean' ? Number(valA) :
+                    String(valA ?? '');
+                const comparableB =
+                    typeof valB === 'number' ? valB :
+                    typeof valB === 'boolean' ? Number(valB) :
+                    String(valB ?? '');
+
                 let comparison = 0;
-                if (valA > valB) {
+                if (comparableA > comparableB) {
                     comparison = 1;
-                } else if (valA < valB) {
+                } else if (comparableA < comparableB) {
                     comparison = -1;
                 }
 
@@ -137,7 +147,7 @@ export function AllRequestsView() {
         }
 
         return items;
-    }, [requests, searchTerm, sortKey, sortDirection, showArchived, ownerFilter, attentionFilter]);
+    }, [requests, searchTerm, sortKey, sortDirection, showArchived, ownerFilter, attentionFilter, collaborators]);
 
     const handleSort = (key: SortKey) => {
         if (sortKey === key) {
@@ -182,14 +192,14 @@ export function AllRequestsView() {
         return getOwner(email)?.name || email;
     }
     const getCollaborator = (userId: string) => {
-        return collaborators.find(c => c.id3a === userId);
+        return collaborators.find(c => getCollaboratorUserId(c) === userId);
     }
 
     const handleArchiveRequest = async (id: string) => {
         try {
             await archiveRequestMutation.mutateAsync(id);
             toast({ title: "Sucesso!", description: "A solicitação foi arquivada." });
-        } catch(error) {
+        } catch {
             toast({ title: "Erro ao Arquivar", description: "Não foi possível arquivar a solicitação.", variant: "destructive" });
         }
     };

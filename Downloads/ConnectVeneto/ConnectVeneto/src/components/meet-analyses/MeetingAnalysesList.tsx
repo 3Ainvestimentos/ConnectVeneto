@@ -15,9 +15,13 @@ import { DateRange } from 'react-day-picker';
 import { Skeleton } from '@/components/ui/skeleton';
 import type { MeetingAnalysis } from '@/contexts/MeetingAnalysesContext';
 
+type DateLike = {
+  toDate: () => Date;
+};
+
 // Função helper para obter a data mais apropriada para exibição
 // Prioriza: assessment_completed_at > created_at > updated_at
-const getDisplayDate = (analysis: MeetingAnalysis): string | any => {
+const getDisplayDate = (analysis: MeetingAnalysis): string | DateLike | undefined => {
   return analysis.assessment_completed_at || analysis.created_at || analysis.updated_at;
 };
 
@@ -82,7 +86,7 @@ export default function MeetingAnalysesList() {
     router.push(`/meet-analyses/${encodedId}`);
   };
 
-  const formatDate = (date: string | any): string => {
+  const formatDate = (date: string | DateLike | undefined): string => {
     try {
       const parsedDate = typeof date === 'string' ? parseISO(date) : date?.toDate();
       if (!parsedDate || !isValid(parsedDate)) return 'Data inválida';

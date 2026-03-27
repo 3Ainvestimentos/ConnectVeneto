@@ -3,12 +3,12 @@
 
 import React, { createContext, useContext, ReactNode, useMemo, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient, UseMutationResult } from '@tanstack/react-query';
-import { addDocumentToCollection, updateDocumentInCollection, deleteDocumentFromCollection, WithId, getNextSequentialId, listenToCollection, getCollection, getDocument } from '@/lib/firestore-service';
+import { addDocumentToCollection, updateDocumentInCollection, WithId, getNextSequentialId, listenToCollection, getCollection } from '@/lib/firestore-service';
 import { useMessages } from './MessagesContext';
 import { useApplications } from './ApplicationsContext';
-import { getFirestore, writeBatch, doc } from 'firebase/firestore';
-import { getFirebaseApp } from '@/lib/firebase';
-import { useCollaborators } from './CollaboratorsContext';
+import { writeBatch, doc } from 'firebase/firestore';
+import { getClientFirestore } from '@/lib/firebase';
+import { type Collaborator, getCollaboratorUserId, useCollaborators } from './CollaboratorsContext';
 import { useAuth } from './AuthContext';
 import { formatISO } from 'date-fns';
 import { findCollaboratorByEmail, filterCollaboratorsByEmails } from '@/lib/email-utils';
@@ -20,7 +20,7 @@ export type WorkflowStatus = string; // Now a generic string, e.g., 'pending_app
 export interface WorkflowHistoryLog {
   timestamp: string; // ISO String
   status: WorkflowStatus;
-  userId: string; // ID 3A RIVA do usuário que realizou a ação
+  userId: string; // ID Veneto do usuário que realizou a ação
   userName: string;
   notes?: string;
 }
@@ -44,19 +44,19 @@ export interface WorkflowRequest {
   status: WorkflowStatus;
   ownerEmail: string; // Email of the workflow definition owner
   submittedBy: {
-    userId: string; // ID 3A RIVA do colaborador
+    userId: string; // ID Veneto do colaborador
     userName: string;
     userEmail: string;
   };
   submittedAt: string; // ISO String
   lastUpdatedAt: string; // ISO String
-  formData: Record<string, any>; // Objeto flexível para os dados do formulário
+  formData: Record<string, unknown>; // Objeto flexível para os dados do formulário
   history: WorkflowHistoryLog[];
   assignee?: { // Responsável pela tarefa
-      id: string; // ID 3A RIVA do responsável
+      id: string; // ID Veneto do responsável
       name: string;
   };
-  viewedBy: string[]; // Array of admin 'id3a' who have seen this request while it was pending
+  viewedBy: string[]; // Array of admin ids who have seen this request while it was pending
   isArchived?: boolean; // Flag for soft deletion by owner
   actionRequests?: {
     [statusId: string]: ActionRequest[]; // Key is the status ID where the action was requested
@@ -70,7 +70,7 @@ interface WorkflowsContextType {
   addRequest: (request: Omit<WorkflowRequest, 'id' | 'requestId' | 'viewedBy' | 'assignee' | 'isArchived' | 'actionRequests'>) => Promise<WithId<Omit<WorkflowRequest, 'id' | 'viewedBy' | 'assignee' | 'isArchived' | 'actionRequests'>>>;
   updateRequestAndNotify: (request: Partial<WorkflowRequest> & { id: string }, notificationMessage?: string, notifyAssigneeMessage?: string | null) => Promise<void>;
   archiveRequestMutation: UseMutationResult<void, Error, string, unknown>;
-  markRequestsAsViewedBy: (adminId3a: string, ownedRequestIds: string[]) => Promise<void>;
+  markRequestsAsViewedBy: (adminUserId: string, ownedRequestIds: string[]) => Promise<void>;
 }
 
 const WorkflowsContext = createContext<WorkflowsContextType | undefined>(undefined);
@@ -121,7 +121,7 @@ export const WorkflowsProvider = ({ children }: { children: ReactNode }) => {
 
     return requests.some(req => {
       // Check if assigned to current user
-      if (req.assignee?.id !== currentUserCollab.id3a) {
+      if (req.assignee?.id !== getCollaboratorUserId(currentUserCollab)) {
         return false;
       }
       // Find the definition to get the initial status
@@ -175,12 +175,13 @@ export const WorkflowsProvider = ({ children }: { children: ReactNode }) => {
 
       // Notifica o owner da solicitação (se diferente do solicitante)
       const owner = findCollaboratorByEmail(collaborators, definition.ownerEmail);
-      if (owner && owner.id3a !== requestData.submittedBy.userId) {
+      const ownerUserId = owner ? getCollaboratorUserId(owner) : null;
+      if (owner && ownerUserId && ownerUserId !== requestData.submittedBy.userId) {
           await addMessage({
               title: `Nova Solicitação: ${requestData.type} #${requestWithDefaults.requestId}`,
               content: `Uma nova solicitação de '${requestData.type}' foi enviada por ${requestData.submittedBy.userName} e aguarda sua revisão.`,
               sender: 'Sistema de Workflows',
-              recipientIds: [owner.id3a],
+              recipientIds: [ownerUserId],
           });
       }
 
@@ -191,7 +192,9 @@ export const WorkflowsProvider = ({ children }: { children: ReactNode }) => {
               const ruleValue = (rule.value && typeof rule.value === 'string') ? rule.value.toLowerCase() : '';
               if (formValue && ruleValue && formValue.toString().toLowerCase() === ruleValue) {
                   const recipientUsers = filterCollaboratorsByEmails(collaborators, rule.notify);
-                  const recipientIds = recipientUsers.map(u => u.id3a);
+                  const recipientIds = recipientUsers
+                    .map((u) => getCollaboratorUserId(u))
+                    .filter((id): id is string => !!id);
                   if (recipientIds.length > 0) {
                       await addMessage({
                           title: `Nova Solicitação para Análise: ${requestData.type}`,
@@ -230,12 +233,12 @@ export const WorkflowsProvider = ({ children }: { children: ReactNode }) => {
             
             // Validate approverIds before creating action requests
             const validApprovers = newStatusDef.action.approverIds.map(approverId => 
-                collaborators.find(c => c.id3a === approverId)
-            ).filter((c): c is WithId<any> => !!c); // Type guard to filter out undefined
+                collaborators.find(c => getCollaboratorUserId(c) === approverId)
+            ).filter((c): c is Collaborator => !!c); // Type guard to filter out undefined
 
             if (validApprovers.length > 0) {
                 const newActionRequests = validApprovers.map(approver => ({
-                    userId: approver.id3a,
+                    userId: getCollaboratorUserId(approver) || '',
                     userName: approver.name,
                     status: 'pending' as const,
                     requestedAt: formatISO(now),
@@ -250,40 +253,43 @@ export const WorkflowsProvider = ({ children }: { children: ReactNode }) => {
                 
                 if (payload.history && adminUser) {
                   const historyNote = `Ação de "${newStatusDef.action.label}" solicitada automaticamente para ${validApprovers.length} colaborador(es) pré-definido(s).`;
-                  payload.history.push({ timestamp: formatISO(now), status: newStatusDef.id, userId: adminUser.id3a, userName: adminUser.name, notes: historyNote });
+                  const adminUserId = getCollaboratorUserId(adminUser);
+                  if (adminUserId) {
+                    payload.history.push({ timestamp: formatISO(now), status: newStatusDef.id, userId: adminUserId, userName: adminUser.name, notes: historyNote });
+                  }
                 }
             }
         }
         
         return updateDocumentInCollection(COLLECTION_NAME, id, payload);
     },
-    onSuccess: (data, variables) => {
+    onSuccess: () => {
        queryClient.invalidateQueries({ queryKey: [COLLECTION_NAME] });
     },
 });
   
   const archiveRequestMutation = useMutation<void, Error, string>({
     mutationFn: (id: string) => updateDocumentInCollection(COLLECTION_NAME, id, { isArchived: true }),
-    onSuccess: (data, id) => {
+    onSuccess: () => {
         queryClient.invalidateQueries({ queryKey: [COLLECTION_NAME] });
     }
   });
 
 
-  const markRequestsAsViewedBy = useCallback(async (adminId3a: string, ownedRequestIds: string[]) => {
-    if (!adminId3a) return;
+  const markRequestsAsViewedBy = useCallback(async (adminUserId: string, ownedRequestIds: string[]) => {
+    if (!adminUserId) return;
 
-    const db = getFirestore(getFirebaseApp());
+    const db = getClientFirestore();
     const batch = writeBatch(db);
 
     const pendingUnseenRequests = requests.filter(req => 
-        req.status === 'pending' && ownedRequestIds.includes(req.id) && !req.viewedBy.includes(adminId3a)
+        req.status === 'pending' && ownedRequestIds.includes(req.id) && !req.viewedBy.includes(adminUserId)
     );
 
     if (pendingUnseenRequests.length === 0) return;
 
     pendingUnseenRequests.forEach(req => {
-        batch.update(doc(db, COLLECTION_NAME, req.id), { viewedBy: [...req.viewedBy, adminId3a] });
+        batch.update(doc(db, COLLECTION_NAME, req.id), { viewedBy: [...req.viewedBy, adminUserId] });
     });
 
     try {
@@ -295,100 +301,44 @@ export const WorkflowsProvider = ({ children }: { children: ReactNode }) => {
   }, [requests, queryClient]);
 
 
-  const updateRequestAndNotify = async (requestUpdate: Partial<WorkflowRequest> & { id: string }, notificationMessage?: string, notifyAssigneeMessage: string | null = null) => {
-    // #region agent log
-    console.log('[DEBUG] updateRequestAndNotify entry - requestUpdate received:', {
-      id: requestUpdate.id,
-      hasFormData: 'formData' in requestUpdate,
-      formDataKeys: requestUpdate.formData ? Object.keys(requestUpdate.formData) : [],
-      formDataSize: requestUpdate.formData ? Object.keys(requestUpdate.formData).length : 0,
-      formDataFull: requestUpdate.formData
-    });
-    fetch('http://127.0.0.1:7245/ingest/d51075b1-a735-41d8-b8b9-216099fda8f7',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'WorkflowsContext.tsx:296',message:'updateRequestAndNotify entry - requestUpdate received',data:{requestId:requestUpdate.id,hasFormData:'formData' in requestUpdate,formDataKeys:requestUpdate.formData?Object.keys(requestUpdate.formData):[],formDataSize:requestUpdate.formData?Object.keys(requestUpdate.formData).length:0,formDataPreview:requestUpdate.formData?Object.fromEntries(Object.entries(requestUpdate.formData).slice(0,5)):{}},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{});
-    // #endregion
-    
-    try {
-      await updateRequestMutation.mutateAsync(requestUpdate);
-      // #region agent log
-      console.log('[DEBUG] updateRequestMutation.mutateAsync completed successfully');
-      // #endregion
-    } catch (error) {
-      // #region agent log
-      console.error('[DEBUG] updateRequestMutation.mutateAsync failed:', error);
-      // #endregion
-      throw error; // Re-throw para que o erro seja propagado
-    }
-    
-    // CORREÇÃO: Se formData foi passado, verificar se foi realmente salvo (especialmente importante em produção)
-    // Isso previne problemas de timing/race condition que podem ocorrer em produção
-    if (requestUpdate.formData && Object.keys(requestUpdate.formData).length > 0) {
-      // Aguardar um pouco para o Firestore processar a atualização (especialmente importante em produção com latência)
-      await new Promise(resolve => setTimeout(resolve, 500));
-      
-      // Buscar diretamente do Firestore para verificar se foi salvo
-      // Usar Promise.race com timeout para evitar travar indefinidamente
-      try {
-        const verificationPromise = getDocument<WorkflowRequest>(COLLECTION_NAME, requestUpdate.id);
-        const timeoutPromise = new Promise<null>((_, reject) => 
-          setTimeout(() => reject(new Error('Timeout ao verificar formData')), 3000)
-        );
-        
-        const fetchedRequest = await Promise.race([verificationPromise, timeoutPromise]) as WorkflowRequest | null;
-        
-        if (fetchedRequest) {
-          const savedFormDataKeys = fetchedRequest.formData ? Object.keys(fetchedRequest.formData) : [];
-          const expectedKeys = Object.keys(requestUpdate.formData);
-          // #region agent log
-          console.log('[DEBUG] Verificação de formData salvo:', {
-            expectedKeys,
-            savedKeys: savedFormDataKeys,
-            match: savedFormDataKeys.length === expectedKeys.length
-          });
-          // #endregion
-          
-          if (savedFormDataKeys.length === 0) {
-            // #region agent log
-            console.error('[DEBUG] FormData não foi salvo! Tentando novamente...');
-            // #endregion
-            // Tentar salvar novamente se não foi salvo (pode ter havido problema de timing)
-            await updateDocumentInCollection(COLLECTION_NAME, requestUpdate.id, { formData: requestUpdate.formData });
-          }
-        }
-      } catch (verifyError) {
-        // #region agent log
-        console.error('[DEBUG] Erro ao verificar formData salvo:', verifyError);
-        // #endregion
-        // Não lançar erro aqui para não bloquear o fluxo, mas logar o problema
-        // Em produção, se houver timeout ou erro, o formData já deveria ter sido salvo na primeira tentativa
-      }
-    }
-    
+  const updateRequestAndNotify = useCallback(async (
+    requestUpdate: Partial<WorkflowRequest> & { id: string },
+    notificationMessage?: string,
+    notifyAssigneeMessage: string | null = null
+  ) => {
+    await updateRequestMutation.mutateAsync(requestUpdate);
+
     const originalRequest = requests.find(r => r.id === requestUpdate.id);
     if (!originalRequest) return;
-    
+
     const definition = workflowDefinitions.find(def => def.name === originalRequest.type);
-    const isFinalStatus = definition?.statuses.some(s => s.id === requestUpdate.status && ['finalizado', 'concluído', 'aprovado', 'reprovado', 'cancelado'].some(term => s.label.toLowerCase().includes(term))) ?? false;
+    const isFinalStatus =
+      definition?.statuses.some(
+        s =>
+          s.id === requestUpdate.status &&
+          ['finalizado', 'concluído', 'aprovado', 'reprovado', 'cancelado'].some(term =>
+            s.label.toLowerCase().includes(term)
+          )
+      ) ?? false;
 
-    // Always notify the requester (submittedBy)
     if (notificationMessage && originalRequest.submittedBy.userId) {
-        await addMessage({
-            title: `Atualização: ${originalRequest.type} #${originalRequest.requestId}`,
-            content: notificationMessage,
-            sender: 'Sistema de Workflows',
-            recipientIds: [originalRequest.submittedBy.userId],
-        });
+      await addMessage({
+        title: `Atualização: ${originalRequest.type} #${originalRequest.requestId}`,
+        content: notificationMessage,
+        sender: 'Sistema de Workflows',
+        recipientIds: [originalRequest.submittedBy.userId],
+      });
     }
 
-    // Only notify the assignee if it's NOT the final status
     if (notifyAssigneeMessage && requestUpdate.assignee?.id && !isFinalStatus) {
-       await addMessage({
-            title: `Nova Tarefa Atribuída: ${originalRequest.type} #${originalRequest.requestId}`,
-            content: notifyAssigneeMessage,
-            sender: 'Sistema de Workflows',
-            recipientIds: [requestUpdate.assignee.id],
-        });
+      await addMessage({
+        title: `Nova Tarefa Atribuída: ${originalRequest.type} #${originalRequest.requestId}`,
+        content: notifyAssigneeMessage,
+        sender: 'Sistema de Workflows',
+        recipientIds: [requestUpdate.assignee.id],
+      });
     }
-  };
+  }, [updateRequestMutation, requests, workflowDefinitions, addMessage]);
   
   const value = useMemo(() => ({
     requests,

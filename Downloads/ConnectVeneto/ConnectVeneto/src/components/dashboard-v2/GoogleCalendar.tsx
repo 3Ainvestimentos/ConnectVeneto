@@ -4,7 +4,7 @@
 import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { AlertCircle, CalendarDays, Clock } from 'lucide-react';
+import { AlertCircle } from 'lucide-react';
 import { format, startOfMonth, endOfMonth, isSameDay, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Calendar } from '../ui/calendar';
@@ -15,7 +15,23 @@ import { Button } from '../ui/button';
 
 declare global {
     interface Window {
-        gapi: any;
+        gapi: {
+          load: (api: string, callback: () => void) => void;
+          client: {
+            init: (config: {
+              apiKey: string | undefined;
+              discoveryDocs: string[];
+            }) => Promise<void>;
+            setToken: (token: { access_token: string }) => void;
+            calendar: {
+              events: {
+                list: (params: Record<string, string | boolean>) => Promise<{
+                  result?: { items?: CalendarEvent[] };
+                }>;
+              };
+            };
+          };
+        };
     }
 }
 
@@ -97,14 +113,14 @@ export default function GoogleCalendar() {
                     window.gapi.client.init({
                         apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
                         discoveryDocs: ["https://www.googleapis.com/discovery/v1/apis/calendar/v3/rest"],
-                    }).then(() => resolve(), (err: any) => reject(err));
+                    }).then(() => resolve(), (err: unknown) => reject(err));
                 });
             });
             await listMonthEvents(currentMonth);
         } else {
             throw new Error("Não foi possível carregar a API do Google. Verifique sua conexão ou tente fazer login novamente.");
         }
-    } catch (e: any) {
+    } catch (e: unknown) {
         console.error("Erro ao inicializar ou buscar eventos:", e);
         setError("Falha ao carregar os eventos. Por favor, saia e faça login novamente para reautenticar.");
     }
@@ -114,6 +130,8 @@ export default function GoogleCalendar() {
   useEffect(() => {
     if (user && accessToken) {
         initializeGapiClient();
+    } else if (user && !accessToken) {
+        setError("Sua sessão de acesso ao Google Calendar expirou. Faça login novamente para reautenticar.");
     } else if (!user) {
         setError("Usuário não autenticado.");
     }

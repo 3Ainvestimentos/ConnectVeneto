@@ -85,8 +85,8 @@ export const RankingsProvider = ({ children }: { children: ReactNode }) => {
   const value = useMemo(() => ({
     rankings,
     loading: isFetching,
-    addRanking: (ranking) => addRankingMutation.mutateAsync(ranking) as Promise<RankingType>,
-    updateRanking: (ranking) => updateRankingMutation.mutateAsync(ranking),
+    addRanking: (ranking: Omit<RankingType, 'id'>) => addRankingMutation.mutateAsync(ranking) as Promise<RankingType>,
+    updateRanking: (ranking: Partial<RankingType> & { id: string }) => updateRankingMutation.mutateAsync(ranking),
     deleteRankingMutation,
   }), [rankings, isFetching, addRankingMutation, updateRankingMutation, deleteRankingMutation]);
 

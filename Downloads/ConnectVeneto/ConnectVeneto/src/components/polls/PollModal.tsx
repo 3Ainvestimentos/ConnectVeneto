@@ -8,7 +8,7 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
 import { PollType, usePolls } from '@/contexts/PollsContext';
 import { useAuth } from '@/contexts/AuthContext';
-import { useCollaborators } from '@/contexts/CollaboratorsContext';
+import { getCollaboratorUserId, useCollaborators } from '@/contexts/CollaboratorsContext';
 import { toast } from '@/hooks/use-toast';
 import { findCollaboratorByEmail } from '@/lib/email-utils';
 import { Loader2 } from 'lucide-react';
@@ -52,7 +52,7 @@ export default function PollModal({ poll, open, onOpenChange }: PollModalProps) 
     setIsSubmitting(true);
     try {
       await submitResponse(poll.id, {
-        userId: currentUser.id3a,
+        userId: getCollaboratorUserId(currentUser) || '',
         userName: currentUser.name,
         answer: finalAnswer,
         answeredAt: new Date().toISOString(),

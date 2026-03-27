@@ -2,15 +2,11 @@
 "use client";
 
 import React, { createContext, useContext, ReactNode, useMemo } from 'react';
-import { UseMutationResult } from '@tanstack/react-query';
-import { WithId } from '@/lib/firestore-service';
 
 // Re-exporting from WorkflowsContext to avoid duplication
 export type { WorkflowRequest, WorkflowStatus, WorkflowHistoryLog } from './WorkflowsContext';
 
-interface RequestsContextType {
-  // Define methods specific to this context if needed in the future
-}
+type RequestsContextType = Record<string, never>;
 
 // Creating a dummy context for now as AppLayout needs a provider.
 // This can be expanded or removed if not needed.

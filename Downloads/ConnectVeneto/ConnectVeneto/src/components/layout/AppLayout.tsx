@@ -35,6 +35,7 @@ import { getCollaboratorUserId } from '@/contexts/CollaboratorsContext';
 import logoSidebar from '../../../docs/PNG/logotipo_vênetoPrancheta 1.png';
 import { UserNav } from './UserNav';
 import { navItems, noZoomRoutes } from './navigation';
+import { bootstrapTrace } from '@/lib/bootstrap-trace';
 
 
 export function AppLayout({ children }: { children: React.ReactNode }) {
@@ -79,7 +80,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
         setShowTermsModal(false);
         toast({ title: "Termos aceitos!", description: "Obrigado! Você já pode acessar a plataforma."});
         return true;
-    } catch(e) {
+    } catch {
         toast({ title: "Erro", description: "Não foi possível salvar sua confirmação. Tente novamente.", variant: 'destructive'});
         return false;
     }
@@ -190,17 +191,30 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
   }, [handleSignOut]);
 
   useEffect(() => {
+    bootstrapTrace('app_layout_auth_state', {
+      loading,
+      hasUser: !!user,
+      path: pathname,
+    });
+  }, [loading, user, pathname]);
+
+  useEffect(() => {
     if (!loading && !user) {
+      bootstrapTrace('app_layout_redirect_login', { path: pathname });
       router.push('/login');
     }
-  }, [user, loading, router]);
+  }, [user, loading, router, pathname]);
 
-  if (loading || !user) {
+  if (loading) {
      return (
         <div className="flex h-screen w-screen items-center justify-center">
-          <LoadingSpinner message="Carregando Intranet Veneto" />
+          <LoadingSpinner />
         </div>
      );
+  }
+
+  if (!user) {
+    return null;
   }
   
   const handleLinkClick = () => {
@@ -217,7 +231,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
         {!isFullscreenPage && (
           <Sidebar collapsible="icon" variant="sidebar"> 
             <SidebarContent className="flex-1 p-2">
-              <div className="mb-4 px-2 py-1">
+              <div className="mb-4 px-2 py-1 group-data-[state=collapsed]/sidebar-wrapper:hidden">
                 <Link href="/dashboard" onClick={handleLinkClick} className="flex items-center justify-center rounded-md p-2 hover:bg-muted">
                   <Image src={logoSidebar} alt="Logo Veneto Family Office" width={140} height={36} className="h-auto w-auto max-h-8" priority />
                 </Link>

@@ -30,7 +30,7 @@ export default function PersonalPanelLayout({
   if (loading || !isAuthorized) {
     return (
       <div className="flex h-[calc(100vh-var(--header-height))] w-full items-center justify-center bg-background">
-        <LoadingSpinner message="Carregando Diretoria" />
+        <LoadingSpinner />
       </div>
     );
   }

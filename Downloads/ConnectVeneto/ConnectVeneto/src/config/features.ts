@@ -4,6 +4,7 @@ export const FEATURE_FLAGS = {
   businessIntelligenceLeaders: false,
   venetoStore: true,
   labs: true,
+  debugBootstrap: false,
 } as const;
 
 export type FeatureFlagKey = keyof typeof FEATURE_FLAGS;

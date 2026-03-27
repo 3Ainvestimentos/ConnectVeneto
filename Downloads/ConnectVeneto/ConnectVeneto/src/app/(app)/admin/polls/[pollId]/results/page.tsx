@@ -32,7 +32,7 @@ export default function PollResultsPage() {
     
     if (poll.type === 'multiple-choice') {
         const counts: { [key: string]: number } = {};
-        const tempOtherResponses: any[] = [];
+        const tempOtherResponses: typeof responses = [];
         
         poll.options.forEach(option => {
             counts[option] = 0;
@@ -190,8 +190,8 @@ export default function PollResultsPage() {
             <Separator />
             <Card>
                 <CardHeader>
-                    <CardTitle>Respostas "Outros"</CardTitle>
-                    <CardDescription>Respostas personalizadas enviadas através da opção "Outros".</CardDescription>
+                    <CardTitle>Respostas &quot;Outros&quot;</CardTitle>
+                    <CardDescription>Respostas personalizadas enviadas através da opção &quot;Outros&quot;.</CardDescription>
                 </CardHeader>
                 <CardContent>
                     <ScrollArea className="h-[200px]">

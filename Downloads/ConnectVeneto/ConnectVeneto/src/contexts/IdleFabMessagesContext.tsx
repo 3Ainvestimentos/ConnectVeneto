@@ -2,7 +2,7 @@
 "use client";
 
 import React, { createContext, useContext, ReactNode, useMemo } from 'react';
-import { useQuery, useMutation, useQueryClient, UseMutationResult } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { addDocumentToCollection, updateDocumentInCollection, deleteDocumentFromCollection, WithId, listenToCollection, getCollection } from '@/lib/firestore-service';
 import * as z from 'zod';
 import { useAuth } from './AuthContext';
@@ -79,9 +79,9 @@ export const IdleFabMessagesProvider = ({ children }: { children: ReactNode }) =
   const value = useMemo(() => ({
     idleMessages,
     loading: isFetching,
-    addIdleMessage: (message) => addMutation.mutateAsync(message) as Promise<IdleFabMessageType>,
-    updateIdleMessage: (message) => updateMutation.mutateAsync(message),
-    deleteIdleMessage: (id) => deleteMutation.mutateAsync(id),
+    addIdleMessage: (message: Omit<IdleFabMessageType, 'id'>) => addMutation.mutateAsync(message) as Promise<IdleFabMessageType>,
+    updateIdleMessage: (message: Partial<IdleFabMessageType> & { id: string }) => updateMutation.mutateAsync(message),
+    deleteIdleMessage: (id: string) => deleteMutation.mutateAsync(id),
   }), [idleMessages, isFetching, addMutation, updateMutation, deleteMutation]);
 
   return (

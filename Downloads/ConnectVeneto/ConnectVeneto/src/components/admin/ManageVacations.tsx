@@ -794,10 +794,9 @@ export default function ManageVacations() {
                 Saldo apos registro: <strong>{Math.max(0, targetRemainingDays - selectedBusinessDays)}</strong>
               </p>
               {loadingHolidays && (
-                <p className="text-xs text-muted-foreground flex items-center gap-2">
-                  <Loader2 className="h-3 w-3 animate-spin" />
-                  Carregando feriados...
-                </p>
+                <div className="flex items-center justify-center py-1">
+                  <Loader2 className="h-4 w-4 animate-spin text-admin-primary" />
+                </div>
               )}
               {hasOverlap && <p className="text-sm text-destructive">O periodo selecionado se sobrepoe a um registro existente.</p>}
               {wouldExceedBalance && <p className="text-sm text-destructive">O periodo selecionado excede seu saldo de ferias.</p>}

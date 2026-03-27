@@ -30,7 +30,7 @@ export default function MeetAnalysesLayout({
   if (loading || !isAuthorized) {
     return (
       <div className="flex h-[calc(100vh-var(--header-height))] w-full items-center justify-center bg-background">
-        <LoadingSpinner message="Carregando Análises de Reuniões" />
+        <LoadingSpinner />
       </div>
     );
   }

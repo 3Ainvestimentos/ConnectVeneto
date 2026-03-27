@@ -1,14 +1,13 @@
 
 "use client";
 
-import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import type { DocumentType } from '@/app/(app)/documents/page';
 import { Input } from '@/components/ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Search, Filter, FileText, Download, ChevronDown, ChevronUp, FileType, Folder, CalendarDays, HardDrive } from 'lucide-react';
+import { Search, FileText, Download, ChevronDown, ChevronUp, FileType, Folder } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import {
   DropdownMenu,
@@ -19,7 +18,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useAuth } from '@/contexts/AuthContext';
-import { useCollaborators } from '@/contexts/CollaboratorsContext';
+import { getCollaboratorUserId, useCollaborators } from '@/contexts/CollaboratorsContext';
 import { addDocumentToCollection } from '@/lib/firestore-service';
 import { findCollaboratorByEmail } from '@/lib/email-utils';
 
@@ -66,7 +65,6 @@ export default function DocumentRepositoryClient({ initialDocuments, categories,
   const [selectedTypes, setSelectedTypes] = useState<string[]>([]);
   const [sortKey, setSortKey] = useState<SortKey>('lastModified');
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
-  const [viewMode, setViewMode] = useState<'list' | 'grid'>('list');
 
   const { user } = useAuth();
   const { collaborators } = useCollaborators();
@@ -78,7 +76,7 @@ export default function DocumentRepositoryClient({ initialDocuments, categories,
 
     addDocumentToCollection('audit_logs', {
       eventType: 'document_download',
-      userId: currentUserCollab.id3a,
+      userId: getCollaboratorUserId(currentUserCollab),
       userName: currentUserCollab.name,
       timestamp: new Date().toISOString(),
       details: {
@@ -144,7 +142,7 @@ export default function DocumentRepositoryClient({ initialDocuments, categories,
 
           addDocumentToCollection('audit_logs', {
               eventType: 'search_term_used',
-              userId: currentUserCollab.id3a,
+              userId: getCollaboratorUserId(currentUserCollab),
               userName: currentUserCollab.name,
               timestamp: new Date().toISOString(),
               details: {

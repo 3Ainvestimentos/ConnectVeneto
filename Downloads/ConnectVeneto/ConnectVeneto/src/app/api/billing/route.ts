@@ -10,6 +10,8 @@ const normalizeEmail = (email: string | null | undefined): string | null => {
     return email.trim().toLowerCase();
 };
 
+type ErrorWithCode = Error & { code?: string };
+
 
 // Exemplo de dados de faturamento. Em um cenário real, estes dados viriam
 // de uma consulta ao BigQuery onde os dados de faturamento do Google Cloud são exportados.
@@ -47,7 +49,9 @@ export async function GET(request: Request) {
 
     // Normaliza o email do usuário e também os emails da lista para comparar corretamente
     const normalizedUserEmail = normalizeEmail(decodedToken.email);
-    const normalizedAdminEmails = superAdminEmails.map(email => normalizeEmail(email)).filter((email): email is string => email !== null);
+    const normalizedAdminEmails = (superAdminEmails as string[])
+      .map((email: string) => normalizeEmail(email))
+      .filter((email): email is string => email !== null);
     
     // Verifica se o email do usuário autenticado está na lista de Super Admins (considerando ambos os formatos)
     if (!normalizedUserEmail || (!normalizedAdminEmails.includes(normalizedUserEmail) && !superAdminEmails.includes(normalizedUserEmail))) {
@@ -76,18 +80,19 @@ export async function GET(request: Request) {
     // Por enquanto, retornaremos os dados de exemplo.
     return NextResponse.json(mockBillingData);
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Erro na API de Faturamento:", error);
+    const err = error as ErrorWithCode;
 
-    if (error?.message === 'UNAUTHORIZED_MISSING_TOKEN' || error?.message === 'UNAUTHORIZED_INVALID_TOKEN') {
+    if (err?.message === 'UNAUTHORIZED_MISSING_TOKEN' || err?.message === 'UNAUTHORIZED_INVALID_TOKEN') {
       return NextResponse.json({ error: 'Não autorizado: Token não fornecido.' }, { status: 401 });
     }
 
-    if (error?.message === 'FORBIDDEN_NON_CORPORATE_EMAIL') {
+    if (err?.message === 'FORBIDDEN_NON_CORPORATE_EMAIL') {
       return NextResponse.json({ error: 'Acesso negado: apenas contas corporativas podem acessar.' }, { status: 403 });
     }
 
-    if (error.code === 'auth/id-token-expired' || error.code === 'auth/argument-error') {
+    if (err.code === 'auth/id-token-expired' || err.code === 'auth/argument-error') {
        return NextResponse.json({ error: 'Token de autenticação inválido ou expirado.' }, { status: 401 });
     }
 

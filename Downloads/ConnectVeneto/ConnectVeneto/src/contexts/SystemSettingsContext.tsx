@@ -71,7 +71,7 @@ export const SystemSettingsProvider = ({ children }: { children: ReactNode }) =>
   const value = useMemo(() => ({
     settings,
     loading: isFetching,
-    updateSystemSettings: (newSettings) => updateSettingsMutation.mutateAsync(newSettings),
+    updateSystemSettings: (newSettings: Partial<SystemSettings>) => updateSettingsMutation.mutateAsync(newSettings),
   }), [settings, isFetching, updateSettingsMutation]);
 
   return (

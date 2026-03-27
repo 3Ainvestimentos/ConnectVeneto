@@ -1,13 +1,13 @@
 
 "use client";
 
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Calendar } from '@/components/ui/calendar';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useEvents } from '@/contexts/EventsContext';
 import { useAuth } from '@/contexts/AuthContext';
-import { useCollaborators } from '@/contexts/CollaboratorsContext';
+import { getCollaboratorUserId, useCollaborators } from '@/contexts/CollaboratorsContext';
 import { isSameMonth, parseISO } from 'date-fns';
 import { toZonedTime } from 'date-fns-tz';
 import { ptBR } from 'date-fns/locale';
@@ -32,7 +32,7 @@ export default function InternalCalendar() {
     if (!currentUserCollab) return [];
     return events.filter(event => {
       const recipients = getEventRecipients(event, collaborators);
-      return recipients.some(r => r.id3a === currentUserCollab.id3a);
+      return recipients.some(r => getCollaboratorUserId(r) === getCollaboratorUserId(currentUserCollab));
     });
   }, [events, currentUserCollab, collaborators, getEventRecipients]);
 

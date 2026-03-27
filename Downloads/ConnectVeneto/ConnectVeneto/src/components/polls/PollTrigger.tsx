@@ -6,7 +6,7 @@ import { usePathname } from 'next/navigation';
 import { usePolls, PollType } from '@/contexts/PollsContext';
 import { useAuth } from '@/contexts/AuthContext';
 import PollModal from './PollModal';
-import { useCollaborators } from '@/contexts/CollaboratorsContext';
+import { getCollaboratorUserId, useCollaborators } from '@/contexts/CollaboratorsContext';
 import { findCollaboratorByEmail } from '@/lib/email-utils';
 
 export default function PollTrigger() {
@@ -29,14 +29,15 @@ export default function PollTrigger() {
       }
       
       // Is the user in the target audience?
-      const isTargeted = p.recipientIds.includes('all') || p.recipientIds.includes(currentUser.id3a);
+      const currentUserId = getCollaboratorUserId(currentUser);
+      const isTargeted = !!currentUserId && (p.recipientIds.includes('all') || p.recipientIds.includes(currentUserId));
       if (!isTargeted) {
         return false;
       }
 
       // Has the user already responded?
       const responsesForThisPoll = pollResponses[p.id] || [];
-      const hasResponded = responsesForThisPoll.some(r => r.userId === currentUser.id3a);
+      const hasResponded = !!currentUserId && responsesForThisPoll.some(r => r.userId === currentUserId);
       
       return !hasResponded;
     });

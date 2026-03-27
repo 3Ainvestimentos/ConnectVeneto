@@ -2,7 +2,7 @@
 "use client";
 
 import React, { useEffect, useState, useMemo } from 'react';
-import { useForm, Controller } from 'react-hook-form';
+import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -10,13 +10,14 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
-import { useSystemSettings, type SystemSettings } from '@/contexts/SystemSettingsContext';
+import { useSystemSettings } from '@/contexts/SystemSettingsContext';
 import { toast } from '@/hooks/use-toast';
-import { Loader2, Construction, Users, FileText, UserCheck, Shield, Trash2, PlusCircle, AlertCircle } from 'lucide-react';
+import { Loader2, Construction, Users, FileText, UserCheck, Shield, Trash2, PlusCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { RecipientSelectionModal } from './RecipientSelectionModal';
 import { useCollaborators } from '@/contexts/CollaboratorsContext';
 import { Input } from '../ui/input';
+import { LoadingSpinner } from '../ui/loading-spinner';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -79,7 +80,7 @@ function SuperAdminsCard() {
       await updateSystemSettings({ superAdminEmails: [...settings.superAdminEmails, normalizedEmailToAdd] });
       toast({ title: 'Sucesso', description: `${normalizedEmailToAdd} foi adicionado como Super Admin.` });
       setNewAdminEmail('');
-    } catch (error) {
+    } catch {
       toast({ title: 'Erro', description: 'Não foi possível adicionar o Super Admin.', variant: 'destructive' });
     } finally {
       setIsSubmitting(false);
@@ -96,7 +97,7 @@ function SuperAdminsCard() {
     try {
         await updateSystemSettings({ superAdminEmails: settings.superAdminEmails.filter(email => email !== emailToRemove) });
         toast({ title: 'Sucesso', description: `${emailToRemove} foi removido.` });
-    } catch (error) {
+    } catch {
         toast({ title: 'Erro', description: 'Não foi possível remover o Super Admin.', variant: 'destructive' });
     } finally {
         setIsSubmitting(false);
@@ -112,7 +113,11 @@ function SuperAdminsCard() {
       <CardContent className="space-y-4">
         <div className="space-y-2">
             <Label>E-mails com acesso Super Admin</Label>
-            {loading ? <p>Carregando...</p> : (
+            {loading ? (
+                <div className="flex justify-center py-2">
+                  <LoadingSpinner className="h-5 w-5" />
+                </div>
+            ) : (
                 <div className="space-y-2">
                     {settings.superAdminEmails.map(email => (
                         <div key={email} className="flex items-center justify-between p-2 border rounded-md bg-background">
@@ -174,7 +179,7 @@ function MaintenanceCard() {
         description: "A mensagem e os usuários autorizados foram atualizados.",
       });
       reset(data);
-    } catch (error) {
+    } catch {
       toast({
         title: 'Erro ao Salvar',
         description: 'Não foi possível salvar os detalhes da manutenção.',
@@ -192,7 +197,7 @@ function MaintenanceCard() {
             description: `A plataforma agora está ${checked ? 'restrita a usuários autorizados' : 'acessível a todos'}.`,
             variant: checked ? 'destructive' : 'default',
         });
-    } catch (error) {
+    } catch {
         toast({
             title: "Erro",
             description: "Não foi possível alterar o modo de manutenção.",
@@ -307,17 +312,19 @@ function LegalDocsCard() {
     const privacyForm = useForm<PrivacyFormValues>({
         resolver: zodResolver(privacySchema),
     });
+    const resetTerms = termsForm.reset;
+    const resetPrivacy = privacyForm.reset;
 
     useEffect(() => {
         if (!loading && settings) {
-            termsForm.reset({
+            resetTerms({
                 termsUrl: settings.termsUrl,
             });
-            privacyForm.reset({
+            resetPrivacy({
                 privacyPolicyUrl: settings.privacyPolicyUrl,
             });
         }
-    }, [settings, loading, termsForm.reset, privacyForm.reset]);
+    }, [settings, loading, resetTerms, resetPrivacy]);
 
     const onSubmitTerms = async (data: TermsFormValues) => {
         const currentVersion = settings.termsVersion || 1;
@@ -333,7 +340,7 @@ function LegalDocsCard() {
                 description: `A versão foi atualizada para ${newVersion.toFixed(1)} e uma nova rodada de aceite será iniciada.`,
             });
             termsForm.reset(data);
-        } catch (error) {
+        } catch {
             toast({ title: 'Erro ao Salvar', description: 'Não foi possível salvar os Termos de Uso.', variant: 'destructive' });
         }
     };
@@ -348,7 +355,7 @@ function LegalDocsCard() {
             });
             toast({ title: "Política de Privacidade Salva", description: `A URL foi atualizada com sucesso para a versão ${newVersion.toFixed(1)}.` });
             privacyForm.reset(data);
-        } catch (error) {
+        } catch {
             toast({ title: 'Erro ao Salvar', description: 'Não foi possível salvar a Política de Privacidade.', variant: 'destructive' });
         }
     };

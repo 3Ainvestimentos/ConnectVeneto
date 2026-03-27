@@ -57,7 +57,7 @@ export function ManageNewsletter() {
         title: "Configurações Salvas",
         description: "As configurações da newsletter foram atualizadas com sucesso.",
       });
-    } catch (error) {
+    } catch {
       toast({
         title: 'Erro ao Salvar',
         description: 'Não foi possível salvar as configurações.',

@@ -2,16 +2,15 @@
 "use client";
 
 import React, { useState } from 'react';
-import { useWorkflows, WorkflowRequest, WorkflowStatus } from '@/contexts/WorkflowsContext';
-import { useApplications, SlaRule } from '@/contexts/ApplicationsContext';
+import { useWorkflows, WorkflowRequest } from '@/contexts/WorkflowsContext';
+import { useApplications } from '@/contexts/ApplicationsContext';
 import { useAuth } from '@/contexts/AuthContext';
-import { useCollaborators } from '@/contexts/CollaboratorsContext';
+import { getCollaboratorUserId, useCollaborators } from '@/contexts/CollaboratorsContext';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { format, parseISO, addBusinessDays } from 'date-fns';
-import { ptBR } from 'date-fns/locale';
 import { FileClock, Inbox, Eye, Timer } from 'lucide-react';
 import { Button } from '../ui/button';
 import { RequestDetailsModal } from './RequestDetailsModal';
@@ -28,7 +27,7 @@ export default function MyRequests() {
         if (!user || !collaborators.length) return [];
         const currentUserCollab = findCollaboratorByEmail(collaborators, user.email);
         if (!currentUserCollab) return [];
-        return requests.filter(req => req.submittedBy.userId === currentUserCollab.id3a);
+        return requests.filter(req => req.submittedBy.userId === getCollaboratorUserId(currentUserCollab));
     }, [requests, user, collaborators]);
 
     const getStatusLabel = (request: WorkflowRequest) => {

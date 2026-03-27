@@ -31,8 +31,7 @@ export interface BILink {
 
 export interface Collaborator {
   id: string;
-  id3a: string;      // Legado: manter durante fase de compatibilidade
-  idVeneto?: string; // Novo identificador principal
+  idVeneto: string; // Identificador principal
   name: string;
   email: string;
   photoURL?: string; // Link da imagem do colaborador
@@ -52,7 +51,7 @@ export interface Collaborator {
 
 export const getCollaboratorUserId = (collaborator: Partial<Collaborator> | null | undefined): string | null => {
   if (!collaborator) return null;
-  return collaborator.idVeneto || collaborator.id3a || null;
+  return collaborator.idVeneto || null;
 };
 
 interface CollaboratorsContextType {
@@ -143,7 +142,11 @@ export const CollaboratorsProvider = ({ children }: { children: ReactNode }) => 
   const updateCollaboratorMutation = useMutation<void, Error, { currentData: Collaborator, newData: Omit<Collaborator, 'id'> }>({
     mutationFn: async ({ currentData, newData }) => {
         const { id, ...originalData } = currentData;
-        const changes: any[] = [];
+        const changes: Array<{
+          field: keyof Omit<Collaborator, 'id'>;
+          oldValue: unknown;
+          newValue: unknown;
+        }> = [];
         
         for (const key in newData) {
             const typedKey = key as keyof typeof newData;
@@ -213,10 +216,10 @@ export const CollaboratorsProvider = ({ children }: { children: ReactNode }) => 
   const value = useMemo(() => ({
     collaborators,
     loading: isFetching,
-    addCollaborator: (collaborator) => addCollaboratorMutation.mutateAsync(collaborator),
-    addMultipleCollaborators: (collaborators) => addMultipleCollaboratorsMutation.mutateAsync(collaborators),
-    updateCollaborator: (currentData, newData) => updateCollaboratorMutation.mutateAsync({ currentData, newData }),
-    updateCollaboratorPermissions: (id, permissions) => updateCollaboratorPermissionsMutation.mutateAsync({ id, permissions }),
+    addCollaborator: (collaborator: Omit<Collaborator, 'id'>) => addCollaboratorMutation.mutateAsync(collaborator),
+    addMultipleCollaborators: (collaborators: Omit<Collaborator, 'id'>[]) => addMultipleCollaboratorsMutation.mutateAsync(collaborators),
+    updateCollaborator: (currentData: Collaborator, newData: Omit<Collaborator, 'id'>) => updateCollaboratorMutation.mutateAsync({ currentData, newData }),
+    updateCollaboratorPermissions: (id: string, permissions: CollaboratorPermissions) => updateCollaboratorPermissionsMutation.mutateAsync({ id, permissions }),
     deleteCollaboratorMutation,
   }), [collaborators, isFetching, addCollaboratorMutation, addMultipleCollaboratorsMutation, updateCollaboratorMutation, updateCollaboratorPermissionsMutation, deleteCollaboratorMutation]);
 

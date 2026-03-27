@@ -10,7 +10,7 @@ import { Award } from 'lucide-react';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
-import { useCollaborators } from '@/contexts/CollaboratorsContext';
+import { getCollaboratorUserId, useCollaborators } from '@/contexts/CollaboratorsContext';
 import { findCollaboratorByEmail } from '@/lib/email-utils';
 
 function RankingsPageContent() {
@@ -27,7 +27,7 @@ function RankingsPageContent() {
             if (ranking.recipientIds.includes('all')) {
                 return true;
             }
-            return ranking.recipientIds.includes(currentUser.id3a);
+            return ranking.recipientIds.includes(getCollaboratorUserId(currentUser) || '');
         });
     }, [rankings, user, collaborators, loading]);
 
@@ -99,7 +99,7 @@ export default function RankingsPage() {
     if (loading || !isAuthorized) {
         return (
             <div className="flex h-[calc(100vh-var(--header-height))] w-full items-center justify-center bg-background">
-                <LoadingSpinner message="Carregando Rankings e Campanhas" />
+                <LoadingSpinner />
             </div>
         );
     }

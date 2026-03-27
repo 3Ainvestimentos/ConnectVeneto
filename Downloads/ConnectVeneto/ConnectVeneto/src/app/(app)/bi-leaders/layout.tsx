@@ -29,7 +29,7 @@ export default function BILeadersLayout({
   if (loading || !isAuthorized) {
     return (
       <div className="flex h-[calc(100vh-var(--header-height))] w-full items-center justify-center bg-background">
-        <LoadingSpinner message="Carregando BI Líderes" />
+        <LoadingSpinner />
       </div>
     );
   }

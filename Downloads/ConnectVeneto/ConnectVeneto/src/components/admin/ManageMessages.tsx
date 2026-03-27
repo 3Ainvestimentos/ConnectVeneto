@@ -2,14 +2,14 @@
 "use client";
 import React, { useState, useMemo } from 'react';
 import { useMessages, type MessageType } from '@/contexts/MessagesContext';
-import { useCollaborators, type Collaborator } from '@/contexts/CollaboratorsContext';
+import { getCollaboratorUserId, useCollaborators, type Collaborator } from '@/contexts/CollaboratorsContext';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose, DialogDescription } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { useForm, Controller } from 'react-hook-form';
+import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { PlusCircle, Edit, Trash2, CheckCircle, XCircle, Loader2, Users, Bot, Search, ChevronUp, ChevronDown, ChevronLeft, ChevronRight } from 'lucide-react';
@@ -19,9 +19,7 @@ import { ScrollArea } from '../ui/scroll-area';
 import { Badge } from '../ui/badge';
 import { Separator } from '../ui/separator';
 import { RecipientSelectionModal } from './RecipientSelectionModal';
-import { useQueryClient } from '@tanstack/react-query';
 import { Switch } from '../ui/switch';
-import { cn } from '@/lib/utils';
 import { parseISO, compareDesc } from 'date-fns';
 
 const messageSchema = z.object({
@@ -42,15 +40,21 @@ type SortDirection = 'asc' | 'desc';
 const ReadStatusDialog = ({ message, recipients, onOpenChange }: { message: MessageType | null; recipients: Collaborator[]; onOpenChange: (open: boolean) => void; }) => {
     if (!message) return null;
 
-    const readCollaborators = recipients.filter(r => message.readBy.includes(r.id3a));
-    const unreadCollaborators = recipients.filter(r => !message.readBy.includes(r.id3a));
+    const readCollaborators = recipients.filter(r => {
+        const id = getCollaboratorUserId(r);
+        return !!id && message.readBy.includes(id);
+    });
+    const unreadCollaborators = recipients.filter(r => {
+        const id = getCollaboratorUserId(r);
+        return !!id && !message.readBy.includes(id);
+    });
 
     return (
         <Dialog open={!!message} onOpenChange={onOpenChange}>
             <DialogContent className="max-w-md">
                 <DialogHeader>
                     <DialogTitle>Status de Leitura</DialogTitle>
-                    <DialogDescription>"{message.title}"</DialogDescription>
+                    <DialogDescription>&quot;{message.title}&quot;</DialogDescription>
                 </DialogHeader>
                 <div className="grid grid-cols-2 gap-4 max-h-[60vh] overflow-y-auto">
                     <div>
@@ -92,8 +96,7 @@ export function ManageMessages() {
     const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
     const [currentPage, setCurrentPage] = useState(1);
     const ROWS_PER_PAGE = 100;
-    const queryClient = useQueryClient();
-    
+
     const form = useForm<MessageFormValues>({
         resolver: zodResolver(messageSchema),
         defaultValues: { recipientIds: ['all'] }

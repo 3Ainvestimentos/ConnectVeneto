@@ -15,21 +15,21 @@ import { Badge } from '../ui/badge';
 
 interface ChangeLog {
     field: string;
-    oldValue: any;
-    newValue: any;
+    oldValue: unknown;
+    newValue: unknown;
 }
 
-interface LogEntry extends WithId<{
+type LogEntry = WithId<{
     collaboratorId: string;
     collaboratorName: string;
     updatedBy: string;
     updatedAt: string;
     changes: ChangeLog[];
-}> {}
+}>;
 
 const LOG_COLLECTION_NAME = 'collaborator_logs';
 
-function formatValue(value: any): string {
+function formatValue(value: unknown): string {
     if (value === null || value === undefined) return 'vazio';
     if (typeof value === 'boolean') return value ? 'Sim' : 'Não';
     if (Array.isArray(value)) {

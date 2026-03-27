@@ -18,10 +18,10 @@ const getUniqueFieldId = (index: number): string => `__field_${index}`;
  * Simula a lógica de submit do WorkflowSubmissionModal
  */
 function mapFormDataToFieldIds(
-  formData: Record<string, any>,
+  formData: Record<string, unknown>,
   fields: FormFieldDefinition[]
-): Record<string, any> {
-  const mappedData: Record<string, any> = {};
+): Record<string, unknown> {
+  const mappedData: Record<string, unknown> = {};
   
   fields.forEach((field, index) => {
     const uniqueId = getUniqueFieldId(index);

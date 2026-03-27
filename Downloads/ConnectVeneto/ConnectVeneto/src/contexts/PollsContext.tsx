@@ -1,9 +1,9 @@
 
 "use client";
 
-import React, { createContext, useContext, ReactNode, useMemo, useEffect, useState } from 'react';
+import React, { createContext, useContext, ReactNode, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient, UseMutationResult } from '@tanstack/react-query';
-import { addDocumentToCollection, updateDocumentInCollection, deleteDocumentFromCollection, listenToCollection, WithId, getCollection, getSubcollection } from '@/lib/firestore-service';
+import { addDocumentToCollection, updateDocumentInCollection, deleteDocumentFromCollection, WithId, getCollection, getSubcollection } from '@/lib/firestore-service';
 import * as z from 'zod';
 import { useAuth } from './AuthContext';
 
@@ -102,8 +102,10 @@ export const PollsProvider = ({ children }: { children: ReactNode }) => {
   });
 
   const submitResponseMutation = useMutation<void, Error, { pollId: string; response: Omit<PollResponseType, 'id'> }>({
-    mutationFn: ({ pollId, response }) => addDocumentToCollection(`${COLLECTION_NAME}/${pollId}/${RESPONSES_SUBCOLLECTION}`, response),
-    onSuccess: (data, variables) => {
+    mutationFn: async ({ pollId, response }) => {
+      await addDocumentToCollection(`${COLLECTION_NAME}/${pollId}/${RESPONSES_SUBCOLLECTION}`, response);
+    },
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['pollResponses'] });
     },
   });
@@ -113,10 +115,10 @@ export const PollsProvider = ({ children }: { children: ReactNode }) => {
     pollResponses,
     loadingPolls,
     loadingResponses,
-    addPoll: (poll) => addPollMutation.mutateAsync(poll) as Promise<PollType>,
-    updatePoll: (poll) => updatePollMutation.mutateAsync(poll),
+    addPoll: (poll: Omit<PollType, 'id'>) => addPollMutation.mutateAsync(poll) as Promise<PollType>,
+    updatePoll: (poll: PollType) => updatePollMutation.mutateAsync(poll),
     deletePollMutation,
-    submitResponse: (pollId, response) => submitResponseMutation.mutateAsync({ pollId, response }),
+    submitResponse: (pollId: string, response: Omit<PollResponseType, 'id'>) => submitResponseMutation.mutateAsync({ pollId, response }),
   }), [polls, pollResponses, loadingPolls, loadingResponses, addPollMutation, updatePollMutation, deletePollMutation, submitResponseMutation]);
 
   return (

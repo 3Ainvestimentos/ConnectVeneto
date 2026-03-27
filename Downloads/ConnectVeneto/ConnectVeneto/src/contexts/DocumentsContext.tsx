@@ -78,8 +78,8 @@ export const DocumentsProvider = ({ children }: { children: ReactNode }) => {
   const value = useMemo(() => ({
     documents,
     loading: isFetching,
-    addDocument: (doc) => addDocumentMutation.mutateAsync(doc),
-    updateDocument: (doc) => updateDocumentMutation.mutateAsync(doc),
+    addDocument: (doc: Omit<DocumentType, 'id'>) => addDocumentMutation.mutateAsync(doc),
+    updateDocument: (doc: DocumentType) => updateDocumentMutation.mutateAsync(doc),
     deleteDocumentMutation,
   }), [documents, isFetching, addDocumentMutation, updateDocumentMutation, deleteDocumentMutation]);
 

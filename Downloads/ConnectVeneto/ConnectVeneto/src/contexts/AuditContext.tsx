@@ -3,7 +3,7 @@
 
 import React, { createContext, useContext, ReactNode, useState, useMemo } from 'react';
 import { DateRange } from 'react-day-picker';
-import { startOfDay, endOfDay, subDays } from 'date-fns';
+import { subDays } from 'date-fns';
 
 interface AuditContextType {
   dateRange: DateRange | undefined;
@@ -11,9 +11,6 @@ interface AuditContextType {
 }
 
 const AuditContext = createContext<AuditContextType | undefined>(undefined);
-
-// Set the start date for the audit logs
-const AUDIT_START_DATE = new Date('2024-08-01');
 
 export const AuditProvider = ({ children }: { children: ReactNode }) => {
     const [dateRange, setDateRange] = useState<DateRange | undefined>({

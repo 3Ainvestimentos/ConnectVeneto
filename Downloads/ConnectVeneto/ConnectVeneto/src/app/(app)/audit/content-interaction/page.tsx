@@ -8,12 +8,11 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { getCollection, WithId, listenToCollection } from '@/lib/firestore-service';
 import { Skeleton } from '@/shared/components/ui/skeleton';
-import { Eye, FileText, Newspaper, User, Medal, Download, FileDown, Route, Trophy, Bot, LineChart as LineChartIcon } from 'lucide-react';
+import { Eye, FileText, Newspaper, User, Medal, FileDown, Route, Trophy, Bot, LineChart as LineChartIcon } from 'lucide-react';
 import { Badge } from '@/shared/components/ui/badge';
 import { Button } from '@/shared/components/ui/button';
 import Papa from 'papaparse';
 import { format, parseISO, startOfDay, eachDayOfInterval, compareAsc, isWithinInterval, endOfDay } from 'date-fns';
-import { Avatar, AvatarFallback } from '@/shared/components/ui/avatar';
 import { ResponsiveContainer, LineChart, CartesianGrid, XAxis, YAxis, Tooltip, Legend, Line } from 'recharts';
 import { useAudit } from '@/contexts/AuditContext';
 
@@ -32,12 +31,6 @@ type AuditLogEvent = WithId<{
         contentType?: 'news' | 'document';
     }
 }>;
-
-const EVENT_TYPE_CONFIG: { [key in AuditLogEvent['eventType']]?: { label: string, icon: React.ElementType } } = {
-    content_view: { label: 'Visualização de Conteúdo', icon: Newspaper },
-    document_download: { label: 'Download de Documento', icon: Download },
-    page_view: { label: 'Acesso de Página', icon: Eye },
-};
 
 export default function ContentInteractionPage() {
     const queryClient = useQueryClient();

@@ -181,8 +181,8 @@ export const ApplicationsProvider = ({ children }: { children: ReactNode }) => {
   const value = useMemo(() => ({
     workflowDefinitions,
     loading: isFetching,
-    addWorkflowDefinition: (definition) => addWorkflowDefinitionMutation.mutateAsync(definition) as Promise<WorkflowDefinition>,
-    updateWorkflowDefinition: (definition) => updateWorkflowDefinitionMutation.mutateAsync(definition),
+    addWorkflowDefinition: (definition: Omit<WorkflowDefinition, 'id'>) => addWorkflowDefinitionMutation.mutateAsync(definition) as Promise<WorkflowDefinition>,
+    updateWorkflowDefinition: (definition: Partial<WorkflowDefinition> & { id: string }) => updateWorkflowDefinitionMutation.mutateAsync(definition),
     deleteWorkflowDefinitionMutation,
   }), [workflowDefinitions, isFetching, addWorkflowDefinitionMutation, updateWorkflowDefinitionMutation, deleteWorkflowDefinitionMutation]);
 

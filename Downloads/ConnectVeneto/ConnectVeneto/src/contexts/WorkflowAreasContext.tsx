@@ -6,7 +6,6 @@ import { useQuery, useMutation, useQueryClient, UseMutationResult } from '@tanst
 import { addDocumentToCollection, updateDocumentInCollection, deleteDocumentFromCollection, WithId, listenToCollection, getCollection } from '@/lib/firestore-service';
 import * as z from 'zod';
 import { useAuth } from './AuthContext';
-import { isValidStorageFolderPath } from '@/lib/path-sanitizer';
 
 export const workflowAreaSchema = z.object({
     name: z.string().min(1, "O nome da área é obrigatório."),
@@ -101,8 +100,8 @@ export const WorkflowAreasProvider = ({ children }: { children: ReactNode }) => 
     const value = useMemo(() => ({
         workflowAreas,
         loading: isFetching,
-        addWorkflowArea: (area) => addWorkflowAreaMutation.mutateAsync(area) as Promise<WorkflowArea>,
-        updateWorkflowArea: (area) => updateWorkflowAreaMutation.mutateAsync(area),
+        addWorkflowArea: (area: Omit<WorkflowArea, 'id'>) => addWorkflowAreaMutation.mutateAsync(area) as Promise<WorkflowArea>,
+        updateWorkflowArea: (area: Partial<WorkflowArea> & { id: string }) => updateWorkflowAreaMutation.mutateAsync(area),
         deleteWorkflowAreaMutation,
     }), [workflowAreas, isFetching, addWorkflowAreaMutation, updateWorkflowAreaMutation, deleteWorkflowAreaMutation]);
 

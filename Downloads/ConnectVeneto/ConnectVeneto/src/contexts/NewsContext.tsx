@@ -75,7 +75,7 @@ export const NewsProvider = ({ children }: { children: ReactNode }) => {
     return () => unsubscribe();
   }, [queryClient, user]);
 
-  const addNewsItemMutation = useMutation<WithId<Omit<NewsItemType, 'id'>>, Error, Omit<NewsItemType, 'id'>>({
+  const addNewsItemMutation = useMutation<WithId<Omit<NewsItemType, 'id' | 'status'>>, Error, Omit<NewsItemType, 'id' | 'status'>>({
     mutationFn: (itemData) => {
         const currentMaxOrder = newsItems.reduce((max, item) => Math.max(max, item.order || 0), 0);
         const dataWithDefaults = { 
@@ -98,7 +98,7 @@ export const NewsProvider = ({ children }: { children: ReactNode }) => {
     onSuccess: () => {
         queryClient.invalidateQueries({ queryKey: [COLLECTION_NAME] });
     },
-    onError: (error) => {
+    onError: () => {
         toast({
             title: "Erro ao Salvar",
             description: "Não foi possível salvar a notícia. Verifique suas permissões ou a conexão.",
@@ -172,8 +172,8 @@ export const NewsProvider = ({ children }: { children: ReactNode }) => {
   const value = useMemo(() => ({
     newsItems,
     loading: isFetching,
-    addNewsItem: (item) => addNewsItemMutation.mutateAsync(item) as Promise<any>,
-    updateNewsItem: (item) => updateNewsItemMutation.mutateAsync(item),
+    addNewsItem: (item: Omit<NewsItemType, 'id' | 'status'>) => addNewsItemMutation.mutateAsync(item),
+    updateNewsItem: (item: Partial<NewsItemType> & { id: string }) => updateNewsItemMutation.mutateAsync(item),
     deleteNewsItemMutation,
     toggleNewsHighlight,
     updateHighlightType,

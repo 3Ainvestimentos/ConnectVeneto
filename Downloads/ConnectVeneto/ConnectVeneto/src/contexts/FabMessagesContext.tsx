@@ -1,12 +1,11 @@
 
 "use client";
 
-import React, { createContext, useContext, ReactNode, useMemo, useEffect } from 'react';
-import { useQuery, useMutation, useQueryClient, UseMutationResult } from '@tanstack/react-query';
+import React, { createContext, useContext, ReactNode, useMemo } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { setDocumentInCollection, deleteDocumentFromCollection, listenToCollection, WithId, updateDocumentInCollection, getDocument, getCollection } from '@/lib/firestore-service';
 import * as z from 'zod';
-import { formatISO, subDays } from 'date-fns';
-import { useCollaborators, type Collaborator } from './CollaboratorsContext';
+import { formatISO } from 'date-fns';
 import { useAuth } from './AuthContext';
 
 // Define a lista de tags permitidas
@@ -256,7 +255,7 @@ export const FabMessagesProvider = ({ children }: { children: ReactNode }) => {
   });
   
   const archiveIndividualCampaignMutation = useMutation<void, Error, { userId: string; campaignId: string }>({
-    mutationFn: ({ userId, campaignId }) => {
+    mutationFn: () => {
       throw new Error("Function not implemented.");
     }
   });
@@ -264,14 +263,14 @@ export const FabMessagesProvider = ({ children }: { children: ReactNode }) => {
   const value = useMemo(() => ({
     fabMessages,
     loading: isFetching,
-    upsertMessageForUser: (userId, data) => upsertMutation.mutateAsync({ userId, data }),
-    deleteMessageForUser: (userId) => deleteMutation.mutateAsync(userId),
-    markCampaignAsClicked: (userId) => markCampaignAsClickedMutation.mutateAsync(userId),
-    startCampaign: (userId) => startCampaignMutation.mutateAsync(userId),
-    interruptCampaign: (userId) => interruptCampaignMutation.mutateAsync(userId),
-    completeFollowUpPeriod: (userId) => completeFollowUpPeriodMutation.mutateAsync(userId),
-    archiveIndividualCampaign: (userId, campaignId) => archiveIndividualCampaignMutation.mutateAsync({ userId, campaignId }),
-    archiveMultipleCampaigns: (userId, campaignIds) => archiveMultipleCampaignsMutation.mutateAsync({userId, campaignIds}),
+    upsertMessageForUser: (userId: string, data: FabMessagePayload) => upsertMutation.mutateAsync({ userId, data }),
+    deleteMessageForUser: (userId: string) => deleteMutation.mutateAsync(userId),
+    markCampaignAsClicked: (userId: string) => markCampaignAsClickedMutation.mutateAsync(userId),
+    startCampaign: (userId: string) => startCampaignMutation.mutateAsync(userId),
+    interruptCampaign: (userId: string) => interruptCampaignMutation.mutateAsync(userId),
+    completeFollowUpPeriod: (userId: string) => completeFollowUpPeriodMutation.mutateAsync(userId),
+    archiveIndividualCampaign: (userId: string, campaignId: string) => archiveIndividualCampaignMutation.mutateAsync({ userId, campaignId }),
+    archiveMultipleCampaigns: (userId: string, campaignIds: string[]) => archiveMultipleCampaignsMutation.mutateAsync({userId, campaignIds}),
   }), [fabMessages, isFetching, upsertMutation, deleteMutation, markCampaignAsClickedMutation, startCampaignMutation, interruptCampaignMutation, completeFollowUpPeriodMutation, archiveIndividualCampaignMutation, archiveMultipleCampaignsMutation]);
 
   return (

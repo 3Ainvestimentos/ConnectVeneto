@@ -11,7 +11,6 @@ import { useWorkflowAreas, WorkflowArea } from '@/contexts/WorkflowAreasContext'
 import { WorkflowDefinition } from '@/contexts/ApplicationsContext';
 import { Card, CardContent } from '../ui/card';
 import { getIcon } from '@/lib/icons';
-import { Badge } from '../ui/badge';
 import { ScrollArea } from '../ui/scroll-area';
 
 interface OrderWorkflowsModalProps {
@@ -63,7 +62,7 @@ export function OrderWorkflowsModal({ isOpen, onClose, area, allWorkflows }: Ord
       await updateWorkflowArea({ id: area.id, workflowOrder: newOrder });
       toast({ title: "Sucesso", description: "A ordem dos workflows foi salva." });
       onClose();
-    } catch (error) {
+    } catch {
       toast({ title: "Erro", description: "Não foi possível salvar a nova ordem.", variant: "destructive" });
     } finally {
       setIsSaving(false);
@@ -78,7 +77,7 @@ export function OrderWorkflowsModal({ isOpen, onClose, area, allWorkflows }: Ord
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2"><ListOrdered/> Ordenar Workflows</DialogTitle>
           <DialogDescription>
-            Arraste e solte para reordenar os workflows na área "{area.name}". A ordem aqui definida será refletida na tela de solicitações.
+            Arraste e solte para reordenar os workflows na área &quot;{area.name}&quot;. A ordem aqui definida será refletida na tela de solicitações.
           </DialogDescription>
         </DialogHeader>
         <ScrollArea className="max-h-[60vh]">

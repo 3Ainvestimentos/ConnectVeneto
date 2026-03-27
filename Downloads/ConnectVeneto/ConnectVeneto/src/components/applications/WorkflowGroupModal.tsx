@@ -12,8 +12,6 @@ import { Card, CardContent } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { WorkflowDefinition } from '@/contexts/ApplicationsContext';
 import { getIcon } from '@/lib/icons';
-import ReactMarkdown from 'react-markdown';
-import remarkGfm from 'remark-gfm';
 
 // Constante para o ID da área de TI
 const TI_AREA_ID = "3i5eo3hPQrfWcAtfPkBt";

@@ -9,10 +9,12 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogC
 import { Label } from '@/components/ui/label';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
+import * as z from 'zod';
 import { PlusCircle, Edit, Trash2, Loader2 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../ui/card';
 import { toast } from '@/hooks/use-toast';
 import { Textarea } from '../ui/textarea';
+import { LoadingSpinner } from '../ui/loading-spinner';
 
 type MessageFormValues = z.infer<typeof idleFabMessageSchema>;
 
@@ -103,7 +105,11 @@ export function ManageIdleFabMessages() {
                         </TableBody>
                     </Table>
                 </div>
-                {loading && <p className="text-center mt-4">Carregando mensagens...</p>}
+                {loading && (
+                    <div className="mt-4 flex justify-center">
+                        <LoadingSpinner className="h-5 w-5" />
+                    </div>
+                )}
                 {!loading && idleMessages.length === 0 && <p className="text-center mt-4 text-muted-foreground">Nenhuma mensagem ociosa configurada.</p>}
             </CardContent>
 

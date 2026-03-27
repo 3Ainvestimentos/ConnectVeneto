@@ -22,8 +22,7 @@ import {
   runTransaction,
   where,
 } from "firebase/firestore";
-import { getFirestore } from "firebase/firestore";
-import { getFirebaseApp } from "@/lib/firebase";
+import { getClientFirestore } from "@/lib/firebase";
 import { useAuth } from "./AuthContext";
 import { useVacationApprovers } from "./VacationApproversContext";
 import {
@@ -216,7 +215,7 @@ export function VacationRequestsProvider({
         throw new Error("Sem permissão para aprovar solicitações.");
       }
 
-      const db = getFirestore(getFirebaseApp());
+      const db = getClientFirestore();
       const requestRef = doc(db, VACATION_REQUESTS_COLLECTION, requestId);
       const requestSnap = await getDoc(requestRef);
       if (!requestSnap.exists()) {

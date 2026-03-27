@@ -13,7 +13,6 @@ import * as z from 'zod';
 import { PlusCircle, Edit, Trash2, Loader2 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../ui/card';
 import { toast } from '@/hooks/use-toast';
-import { useQueryClient } from '@tanstack/react-query';
 
 const labSchema = z.object({
     id: z.string().optional(),
@@ -30,7 +29,6 @@ export function ManageLabs() {
     const { labs, addLab, updateLab, deleteLabMutation } = useLabs();
     const [isDialogOpen, setIsDialogOpen] = useState(false);
     const [editingLab, setEditingLab] = useState<LabType | null>(null);
-    const queryClient = useQueryClient();
 
     const { register, handleSubmit, reset, formState: { errors, isSubmitting: isFormSubmitting } } = useForm<LabFormValues>({
         resolver: zodResolver(labSchema),
@@ -60,7 +58,7 @@ export function ManageLabs() {
     const handleDelete = async (id: string) => {
         if (!window.confirm("Tem certeza que deseja excluir este vídeo do Lab?")) return;
 
-        const { id: toastId, update } = toast({
+        const { update } = toast({
             title: "Diagnóstico de Exclusão",
             description: "1. Iniciando exclusão...",
             variant: "default",
@@ -92,7 +90,7 @@ export function ManageLabs() {
                 await updateLab({ ...data, id: editingLab.id } as LabType);
                 toast({ title: "Vídeo do Lab atualizado com sucesso." });
             } else {
-                const { id, ...dataWithoutId } = data;
+                const { id: _id, ...dataWithoutId } = data;
                 await addLab(dataWithoutId);
                 toast({ title: "Vídeo do Lab adicionado com sucesso." });
             }

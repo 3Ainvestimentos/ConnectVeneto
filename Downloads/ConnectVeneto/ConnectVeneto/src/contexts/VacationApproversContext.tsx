@@ -1,6 +1,6 @@
 "use client";
 
-import React, { createContext, useContext, ReactNode, useMemo } from "react";
+import React, { createContext, useContext, ReactNode, useMemo, useCallback } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   getCollection,
@@ -137,8 +137,10 @@ export function VacationApproversProvider({
     return approvers.some((a) => a.responsibleUid === user.uid);
   }, [approvers, user, isSuperAdmin]);
 
-  const getResponsibleForUser = (userUid: string) =>
-    approvers.find((a) => a.userUid === userUid);
+  const getResponsibleForUser = useCallback(
+    (userUid: string) => approvers.find((a) => a.userUid === userUid),
+    [approvers]
+  );
 
   const value = useMemo(
     () => ({
@@ -167,6 +169,7 @@ export function VacationApproversProvider({
       isFetching,
       canApproveVacationRequests,
       resolvedResponsibles,
+      getResponsibleForUser,
       setResponsibleMutation,
       removeResponsibleMutation,
     ]

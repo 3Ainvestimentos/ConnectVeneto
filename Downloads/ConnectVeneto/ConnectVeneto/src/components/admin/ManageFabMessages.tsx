@@ -7,18 +7,16 @@ import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose, DialogDescription } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { useForm, useFieldArray, Controller, useWatch } from 'react-hook-form';
+import { useForm, useFieldArray, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { PlusCircle, Edit, Trash2, Loader2, Send, MessageSquare, Edit2, Play, Pause, AlertTriangle, Search, Filter, ChevronUp, ChevronDown, Upload, FileDown, GripVertical, PieChart, Archive, History } from 'lucide-react';
+import { PlusCircle, Loader2, Send, Edit2, AlertTriangle, Search, Filter, ChevronUp, ChevronDown, Upload, FileDown, GripVertical, Archive, History } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../ui/card';
 import { toast } from '@/hooks/use-toast';
-import { useCollaborators, type Collaborator } from '@/contexts/CollaboratorsContext';
+import { getCollaboratorUserId, useCollaborators, type Collaborator } from '@/contexts/CollaboratorsContext';
 import { Badge } from '../ui/badge';
 import { Textarea } from '../ui/textarea';
 import { Separator } from '../ui/separator';
-import { Switch } from '../ui/switch';
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuCheckboxItem } from '../ui/dropdown-menu';
 import Papa from 'papaparse';
 import { Checkbox } from '../ui/checkbox';
@@ -64,8 +62,8 @@ const StatusBadge = ({ status }: { status: keyof typeof statusOptions }) => {
 };
 
 export function ManageFabMessages() {
-    const { fabMessages, upsertMessageForUser, deleteMessageForUser, startCampaign, archiveMultipleCampaigns, loading: fabLoading } = useFabMessages();
-    const { collaborators, loading: collabLoading } = useCollaborators();
+    const { fabMessages, upsertMessageForUser, startCampaign, archiveMultipleCampaigns } = useFabMessages();
+    const { collaborators } = useCollaborators();
     const [isFormOpen, setIsFormOpen] = useState(false);
     const [isImportOpen, setIsImportOpen] = useState(false);
     const [editingUser, setEditingUser] = useState<Collaborator | null>(null);
@@ -140,7 +138,7 @@ export function ManageFabMessages() {
             if (values.length > 0) {
                  if (key === 'status') {
                     items = items.filter(user => {
-                        const message = userMessageMap.get(user.id3a);
+                        const message = userMessageMap.get(getCollaboratorUserId(user) || '');
                         const status = message?.status || 'not_created';
                         return values.includes(status);
                     });
@@ -151,21 +149,31 @@ export function ManageFabMessages() {
         });
         
         items.sort((a, b) => {
-            let valA: any, valB: any;
+            let valA: unknown;
+            let valB: unknown;
             
             if (sortKey === 'status') {
-                 const messageA = userMessageMap.get(a.id3a);
-                 const messageB = userMessageMap.get(b.id3a);
+                 const messageA = userMessageMap.get(getCollaboratorUserId(a) || '');
+                 const messageB = userMessageMap.get(getCollaboratorUserId(b) || '');
                  valA = messageA?.status || 'not_created';
                  valB = messageB?.status || 'not_created';
             } else {
-                 valA = a[sortKey as keyof Collaborator] as any;
-                 valB = b[sortKey as keyof Collaborator] as any;
+                 valA = a[sortKey as keyof Collaborator];
+                 valB = b[sortKey as keyof Collaborator];
             }
 
+            const comparableA =
+                typeof valA === 'number' ? valA :
+                typeof valA === 'boolean' ? Number(valA) :
+                String(valA ?? '');
+            const comparableB =
+                typeof valB === 'number' ? valB :
+                typeof valB === 'boolean' ? Number(valB) :
+                String(valB ?? '');
+
             let comparison = 0;
-            if (valA > valB) comparison = 1;
-            else if (valA < valB) comparison = -1;
+            if (comparableA > comparableB) comparison = 1;
+            else if (comparableA < comparableB) comparison = -1;
 
             return sortDirection === 'asc' ? comparison : -comparison;
         });
@@ -220,10 +228,11 @@ export function ManageFabMessages() {
         if (checked) {
             const readyUserIds = filteredAndSortedUsers
                 .filter(user => {
-                    const message = userMessageMap.get(user.id3a);
+                    const message = userMessageMap.get(getCollaboratorUserId(user) || '');
                     return message?.status === 'ready';
                 })
-                .map(user => user.id3a);
+                .map(user => getCollaboratorUserId(user))
+                .filter((id): id is string => !!id);
             setSelectedUserIds(readyUserIds);
         } else {
             setSelectedUserIds([]);
@@ -232,8 +241,9 @@ export function ManageFabMessages() {
     
     const isAllReadyUsersSelected = useMemo(() => {
         const readyUserIds = filteredAndSortedUsers
-            .filter(user => userMessageMap.get(user.id3a)?.status === 'ready')
-            .map(user => user.id3a);
+            .filter(user => userMessageMap.get(getCollaboratorUserId(user) || '')?.status === 'ready')
+            .map(user => getCollaboratorUserId(user))
+            .filter((id): id is string => !!id);
         return readyUserIds.length > 0 && readyUserIds.every(id => selectedUserIds.includes(id));
     }, [filteredAndSortedUsers, selectedUserIds, userMessageMap]);
 
@@ -241,8 +251,8 @@ export function ManageFabMessages() {
         resolver: zodResolver(formSchema),
     });
     
-    const { formState: { isSubmitting }, reset, handleSubmit, control, setValue } = form;
-    const { fields, append, remove, move } = useFieldArray({ control, name: "pipeline" });
+    const { formState: { isSubmitting }, reset, handleSubmit, control } = form;
+    const { fields, append, move } = useFieldArray({ control, name: "pipeline" });
     
     const filteredPipelineFields = useMemo(() => {
         if (!pipelineSearchTerm) {
@@ -264,7 +274,7 @@ export function ManageFabMessages() {
         setIsArchiving(true);
         
         try {
-            await archiveMultipleCampaigns(editingUser.id3a, selectedCampaignIds);
+            await archiveMultipleCampaigns(getCollaboratorUserId(editingUser) || '', selectedCampaignIds);
             toast({ title: 'Campanhas arquivadas com sucesso!' });
             setSelectedCampaignIds([]);
         } catch (error) {
@@ -283,7 +293,7 @@ export function ManageFabMessages() {
         setEditingUser(user);
         setSelectedCampaignIds([]);
         setPipelineSearchTerm(''); // Reset search on open
-        const existingMessage = userMessageMap.get(user.id3a);
+        const existingMessage = userMessageMap.get(getCollaboratorUserId(user) || '');
         if (existingMessage && existingMessage.pipeline) {
             reset({ pipeline: existingMessage.pipeline });
         } else {
@@ -304,16 +314,16 @@ export function ManageFabMessages() {
         if (!editingUser) return;
     
         const payload: FabMessagePayload = {
-            userId: editingUser.id3a,
+            userId: getCollaboratorUserId(editingUser) || '',
             userName: editingUser.name,
             pipeline: data.pipeline,
         };
     
         try {
-            await upsertMessageForUser(editingUser.id3a, payload);
+            await upsertMessageForUser(getCollaboratorUserId(editingUser) || '', payload);
             toast({ title: "Sucesso", description: `Pipeline de mensagens para ${editingUser.name} foi salvo.` });
             setIsFormOpen(false);
-        } catch (error) {
+        } catch {
             toast({ title: "Erro", description: "Não foi possível salvar o pipeline.", variant: "destructive" });
         }
     };
@@ -357,10 +367,12 @@ export function ManageFabMessages() {
                         status: 'loaded',
                     };
                     
-                    if (!userCampaigns[user.id3a]) {
-                        userCampaigns[user.id3a] = { userName: user.name, campaigns: [] };
+                    const userId = getCollaboratorUserId(user);
+                    if (!userId) continue;
+                    if (!userCampaigns[userId]) {
+                        userCampaigns[userId] = { userName: user.name, campaigns: [] };
                     }
-                    userCampaigns[user.id3a].campaigns.push(campaign);
+                    userCampaigns[userId].campaigns.push(campaign);
                 }
 
                 try {
@@ -441,7 +453,7 @@ export function ManageFabMessages() {
             <CardHeader>
                 <CardTitle>Gerenciamento de Mensagens por Colaborador</CardTitle>
                 <CardDescription>
-                Crie, envie e monitore as campanhas de comunicação. O status 'Pronto' indica que a campanha está aguardando o envio manual.
+                Crie, envie e monitore as campanhas de comunicação. O status &apos;Pronto&apos; indica que a campanha está aguardando o envio manual.
                 </CardDescription>
                 <div className="flex flex-col sm:flex-row justify-between items-center gap-2 pt-4">
                     <div className="relative flex-grow w-full sm:w-auto">
@@ -497,7 +509,7 @@ export function ManageFabMessages() {
                         </TableHeader>
                         <TableBody>
                             {filteredAndSortedUsers.map(user => {
-                                const message = userMessageMap.get(user.id3a);
+                                const message = userMessageMap.get(getCollaboratorUserId(user) || '');
                                 
                                 const finishedCampaigns = message?.pipeline.filter(c => c.status === 'completed' || c.status === 'interrupted').length || 0;
                                 const totalInPipeline = message?.pipeline.length || 0;
@@ -508,10 +520,12 @@ export function ManageFabMessages() {
                                 <TableRow key={user.id}>
                                     <TableCell>
                                         <Checkbox
-                                            checked={selectedUserIds.includes(user.id3a)}
+                                            checked={selectedUserIds.includes(getCollaboratorUserId(user) || '')}
                                             onCheckedChange={(checked) => {
                                                 setSelectedUserIds(prev =>
-                                                    checked ? [...prev, user.id3a] : prev.filter(id => id !== user.id3a)
+                                                    checked
+                                                      ? [...prev, getCollaboratorUserId(user) || '']
+                                                      : prev.filter(id => id !== (getCollaboratorUserId(user) || ''))
                                                 );
                                             }}
                                             aria-label={`Selecionar ${user.name}`}
@@ -589,7 +603,7 @@ export function ManageFabMessages() {
                                         </TableRow>
                                     </TableHeader>
                                     <TableBody>
-                                        {filteredPipelineFields.map((field, index) => (
+                                        {filteredPipelineFields.map((field) => (
                                             <Draggable key={field.id} draggableId={field.id} index={field.originalIndex}>
                                             {(provided) => (
                                                 <TableRow ref={provided.innerRef} {...provided.draggableProps}>

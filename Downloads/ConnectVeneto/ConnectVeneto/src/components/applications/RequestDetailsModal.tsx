@@ -7,8 +7,7 @@ import { format, parseISO, isValid } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Label } from '@/components/ui/label';
-import { User, Calendar, Type, Clock, FileText, History, Download, ExternalLink } from 'lucide-react';
+import { User, Calendar, Type, Clock, FileText, History, ExternalLink } from 'lucide-react';
 import { Badge } from '../ui/badge';
 import { Separator } from '../ui/separator';
 import { ScrollArea } from '../ui/scroll-area';
@@ -24,6 +23,16 @@ interface RequestDetailsModalProps {
   request: WorkflowRequest | null;
 }
 
+type DateRangeValue = { from?: string; to?: string };
+
+const isDateRangeValue = (value: unknown): value is DateRangeValue => {
+  if (!value || typeof value !== 'object') return false;
+  const maybeRange = value as { from?: unknown; to?: unknown };
+  const fromOk = maybeRange.from === undefined || typeof maybeRange.from === 'string';
+  const toOk = maybeRange.to === undefined || typeof maybeRange.to === 'string';
+  return fromOk && toOk;
+};
+
 export function RequestDetailsModal({ isOpen, onClose, request }: RequestDetailsModalProps) {
   const { workflowDefinitions } = useApplications();
 
@@ -34,11 +43,11 @@ export function RequestDetailsModal({ isOpen, onClose, request }: RequestDetails
 
   if (!request) return null;
 
-  const renderFieldValue = (fieldId: string, value: any) => {
+  const renderFieldValue = (fieldId: string, value: unknown) => {
     const fieldDef = definition?.fields.find(f => f.id === fieldId);
     if (!fieldDef) return <p><strong>{fieldId}:</strong> {JSON.stringify(value)}</p>;
     
-    let displayValue: React.ReactNode = value;
+    let displayValue: React.ReactNode = typeof value === 'string' ? value : JSON.stringify(value);
 
     if (fieldDef.type === 'file' && typeof value === 'string' && value) {
       const fileName = value.split('%2F').pop()?.split('?')[0] || 'Arquivo';
@@ -56,11 +65,11 @@ export function RequestDetailsModal({ isOpen, onClose, request }: RequestDetails
     }
     else if (fieldDef.type === 'date' && value) {
       // Handle both Date objects and ISO strings
-      const date = typeof value === 'string' ? parseISO(value) : value;
-      displayValue = isValid(date) ? format(date, 'dd/MM/yyyy', { locale: ptBR }) : 'Data inválida';
+      const date = typeof value === 'string' ? parseISO(value) : null;
+      displayValue = date && isValid(date) ? format(date, 'dd/MM/yyyy', { locale: ptBR }) : 'Data inválida';
     } else if (fieldDef.type === 'date-range' && value) {
-      const from = value.from ? parseISO(value.from) : null;
-      const to = value.to ? parseISO(value.to) : null;
+      const from = isDateRangeValue(value) && value.from ? parseISO(value.from) : null;
+      const to = isDateRangeValue(value) && value.to ? parseISO(value.to) : null;
       displayValue = (from && isValid(from) && to && isValid(to)) 
         ? `${format(from, 'dd/MM/yyyy')} a ${format(to, 'dd/MM/yyyy')}`
         : 'Período inválido';
@@ -75,9 +84,6 @@ export function RequestDetailsModal({ isOpen, onClose, request }: RequestDetails
   }
 
   const renderFormData = () => {
-    // #region agent log
-    fetch('http://127.0.0.1:7245/ingest/d51075b1-a735-41d8-b8b9-216099fda8f7',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'RequestDetailsModal.tsx:77',message:'renderFormData entry - reading formData',data:{requestId:request.requestId,hasFormData:!!request.formData,formDataKeys:request.formData?Object.keys(request.formData):[],formDataSize:request.formData?Object.keys(request.formData).length:0,formDataFull:request.formData},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{});
-    // #endregion
     if (!definition || !definition.fields) return <p>Sem definição de formulário encontrada.</p>;
     if (!request.formData || Object.keys(request.formData).length === 0) return <p>Sem dados de formulário.</p>;
     

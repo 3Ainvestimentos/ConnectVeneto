@@ -10,9 +10,10 @@ import { toast } from '@/hooks/use-toast';
 import { Collaborator, CollaboratorPermissions, getCollaboratorUserId } from './CollaboratorsContext';
 import { addDocumentToCollection, getCollection, updateDocumentInCollection as updateFirestoreDoc } from '@/lib/firestore-service';
 import { useSystemSettings } from './SystemSettingsContext';
-import { getFirestore, collection, onSnapshot, query, where } from "firebase/firestore";
+import { useCollaboratorSync } from '@/hooks/useCollaboratorSync';
 import type { FirebaseError } from 'firebase/app';
 import { normalizeEmail } from '@/lib/email-utils';
+import { bootstrapTrace, resetBootstrapTrace } from '@/lib/bootstrap-trace';
 
 const scopes = [
   'https://www.googleapis.com/auth/calendar.readonly',
@@ -25,6 +26,11 @@ googleProvider.setCustomParameters({
 });
 
 const CORPORATE_EMAIL_DOMAIN = 'venetomfo.com.br';
+const AUTH_COOKIE_NAME = 'cv_auth';
+const AUTH_COOKIE_MAX_AGE_SECONDS = 60 * 60 * 24; // 24h
+const GOOGLE_ACCESS_TOKEN_STORAGE_KEY = 'cv_google_access_token';
+const GOOGLE_ACCESS_TOKEN_ISSUED_AT_KEY = 'cv_google_access_token_issued_at';
+const GOOGLE_ACCESS_TOKEN_MAX_AGE_MS = 55 * 60 * 1000; // 55 minutos para margem de expiração
 
 interface AuthContextType {
   user: User | null;
@@ -49,6 +55,61 @@ const isCorporateEmail = (email: string | null | undefined): boolean => {
   return normalizeEmail(email)?.endsWith(`@${CORPORATE_EMAIL_DOMAIN}`) ?? false;
 }
 
+const setAuthSessionCookie = () => {
+  if (typeof document === 'undefined') return;
+  document.cookie = `${AUTH_COOKIE_NAME}=1; path=/; max-age=${AUTH_COOKIE_MAX_AGE_SECONDS}; samesite=lax`;
+};
+
+const clearAuthSessionCookie = () => {
+  if (typeof document === 'undefined') return;
+  document.cookie = `${AUTH_COOKIE_NAME}=; path=/; max-age=0; samesite=lax`;
+};
+
+const saveGoogleAccessToken = (token: string) => {
+  if (typeof window === 'undefined') return;
+  window.sessionStorage.setItem(GOOGLE_ACCESS_TOKEN_STORAGE_KEY, token);
+  window.sessionStorage.setItem(GOOGLE_ACCESS_TOKEN_ISSUED_AT_KEY, Date.now().toString());
+};
+
+const clearGoogleAccessToken = () => {
+  if (typeof window === 'undefined') return;
+  window.sessionStorage.removeItem(GOOGLE_ACCESS_TOKEN_STORAGE_KEY);
+  window.sessionStorage.removeItem(GOOGLE_ACCESS_TOKEN_ISSUED_AT_KEY);
+};
+
+const restoreGoogleAccessToken = (): string | null => {
+  if (typeof window === 'undefined') return null;
+  const token = window.sessionStorage.getItem(GOOGLE_ACCESS_TOKEN_STORAGE_KEY);
+  const issuedAtRaw = window.sessionStorage.getItem(GOOGLE_ACCESS_TOKEN_ISSUED_AT_KEY);
+  const issuedAt = issuedAtRaw ? Number(issuedAtRaw) : NaN;
+
+  if (!token || Number.isNaN(issuedAt)) {
+    clearGoogleAccessToken();
+    return null;
+  }
+
+  const age = Date.now() - issuedAt;
+  if (age > GOOGLE_ACCESS_TOKEN_MAX_AGE_MS) {
+    clearGoogleAccessToken();
+    return null;
+  }
+
+  return token;
+};
+
+const withTimeout = async <T,>(promise: Promise<T>, timeoutMs: number): Promise<T> => {
+  let timeoutId: ReturnType<typeof setTimeout> | undefined;
+  const timeoutPromise = new Promise<never>((_, reject) => {
+    timeoutId = setTimeout(() => reject(new Error('AUTH_LOOKUP_TIMEOUT')), timeoutMs);
+  });
+
+  try {
+    return await Promise.race([promise, timeoutPromise]);
+  } finally {
+    if (timeoutId) clearTimeout(timeoutId);
+  }
+};
+
 const defaultPermissions: CollaboratorPermissions = {
   canManageWorkflows: false,
   canManageRequests: false,
@@ -68,10 +129,10 @@ const defaultPermissions: CollaboratorPermissions = {
 
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUser] = useState<User | null>(() => _auth.currentUser);
   const [currentUserCollab, setCurrentUserCollab] = useState<Collaborator | null>(null);
   const [accessToken, setAccessToken] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState<boolean>(() => !_auth.currentUser);
   const [permissions, setPermissions] = useState<CollaboratorPermissions>(defaultPermissions);
   const [isSuperAdmin, setIsSuperAdmin] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
@@ -79,22 +140,23 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const { settings: systemSettings } = useSystemSettings();
   
   const auth = _auth;
+  const authBootstrapCompletedRef = useRef(false);
 
   const systemSettingsRef = useRef(systemSettings);
   useEffect(() => {
     systemSettingsRef.current = systemSettings;
   }, [systemSettings]);
 
-  const logAuthDebug = useCallback((label: string, extra?: Record<string, unknown>) => {
-    if (typeof window === 'undefined') return;
-    const context = {
-      origin: window.location.origin,
-      referrer: document.referrer,
-      authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
-      pathname: window.location.pathname,
-    };
-    // eslint-disable-next-line no-console
-    console.info(`[AuthDebug] ${label}`, { ...context, ...extra });
+  useEffect(() => {
+    resetBootstrapTrace();
+    bootstrapTrace('auth_provider_mount', { hasCachedUser: !!_auth.currentUser });
+  }, []);
+
+  useEffect(() => {
+    const restoredToken = restoreGoogleAccessToken();
+    if (restoredToken) {
+      setAccessToken(restoredToken);
+    }
   }, []);
 
   const applyCollaboratorState = useCallback((collaborator: Collaborator | null) => {
@@ -119,7 +181,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       const collaboratorByEmail = collaborators.find(c => normalizeEmail(c.email) === normalizedEmail) ?? null;
 
       if (collaboratorByEmail) {
-        console.log(`Associating authUid for ${normalizedEmail}...`);
         await updateFirestoreDoc('collaborators', collaboratorByEmail.id, { authUid: firebaseUser.uid });
         collaborator = { ...collaboratorByEmail, authUid: firebaseUser.uid };
       }
@@ -131,11 +192,19 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
-      setLoading(true);
+      bootstrapTrace('onAuthStateChanged_fired', {
+        hasFirebaseUser: !!firebaseUser,
+        uid: firebaseUser?.uid ?? null,
+      });
+      if (!authBootstrapCompletedRef.current) {
+        setLoading(true);
+        bootstrapTrace('auth_loading_true');
+      }
       if (firebaseUser) {
         try {
             if (!isCorporateEmail(firebaseUser.email)) {
               await firebaseSignOut(auth);
+              clearAuthSessionCookie();
               setUser(null);
               setCurrentUserCollab(null);
               toast({
@@ -152,25 +221,54 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             // Normaliza também os emails da lista para comparar corretamente
             const normalizedAdminEmails = superAdminEmails.map(email => normalizeEmail(email)).filter((email): email is string => email !== null);
             const isSuper = !!normalizedEmail && (normalizedAdminEmails.includes(normalizedEmail) || superAdminEmails.includes(normalizedEmail));
-            
-            const collaborator = await fetchAndSetCollaborator(firebaseUser);
+
+            let collaborator: Collaborator | null = null;
+            let collaboratorLookupTimedOut = false;
+            try {
+              bootstrapTrace('collaborator_lookup_start');
+              collaborator = await withTimeout(fetchAndSetCollaborator(firebaseUser), 8000);
+              bootstrapTrace('collaborator_lookup_success', { hasCollaborator: !!collaborator });
+            } catch (lookupError) {
+              if (lookupError instanceof Error && lookupError.message === 'AUTH_LOOKUP_TIMEOUT') {
+                collaboratorLookupTimedOut = true;
+                bootstrapTrace('collaborator_lookup_timeout');
+              } else {
+                bootstrapTrace('collaborator_lookup_error', {
+                  error: lookupError instanceof Error ? lookupError.message : 'unknown',
+                });
+                throw lookupError;
+              }
+            }
 
             const collaboratorUserId = getCollaboratorUserId(collaborator);
             const isAllowedDuringMaintenance = collaboratorUserId ? allowedUserIds.includes(collaboratorUserId) : false;
 
-            if (maintenanceMode && !isSuper && !isAllowedDuringMaintenance) {
+            if (maintenanceMode && !isSuper && !isAllowedDuringMaintenance && !collaboratorLookupTimedOut) {
                 await firebaseSignOut(auth);
+                clearAuthSessionCookie();
                 setUser(null);
                 setCurrentUserCollab(null);
                 toast({ title: "Manutenção", description: maintenanceMessage, duration: 9000 });
-            } else if (!collaborator && !isSuper) {
+            } else if (!collaborator && !isSuper && !collaboratorLookupTimedOut) {
                  await firebaseSignOut(auth);
+                 clearAuthSessionCookie();
                  setUser(null);
                  setCurrentUserCollab(null);
                  toast({ title: "Acesso Negado", description: "Seu perfil não foi encontrado na base de dados de colaboradores.", variant: 'destructive' });
             } else {
+                setAuthSessionCookie();
                 setUser(firebaseUser);
+                const restoredToken = restoreGoogleAccessToken();
+                setAccessToken(restoredToken);
                 setIsSuperAdmin(isSuper);
+                if (collaboratorLookupTimedOut) {
+                  bootstrapTrace('auth_release_on_timeout');
+                  toast({
+                    title: "Sincronizando seu perfil",
+                    description: "Seu acesso já foi liberado. Alguns dados podem aparecer em instantes.",
+                    duration: 3500,
+                  });
+                }
                 if (isSuper) {
                     const allPermissions = Object.keys(defaultPermissions).reduce((acc, key) => {
                         acc[key as keyof CollaboratorPermissions] = true;
@@ -181,83 +279,58 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                 }
             }
         } catch (e) {
+             bootstrapTrace('auth_state_error', {
+               error: e instanceof Error ? e.message : 'unknown',
+             });
              console.error("Error during auth state change verification:", e);
              await firebaseSignOut(auth);
+             clearAuthSessionCookie();
              setUser(null);
              toast({ title: "Erro de Configuração", description: "Não foi possível verificar as configurações do sistema.", variant: 'destructive' });
         }
       } else {
+        bootstrapTrace('auth_state_without_user');
+        clearAuthSessionCookie();
+        clearGoogleAccessToken();
         setUser(null);
         setCurrentUserCollab(null);
+        setAccessToken(null);
         setIsAdmin(false);
         setIsSuperAdmin(false);
         setPermissions(defaultPermissions);
       }
+      authBootstrapCompletedRef.current = true;
+      bootstrapTrace('auth_loading_false', { hasUser: !!firebaseUser });
       setLoading(false); 
     });
     return () => unsubscribe();
   }, [auth, fetchAndSetCollaborator]);
 
+  // Guard rail: avoid infinite spinner if auth bootstrap stalls.
   useEffect(() => {
-    if (!user || isSuperAdmin) return;
+    if (!loading || authBootstrapCompletedRef.current) return;
+    const timeoutId = setTimeout(() => {
+      authBootstrapCompletedRef.current = true;
+      bootstrapTrace('auth_watchdog_release_loading');
+      setLoading(false);
+    }, 12000);
+    return () => clearTimeout(timeoutId);
+  }, [loading]);
 
-    const db = getFirestore(getFirebaseApp());
-    const collaboratorsRef = collection(db, 'collaborators');
-    const emailCandidates = Array.from(
-      new Set([user.email, normalizeEmail(user.email)].filter((email): email is string => !!email))
-    );
-
-    let collaboratorFromUid: Collaborator | null = null;
-
-    const unsubByUid = onSnapshot(
-      query(collaboratorsRef, where('authUid', '==', user.uid)),
-      (snapshot) => {
-        const docSnap = snapshot.docs[0];
-        collaboratorFromUid = docSnap ? ({ id: docSnap.id, ...docSnap.data() } as Collaborator) : null;
-        if (collaboratorFromUid) {
-          applyCollaboratorState(collaboratorFromUid);
-        }
-      },
-      (error) => {
-        console.error('Auth realtime sync by authUid failed:', error);
-      }
-    );
-
-    let unsubByEmail = () => {};
-    if (emailCandidates.length > 0) {
-      unsubByEmail = onSnapshot(
-        query(collaboratorsRef, where('email', 'in', emailCandidates)),
-        (snapshot) => {
-          if (collaboratorFromUid) return;
-          const docSnap = snapshot.docs[0];
-          if (docSnap) {
-            applyCollaboratorState({ id: docSnap.id, ...docSnap.data() } as Collaborator);
-          }
-        },
-        (error) => {
-          console.error('Auth realtime sync by email failed:', error);
-        }
-      );
-    }
-
-    return () => {
-      unsubByUid();
-      unsubByEmail();
-    };
-  }, [user, isSuperAdmin, applyCollaboratorState]);
+  useCollaboratorSync(user, isSuperAdmin, applyCollaboratorState);
 
   
-  const signInWithGoogle = async () => {
+  const signInWithGoogle = useCallback(async () => {
     setLoading(true);
     try {
       const { maintenanceMode, maintenanceMessage, allowedUserIds, superAdminEmails } = systemSettings;
       
-      logAuthDebug('signInWithGoogle:start');
       const result = await signInWithPopup(auth, googleProvider);
       const firebaseUser = result.user;
 
       if (!isCorporateEmail(firebaseUser.email)) {
         await firebaseSignOut(auth);
+        clearAuthSessionCookie();
         toast({
           title: "Acesso Negado",
           description: `Apenas contas @${CORPORATE_EMAIL_DOMAIN} podem acessar a plataforma.`,
@@ -285,9 +358,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       }
       
       if (collaborator || isSuper) {
+        setAuthSessionCookie();
         const credential = GoogleAuthProvider.credentialFromResult(result);
         if (credential?.accessToken) {
+          saveGoogleAccessToken(credential.accessToken);
           setAccessToken(credential.accessToken);
+        } else {
+          clearGoogleAccessToken();
+          setAccessToken(null);
         }
         
         await addDocumentToCollection('audit_logs', {
@@ -301,6 +379,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         router.push('/dashboard');
       } else {
         await firebaseSignOut(auth);
+        clearAuthSessionCookie();
+        clearGoogleAccessToken();
+        setAccessToken(null);
         toast({
             title: "Acesso Negado",
             description: "Seu e-mail não foi encontrado na lista de colaboradores.",
@@ -311,12 +392,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       const firebaseError = error as FirebaseError | undefined;
       if (firebaseError?.code) {
         if (firebaseError.code !== 'auth/popup-closed-by-user' && firebaseError.code !== 'auth/cancelled-popup-request') {
-          logAuthDebug('signInWithGoogle:error', {
-            code: firebaseError.code,
-            message: firebaseError.message,
-            customData: firebaseError.customData,
-          });
-          // eslint-disable-next-line no-console
           console.error("Firebase Login Error:", firebaseError);
           toast({
             title: "Erro de Login",
@@ -325,8 +400,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           });
         }
       } else {
-        logAuthDebug('signInWithGoogle:unknown-error', { error });
-        // eslint-disable-next-line no-console
         console.error("Error signing in with Google: ", error);
         toast({
           title: "Erro de Login",
@@ -337,11 +410,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     } finally {
         setLoading(false);
     }
-  };
+  }, [systemSettings, auth, fetchAndSetCollaborator, router]);
 
-  const signOut = async () => {
+  const signOut = useCallback(async () => {
     try {
       await firebaseSignOut(auth);
+      clearAuthSessionCookie();
+      clearGoogleAccessToken();
       setAccessToken(null);
       setCurrentUserCollab(null);
       router.push('/login');
@@ -349,7 +424,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       console.error("Error signing out: ", error);
       throw error;
     }
-  };
+  }, [auth, router]);
   
   const value = useMemo(() => ({
       user,

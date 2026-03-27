@@ -3,7 +3,6 @@
 
 import { PageHeader } from '@/components/layout/PageHeader';
 import NewsFeedClient from '@/components/news/NewsFeedClient';
-import { Newspaper } from 'lucide-react';
 import { useNews } from '@/contexts/NewsContext';
 import type { NewsItemType } from '@/contexts/NewsContext';
 import { useMemo } from 'react';

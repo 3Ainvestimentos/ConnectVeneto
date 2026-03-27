@@ -4,7 +4,7 @@
 import React, { useState, useMemo } from 'react';
 import { useWorkflows, WorkflowRequest } from '@/contexts/WorkflowsContext';
 import { useAuth } from '@/contexts/AuthContext';
-import { useCollaborators } from '@/contexts/CollaboratorsContext';
+import { getCollaboratorUserId, useCollaborators } from '@/contexts/CollaboratorsContext';
 import { PageHeader } from '@/components/layout/PageHeader';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -13,7 +13,7 @@ import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { format, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { Eye, ListTodo, Inbox, ShieldCheck, UserCheck } from 'lucide-react';
+import { Eye, Inbox, ShieldCheck, UserCheck } from 'lucide-react';
 import { RequestApprovalModal } from '@/components/requests/RequestApprovalModal';
 import { useApplications } from '@/contexts/ApplicationsContext';
 import { findCollaboratorByEmail } from '@/lib/email-utils';
@@ -40,14 +40,14 @@ export default function MyTasksPage() {
             if (req.isArchived) return;
 
             // Check for assigned tasks tests
-            if (req.assignee?.id === currentUserCollab.id3a) {
+            if (req.assignee?.id === getCollaboratorUserId(currentUserCollab)) {
                 myAssignedTasks.push(req);
             }
             
             // Check for pending action requests
             const actionRequestsForStatus = req.actionRequests?.[req.status] || [];
             const isUserActionPending = actionRequestsForStatus.some(
-                ar => ar.userId === currentUserCollab.id3a && ar.status === 'pending'
+                ar => ar.userId === getCollaboratorUserId(currentUserCollab) && ar.status === 'pending'
             );
 
             if (isUserActionPending) {

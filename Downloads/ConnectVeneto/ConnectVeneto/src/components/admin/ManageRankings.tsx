@@ -7,10 +7,10 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { useForm, Controller } from 'react-hook-form';
+import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { PlusCircle, Edit, Trash2, Loader2, Award, Users } from 'lucide-react';
+import { PlusCircle, Edit, Trash2, Loader2, Users } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../ui/card';
 import { toast } from '@/hooks/use-toast';
 import { useCollaborators } from '@/contexts/CollaboratorsContext';
@@ -21,7 +21,7 @@ const formSchema = rankingSchema;
 type RankingFormValues = z.infer<typeof formSchema>;
 
 export function ManageRankings() {
-    const { rankings, addRanking, updateRanking, deleteRankingMutation, loading } = useRankings();
+    const { rankings, addRanking, updateRanking, deleteRankingMutation } = useRankings();
     const { collaborators } = useCollaborators();
     const [isDialogOpen, setIsDialogOpen] = useState(false);
     const [isSelectionModalOpen, setIsSelectionModalOpen] = useState(false);

@@ -2,7 +2,7 @@
 "use client";
 import React, { useState, useRef, useMemo } from 'react';
 import { useCollaborators } from '@/contexts/CollaboratorsContext';
-import type { Collaborator, BILink } from '@/contexts/CollaboratorsContext';
+import type { Collaborator } from '@/contexts/CollaboratorsContext';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose, DialogDescription } from '@/components/ui/dialog';
@@ -11,19 +11,34 @@ import { Label } from '@/components/ui/label';
 import { useForm, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { PlusCircle, Edit, Trash2, Loader2, Upload, FileDown, AlertTriangle, Search, ChevronUp, ChevronDown, Clock, Link as LinkIcon, Folder, BarChart, GripVertical, Filter, History } from 'lucide-react';
+import { PlusCircle, Edit, Trash2, Loader2, Upload, FileDown, AlertTriangle, Search, ChevronUp, ChevronDown, Folder, BarChart, Filter, History } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../ui/card';
 import { toast } from '@/hooks/use-toast';
 import { ScrollArea } from '../ui/scroll-area';
 import Papa from 'papaparse';
-import { format, formatDistanceToNow, parseISO } from 'date-fns';
-import { ptBR } from 'date-fns/locale';
 import { Badge } from '../ui/badge';
 import { Textarea } from '../ui/textarea';
 import { Separator } from '../ui/separator';
 import { DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '../ui/dropdown-menu';
 import { useSystemSettings } from '@/contexts/SystemSettingsContext';
 import { CollaboratorAuditLogModal } from './CollaboratorAuditLogModal';
+
+const defaultPermissions: Collaborator["permissions"] = {
+  canManageWorkflows: false,
+  canManageRequests: false,
+  canManageContent: false,
+  canManageTripsBirthdays: false,
+  canManageVacation: false,
+  canViewTasks: false,
+  canViewBI: false,
+  canViewRankings: false,
+  canViewCRM: false,
+  canViewStrategicPanel: false,
+  canViewOpportunityMap: false,
+  canViewMeetAnalyses: false,
+  canViewDirectoria: false,
+  canViewBILeaders: false,
+};
 
 const biLinkSchema = z.object({
     name: z.string().min(1, "O nome da aba é obrigatório."),
@@ -60,7 +75,7 @@ const biLinkSchema = z.object({
 
 const collaboratorSchema = z.object({
     id: z.string().optional(),
-    id3a: z.string().min(1, "ID Veneto é obrigatório"),
+    idVeneto: z.string().min(1, "ID Veneto é obrigatório"),
     name: z.string().min(1, "Nome é obrigatório"),
     email: z.string().email("Email inválido"),
     photoURL: z.string().url("URL da imagem inválida").optional().or(z.literal('')),
@@ -105,15 +120,6 @@ export function ManageCollaborators() {
         name: "biLinks",
     });
 
-    const lastAddedCollaborator = useMemo(() => {
-        if (collaborators.length === 0) return null;
-        
-        return [...collaborators]
-            .filter(c => c.createdAt)
-            .sort((a, b) => parseISO(b.createdAt!).getTime() - parseISO(a.createdAt!).getTime())[0];
-            
-    }, [collaborators]);
-
     const { uniqueAreas, uniquePositions, uniqueAxes, uniqueSegments, uniqueLeaders, uniqueCities } = useMemo(() => {
         const areas = new Set<string>();
         const positions = new Set<string>();
@@ -147,7 +153,7 @@ export function ManageCollaborators() {
             items = items.filter(c => {
                 const nameMatch = c.name?.toLowerCase().includes(lowercasedTerm) ?? false;
                 const emailMatch = c.email?.toLowerCase().includes(lowercasedTerm) ?? false;
-                const idMatch = c.idVeneto?.toLowerCase().includes(lowercasedTerm) || c.id3a?.toLowerCase().includes(lowercasedTerm) || false;
+                const idMatch = c.idVeneto?.toLowerCase().includes(lowercasedTerm) || false;
                 return nameMatch || emailMatch || idMatch;
             });
         }
@@ -203,7 +209,7 @@ export function ManageCollaborators() {
         } else {
             reset({
                 id: undefined,
-                id3a: '',
+                idVeneto: '',
                 name: '',
                 email: '',
                 photoURL: '',
@@ -235,7 +241,8 @@ export function ManageCollaborators() {
     const onSubmit = async (data: CollaboratorFormValues) => {
         const processedData = {
           ...data,
-          idVeneto: data.id3a,
+          idVeneto: data.idVeneto,
+          permissions: editingCollaborator?.permissions || defaultPermissions,
           googleDriveLinks: typeof data.googleDriveLinks === 'string'
             ? data.googleDriveLinks.split('\\n').map(link => link.trim()).filter(Boolean)
             : data.googleDriveLinks || []
@@ -246,7 +253,7 @@ export function ManageCollaborators() {
                 await updateCollaborator(editingCollaborator, processedData);
                 toast({ title: "Colaborador atualizado com sucesso." });
             } else {
-                const { id, ...dataWithoutId } = processedData;
+                const { id: _id, ...dataWithoutId } = processedData;
                 await addCollaborator(dataWithoutId as Omit<Collaborator, 'id'>);
                 toast({ title: "Colaborador adicionado com sucesso." });
             }
@@ -272,14 +279,13 @@ export function ManageCollaborators() {
             skipEmptyLines: true,
             complete: async (results) => {
                 const fileHeaders = results.meta.fields;
-                const hasLegacyId = !!fileHeaders?.includes('id3a');
                 const hasVenetoId = !!fileHeaders?.includes('idVeneto');
                 const requiredBaseHeaders = ['name', 'email', 'axis', 'area', 'position', 'segment', 'leader', 'city'];
 
-                if (!fileHeaders || !requiredBaseHeaders.every(h => fileHeaders.includes(h)) || (!hasLegacyId && !hasVenetoId)) {
+                if (!fileHeaders || !requiredBaseHeaders.every(h => fileHeaders.includes(h)) || !hasVenetoId) {
                     toast({
                         title: "Erro no Arquivo CSV",
-                        description: "O arquivo deve conter as colunas base e ao menos um identificador: idVeneto (preferencial) ou id3a (legado).",
+                        description: "O arquivo deve conter as colunas base e o identificador idVeneto.",
                         variant: "destructive",
                     });
                     setIsImporting(false);
@@ -288,8 +294,7 @@ export function ManageCollaborators() {
 
                 const newCollaborators = results.data
                     .map(row => ({
-                        id3a: (row.idVeneto || row.id3a)?.trim(),
-                        idVeneto: (row.idVeneto || row.id3a)?.trim(),
+                        idVeneto: row.idVeneto?.trim(),
                         name: row.name?.trim(),
                         email: row.email?.trim().toLowerCase(),
                         photoURL: row.photoURL?.trim() || '',
@@ -299,10 +304,11 @@ export function ManageCollaborators() {
                         segment: row.segment?.trim(),
                         leader: row.leader?.trim(),
                         city: row.city?.trim(),
+                        permissions: defaultPermissions,
                         googleDriveLinks: row.googleDriveLinks?.split(',').map(l => l.trim()).filter(Boolean) || [],
                         biLinks: [],
                     }))
-                    .filter(c => c.id3a && c.name && c.email); // Basic validation
+                    .filter(c => c.idVeneto && c.name && c.email); // Basic validation
 
                 if (newCollaborators.length === 0) {
                      toast({
@@ -353,7 +359,7 @@ export function ManageCollaborators() {
         }
 
         const dataToExport = filteredAndSortedCollaborators.map(c => ({
-            idVeneto: c.idVeneto || c.id3a,
+            idVeneto: c.idVeneto,
             name: c.name,
             email: c.email,
             photoURL: c.photoURL || '',
@@ -526,9 +532,9 @@ export function ManageCollaborators() {
                     <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 mt-4">
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                             <div>
-                                <Label htmlFor="id3a">ID Veneto</Label>
-                                <Input id="id3a" {...register('id3a')} placeholder="Ex: VNT001" disabled={isFormSubmitting}/>
-                                {errors.id3a && <p className="text-sm text-destructive mt-1">{errors.id3a.message}</p>}
+                                <Label htmlFor="idVeneto">ID Veneto</Label>
+                                <Input id="idVeneto" {...register('idVeneto')} placeholder="Ex: VNT001" disabled={isFormSubmitting}/>
+                                {errors.idVeneto && <p className="text-sm text-destructive mt-1">{errors.idVeneto.message}</p>}
                             </div>
                             <div className="md:col-span-2">
                                 <Label htmlFor="name">Nome</Label>
@@ -586,7 +592,7 @@ export function ManageCollaborators() {
                          <div>
                             <Label htmlFor="googleDriveLinks">Links do Google Drive (um por linha)</Label>
                              <Textarea id="googleDriveLinks" {...register('googleDriveLinks')} placeholder="https://drive.google.com/drive/folders/...\\nhttps://drive.google.com/drive/folders/..." disabled={isFormSubmitting} rows={3}/>
-                            <p className="text-xs text-muted-foreground mt-1">Deixe em branco para usar a pasta "Meu Drive" padrão.</p>
+                            <p className="text-xs text-muted-foreground mt-1">Deixe em branco para usar a pasta &quot;Meu Drive&quot; padrão.</p>
                             {errors.googleDriveLinks && <p className="text-sm text-destructive mt-1">{errors.googleDriveLinks.message}</p>}
                         </div>
                         <Separator/>
@@ -653,7 +659,6 @@ export function ManageCollaborators() {
                             <li>A primeira linha **deve** ser um cabeçalho com os seguintes nomes de coluna, exatamente como mostrado:
                                 <code className="block bg-muted p-2 rounded-md my-2 text-xs">idVeneto,name,email,axis,area,position,segment,leader,city,photoURL,googleDriveLinks</code>
                             </li>
-                            <li>Compatibilidade: `id3a` também é aceito temporariamente durante a migração.</li>
                              <li>As colunas `photoURL` e `googleDriveLinks` são opcionais. Para múltiplos links do Drive, separe-os por vírgula no campo.</li>
                             <li>Preencha as linhas com os dados de cada colaborador.</li>
                             <li>Exporte ou salve o arquivo no formato **CSV (Valores Separados por Vírgula)**.</li>

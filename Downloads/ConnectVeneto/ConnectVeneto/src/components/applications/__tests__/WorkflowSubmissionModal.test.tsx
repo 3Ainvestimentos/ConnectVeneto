@@ -5,7 +5,7 @@ import WorkflowSubmissionModal from '../WorkflowSubmissionModal';
 import { WorkflowDefinition } from '@/contexts/ApplicationsContext';
 import { useWorkflows } from '@/contexts/WorkflowsContext';
 import { useAuth } from '@/contexts/AuthContext';
-import { useCollaborators } from '@/contexts/CollaboratorsContext';
+import { getCollaboratorUserId, useCollaborators } from '@/contexts/CollaboratorsContext';
 import { useWorkflowAreas } from '@/contexts/WorkflowAreasContext';
 
 // Mock dos hooks e dependências
@@ -23,6 +23,7 @@ jest.mock('next/navigation', () => ({
 const mockUseWorkflows = useWorkflows as jest.MockedFunction<typeof useWorkflows>;
 const mockUseAuth = useAuth as jest.MockedFunction<typeof useAuth>;
 const mockUseCollaborators = useCollaborators as jest.MockedFunction<typeof useCollaborators>;
+const mockGetCollaboratorUserId = getCollaboratorUserId as jest.MockedFunction<typeof getCollaboratorUserId>;
 const mockUseWorkflowAreas = useWorkflowAreas as jest.MockedFunction<typeof useWorkflowAreas>;
 
 describe('WorkflowSubmissionModal - Campos com IDs Duplicados', () => {
@@ -75,7 +76,7 @@ describe('WorkflowSubmissionModal - Campos com IDs Duplicados', () => {
 
   const mockCollaborator = {
     id: 'collab1',
-    id3a: 'collab1',
+    idVeneto: 'collab1',
     name: 'Test User',
     email: 'test@test.com',
     axis: 'Test',
@@ -111,29 +112,31 @@ describe('WorkflowSubmissionModal - Campos com IDs Duplicados', () => {
   };
 
   beforeEach(() => {
+    mockGetCollaboratorUserId.mockImplementation((collaborator) => collaborator?.idVeneto || null);
+
     mockUseAuth.mockReturnValue({
       user: mockUser,
       loading: false,
       signIn: jest.fn(),
       signOut: jest.fn(),
-    } as any);
+    } as unknown);
 
     mockUseCollaborators.mockReturnValue({
       collaborators: [mockCollaborator],
       loading: false,
       addCollaborator: jest.fn(),
       updateCollaborator: jest.fn(),
-      deleteCollaboratorMutation: {} as any,
+      deleteCollaboratorMutation: {} as unknown,
       addMultipleCollaborators: jest.fn(),
-    } as any);
+    } as unknown);
 
     mockUseWorkflowAreas.mockReturnValue({
       workflowAreas: [mockWorkflowArea],
       loading: false,
       addWorkflowArea: jest.fn(),
       updateWorkflowArea: jest.fn(),
-      deleteWorkflowAreaMutation: {} as any,
-    } as any);
+      deleteWorkflowAreaMutation: {} as unknown,
+    } as unknown);
 
     const mockAddRequest = jest.fn().mockResolvedValue({ id: 'request123' });
     const mockUpdateRequestAndNotify = jest.fn().mockResolvedValue(undefined);
@@ -143,14 +146,14 @@ describe('WorkflowSubmissionModal - Campos com IDs Duplicados', () => {
       loading: false,
       addRequest: mockAddRequest,
       updateRequestAndNotify: mockUpdateRequestAndNotify,
-      deleteRequestMutation: {} as any,
-      updateRequestStatusMutation: {} as any,
-      assignRequestMutation: {} as any,
-      markAsViewedMutation: {} as any,
-      archiveRequestMutation: {} as any,
-      addActionRequestMutation: {} as any,
-      respondToActionRequestMutation: {} as any,
-    } as any);
+      deleteRequestMutation: {} as unknown,
+      updateRequestStatusMutation: {} as unknown,
+      assignRequestMutation: {} as unknown,
+      markAsViewedMutation: {} as unknown,
+      archiveRequestMutation: {} as unknown,
+      addActionRequestMutation: {} as unknown,
+      respondToActionRequestMutation: {} as unknown,
+    } as unknown);
   });
 
   it('deve renderizar campos com IDs duplicados independentemente', async () => {
@@ -203,14 +206,14 @@ describe('WorkflowSubmissionModal - Campos com IDs Duplicados', () => {
       loading: false,
       addRequest: jest.fn().mockResolvedValue({ id: 'request123' }),
       updateRequestAndNotify: mockUpdateRequestAndNotify,
-      deleteRequestMutation: {} as any,
-      updateRequestStatusMutation: {} as any,
-      assignRequestMutation: {} as any,
-      markAsViewedMutation: {} as any,
-      archiveRequestMutation: {} as any,
-      addActionRequestMutation: {} as any,
-      respondToActionRequestMutation: {} as any,
-    } as any);
+      deleteRequestMutation: {} as unknown,
+      updateRequestStatusMutation: {} as unknown,
+      assignRequestMutation: {} as unknown,
+      markAsViewedMutation: {} as unknown,
+      archiveRequestMutation: {} as unknown,
+      addActionRequestMutation: {} as unknown,
+      respondToActionRequestMutation: {} as unknown,
+    } as unknown);
 
     render(
       <WorkflowSubmissionModal

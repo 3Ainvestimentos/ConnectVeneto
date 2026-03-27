@@ -2,18 +2,17 @@
 "use client";
 
 import React, { useState, useEffect, useMemo } from 'react';
-import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { useMessages } from '@/contexts/MessagesContext';
 import { useAuth } from '@/contexts/AuthContext';
-import { useCollaborators } from '@/contexts/CollaboratorsContext';
+import { getCollaboratorUserId, useCollaborators } from '@/contexts/CollaboratorsContext';
 import { useRouter } from 'next/navigation';
 import { useIdleFabMessages } from '@/contexts/IdleFabMessagesContext';
 import { X } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { useFabMessages } from '@/contexts/FabMessagesContext';
-import { parseISO, isAfter } from 'date-fns';
+import { parseISO } from 'date-fns';
 import { findCollaboratorByEmail } from '@/lib/email-utils';
 
 
@@ -131,7 +130,7 @@ export default function NotificationFAB({ hasPendingRequests, hasPendingTasks }:
 
   const activeMessage = useMemo(() => {
     if (!currentUser) return null;
-    return fabMessages.find(msg => msg.userId === currentUser.id3a);
+    return fabMessages.find(msg => msg.userId === getCollaboratorUserId(currentUser));
   }, [fabMessages, currentUser]);
   
   // Decide what to display based on priority: CTA > Follow-up > Notification
@@ -161,11 +160,11 @@ export default function NotificationFAB({ hasPendingRequests, hasPendingTasks }:
     const expirationTime = sentAtDate.getTime() + 6 * 60 * 60 * 1000;
     
     if (Date.now() > expirationTime) {
-      interruptCampaign(currentUser.id3a);
+      interruptCampaign(getCollaboratorUserId(currentUser) || '');
       return;
     }
     const timeoutId = setTimeout(() => {
-      interruptCampaign(currentUser.id3a);
+      interruptCampaign(getCollaboratorUserId(currentUser) || '');
     }, expirationTime - Date.now());
     return () => clearTimeout(timeoutId);
   }, [activeCampaign, currentUser, interruptCampaign]);
@@ -178,7 +177,7 @@ export default function NotificationFAB({ hasPendingRequests, hasPendingTasks }:
     const expirationTime = clickedAtDate.getTime() + 6 * 60 * 60 * 1000;
 
     const timeoutId = setTimeout(() => {
-        completeFollowUpPeriod(currentUser.id3a);
+        completeFollowUpPeriod(getCollaboratorUserId(currentUser) || '');
         setShowFollowUpBubble(false);
     }, expirationTime - Date.now());
 
@@ -188,11 +187,12 @@ export default function NotificationFAB({ hasPendingRequests, hasPendingTasks }:
   const unreadMessages = useMemo(() => {
     if (!user || !currentUser) return [];
     return messages.filter(msg => {
-      if ((msg.deletedBy || []).includes(currentUser.id3a)) {
+      const currentUserId = getCollaboratorUserId(currentUser);
+      if (!currentUserId || (msg.deletedBy || []).includes(currentUserId)) {
         return false;
       }
-      const isRecipient = msg.recipientIds.includes('all') || msg.recipientIds.includes(currentUser.id3a);
-      const isUnread = !msg.readBy.includes(currentUser.id3a);
+      const isRecipient = msg.recipientIds.includes('all') || msg.recipientIds.includes(currentUserId);
+      const isUnread = !msg.readBy.includes(currentUserId);
       return isRecipient && isUnread;
     });
   }, [messages, user, currentUser]);
@@ -227,7 +227,7 @@ export default function NotificationFAB({ hasPendingRequests, hasPendingTasks }:
     setShowFollowUpBubble(false);
 
     if (activeCampaign && currentUser) {
-        markCampaignAsClicked(currentUser.id3a);
+        markCampaignAsClicked(getCollaboratorUserId(currentUser) || '');
         return;
     }
 
@@ -246,7 +246,7 @@ export default function NotificationFAB({ hasPendingRequests, hasPendingTasks }:
         messagesCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
         if (currentUser) {
           unreadMessages.forEach(msg => {
-            markMessageAsRead(msg.id, currentUser.id3a);
+            markMessageAsRead(msg.id, getCollaboratorUserId(currentUser) || '');
           });
         }
       }
@@ -324,7 +324,7 @@ export default function NotificationFAB({ hasPendingRequests, hasPendingTasks }:
                    <div className="text-sm dark:prose-invert">
                         <ReactMarkdown 
                             remarkPlugins={[remarkGfm]}
-                            components={{ a: ({node, ...props}) => <a {...props} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline" /> }}
+                            components={{ a: ({ ...props }) => <a {...props} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline" /> }}
                         >
                             {idleMessages[currentIdleIndex]?.text || ''}
                         </ReactMarkdown>

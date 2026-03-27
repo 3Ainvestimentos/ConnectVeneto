@@ -11,6 +11,7 @@ import WorkflowSubmissionModal from '@/components/applications/WorkflowSubmissio
 import { useAuth } from '@/contexts/AuthContext';
 import { WorkflowGroupModal } from '@/components/applications/WorkflowGroupModal';
 import { useWorkflowAreas } from '@/contexts/WorkflowAreasContext';
+import { getCollaboratorUserId } from '@/contexts/CollaboratorsContext';
 
 interface GroupedWorkflows {
   [area: string]: WorkflowDefinition[];
@@ -40,12 +41,10 @@ export default function ApplicationsPage() {
       if (!def.allowedUserIds || def.allowedUserIds.includes('all')) {
         return true;
       }
-      return def.allowedUserIds.includes(currentUserCollab.id3a);
+      return def.allowedUserIds.includes(getCollaboratorUserId(currentUserCollab) || '');
     });
 
     const groups: GroupedWorkflows = {};
-    const areaMap = new Map(workflowAreas.map(area => [area.id, area]));
-    
     // Use the sorted order from workflowAreas to build the groups
     workflowAreas.forEach(area => {
       const workflowsForArea = accessibleWorkflows.filter(def => def.areaId === area.id);

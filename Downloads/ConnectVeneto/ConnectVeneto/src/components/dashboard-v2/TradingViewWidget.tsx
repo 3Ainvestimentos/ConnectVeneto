@@ -116,10 +116,9 @@ const TradingViewWidget: React.FC = () => {
         // Função de limpeza
         return () => {
             cancelAnimationFrame(rafId);
-            const currentContainer = containerRef.current;
-            if (currentContainer) {
+            if (container) {
                 // Remove apenas os scripts, mantém a estrutura do widget
-                const scripts = currentContainer.querySelectorAll('script[src*="embed-widget-market-overview"]');
+                const scripts = container.querySelectorAll('script[src*="embed-widget-market-overview"]');
                 scripts.forEach(script => script.remove());
             }
         };

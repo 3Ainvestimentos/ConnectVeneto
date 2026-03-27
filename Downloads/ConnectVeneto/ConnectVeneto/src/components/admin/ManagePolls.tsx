@@ -10,7 +10,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useForm, useFieldArray, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { PlusCircle, Edit, Trash2, Loader2, Users, BarChart, File, X, Route, MessageSquare, CheckSquare } from 'lucide-react';
+import * as z from 'zod';
+import { PlusCircle, Edit, Trash2, Loader2, Users, BarChart, X, Route, MessageSquare, CheckSquare } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../ui/card';
 import { toast } from '@/hooks/use-toast';
 import { ScrollArea } from '../ui/scroll-area';
@@ -23,14 +24,14 @@ import Link from 'next/link';
 import { navItems } from '@/components/layout/navigation';
 import { RadioGroup, RadioGroupItem } from '../ui/radio-group';
 
-type PollFormValues = Zod.infer<typeof pollSchema>;
+type PollFormValues = z.infer<typeof pollSchema>;
 
 const pageOptions = navItems
     .filter(item => !item.external && item.href !== '/chatbot' && item.href !== '/store')
     .map(item => ({ label: item.label, value: item.href }));
 
 export function ManagePolls() {
-    const { polls, addPoll, updatePoll, deletePollMutation, loading } = usePolls();
+    const { polls, addPoll, updatePoll, deletePollMutation } = usePolls();
     const { collaborators } = useCollaborators();
     const [isFormOpen, setIsFormOpen] = useState(false);
     const [isSelectionModalOpen, setIsSelectionModalOpen] = useState(false);
@@ -218,7 +219,7 @@ export function ManagePolls() {
                                         <Controller name="allowOtherOption" control={form.control} render={({ field }) => (
                                             <Switch id="allowOtherOption" checked={field.value} onCheckedChange={field.onChange} />
                                         )}/>
-                                        <Label htmlFor="allowOtherOption">Permitir opção "Outros"?</Label>
+                                        <Label htmlFor="allowOtherOption">Permitir opção &quot;Outros&quot;?</Label>
                                     </div>
                                 </div>
                             )}

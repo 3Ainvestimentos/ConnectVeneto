@@ -1,29 +1,24 @@
 
 
-import { getFirebaseApp } from './firebase'; // Import the initialized app function
+import { getClientFirestore, getFirebaseApp } from './firebase'; // Import the initialized app function
 import { getFirestore, writeBatch, onSnapshot } from "firebase/firestore";
 import { collection, getDocs, addDoc, doc, updateDoc, deleteDoc, getDoc, setDoc, runTransaction, query, where, Query, orderBy as firestoreOrderBy } from 'firebase/firestore';
-import { getStorage, ref, uploadBytes, getDownloadURL, uploadBytesResumable } from "firebase/storage";
+import { getStorage, ref, getDownloadURL, uploadBytesResumable } from "firebase/storage";
 import { cleanDataForFirestore } from './data-sanitizer';
 import { buildStorageFilePath, sanitizeStoragePath } from './path-sanitizer';
 
 // This must be imported here to use the type.
 import type { UploadTaskSnapshot } from "firebase/storage";
 
-const db = getFirestore(getFirebaseApp());
+const db = getClientFirestore();
 
 export type WithId<T> = T & { id: string };
 export type FirestoreQueryFilter = {
   field: string;
   operator: '<' | '<=' | '==' | '!=' | '>=' | '>' | 'array-contains' | 'in' | 'array-contains-any' | 'not-in';
-  value: any;
+  value: unknown;
 };
 export type FirestoreOrderBy = { field: string; direction: 'asc' | 'desc' };
-
-interface UploadOptions {
-  addLog?: (log: string) => void;
-  fileName?: string;
-}
 
 /**
  * Uploads a file to a specified path in Firebase Storage.
@@ -89,7 +84,7 @@ export const uploadFile = (
       const uploadTask = uploadBytesResumable(storageRef, file);
 
       uploadTask.on('state_changed', 
-        (snapshot: UploadTaskSnapshot) => {
+        (_snapshot: UploadTaskSnapshot) => {
           // Progress can be monitored here if needed
         }, 
         (error) => {
@@ -375,34 +370,10 @@ export const setDocumentInCollection = async <T extends object>(collectionName: 
  */
 export const updateDocumentInCollection = async <T extends object>(collectionName: string, id: string, data: Partial<Omit<T, 'id'>>): Promise<void> => {
     try {
-        // #region agent log
-        console.log('[DEBUG] updateDocumentInCollection - before cleaning:', {
-          collectionName,
-          id,
-          dataKeys: Object.keys(data),
-          hasFormData: 'formData' in data,
-          formDataKeys: (data as any).formData ? Object.keys((data as any).formData) : [],
-          formDataSize: (data as any).formData ? Object.keys((data as any).formData).length : 0
-        });
-        // #endregion
         const cleanedData = cleanDataForFirestore(data);
-        // #region agent log
-        console.log('[DEBUG] updateDocumentInCollection - after cleaning:', {
-          cleanedDataKeys: Object.keys(cleanedData),
-          hasFormData: 'formData' in cleanedData,
-          formDataKeys: (cleanedData as any).formData ? Object.keys((cleanedData as any).formData) : [],
-          formDataSize: (cleanedData as any).formData ? Object.keys((cleanedData as any).formData).length : 0
-        });
-        // #endregion
         const docRef = doc(db, collectionName, id);
         await updateDoc(docRef, cleanedData);
-        // #region agent log
-        console.log('[DEBUG] updateDocumentInCollection - Firestore update completed successfully');
-        // #endregion
     } catch (error) {
-        // #region agent log
-        console.error('[DEBUG] updateDocumentInCollection - Firestore update failed:', error);
-        // #endregion
         console.error(`Error updating document ${id} in ${collectionName}:`, error);
          if (error instanceof Error) {
             console.error('Data that caused the error:', data);

@@ -3,13 +3,21 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import Image from 'next/image';
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 
 // Mock data removed. This component would need to be wired up to a data source (like a context) to be useful.
-const newsItems: any[] = [];
+type CarouselNewsItem = {
+  title: string;
+  imageUrl: string;
+  dataAiHint?: string;
+  category: string;
+  description: string;
+  date: string;
+};
+const newsItems: CarouselNewsItem[] = [];
 
 export default function NewsCarousel() {
   const [currentIndex, setCurrentIndex] = useState(0);

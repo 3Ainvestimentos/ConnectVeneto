@@ -1,6 +1,7 @@
 
 import { initializeApp, getApps, getApp, FirebaseApp } from "firebase/app";
 import { GoogleAuthProvider } from "firebase/auth";
+import { initializeFirestore, getFirestore, Firestore } from "firebase/firestore";
 
 const firebaseConfig = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
@@ -23,4 +24,26 @@ function getFirebaseApp(): FirebaseApp {
 const app = getFirebaseApp();
 const googleProvider = new GoogleAuthProvider();
 
-export { app, getFirebaseApp, googleProvider };
+let firestoreInstance: Firestore | null = null;
+
+/**
+ * Single Firestore instance with safer transport defaults for local/dev stability.
+ * Falls back to getFirestore when already initialized by another module.
+ */
+function getClientFirestore(): Firestore {
+  if (firestoreInstance) return firestoreInstance;
+
+  const firebaseApp = getFirebaseApp();
+  try {
+    firestoreInstance = initializeFirestore(firebaseApp, {
+      experimentalAutoDetectLongPolling: true,
+      ignoreUndefinedProperties: true,
+    });
+  } catch {
+    firestoreInstance = getFirestore(firebaseApp);
+  }
+
+  return firestoreInstance;
+}
+
+export { app, getFirebaseApp, getClientFirestore, googleProvider };

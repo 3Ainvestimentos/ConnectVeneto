@@ -10,6 +10,8 @@ import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { useTheme } from '@/contexts/ThemeContext';
 import { Button } from '../ui/button';
+import { getAuth } from 'firebase/auth';
+import { getFirebaseApp } from '@/lib/firebase';
 
 interface FeedItem {
   title: string;
@@ -33,7 +35,18 @@ const feedUrls = [
 ];
 
 const fetchFeeds = async (urls: string[]): Promise<FeedResponse> => {
-  const response = await fetch(`/api/rss?urls=${encodeURIComponent(urls.join(','))}`);
+  const auth = getAuth(getFirebaseApp());
+  const idToken = await auth.currentUser?.getIdToken();
+  if (!idToken) {
+    throw new Error('Nao foi possivel validar autenticacao para consultar o feed RSS.');
+  }
+
+  const response = await fetch(`/api/rss?urls=${encodeURIComponent(urls.join(','))}`, {
+    headers: {
+      Authorization: `Bearer ${idToken}`,
+    },
+  });
+
   if (!response.ok) {
     throw new Error('Não foi possível carregar os feeds de notícias.');
   }

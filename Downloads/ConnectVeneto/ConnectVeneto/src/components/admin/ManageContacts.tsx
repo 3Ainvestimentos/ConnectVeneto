@@ -9,6 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
+import * as z from 'zod';
 import { PlusCircle, Edit, Trash2, Loader2 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../ui/card';
 import { toast } from '@/hooks/use-toast';
@@ -16,7 +17,7 @@ import { toast } from '@/hooks/use-toast';
 type ContactFormValues = z.infer<typeof contactSchema>;
 
 export function ManageContacts() {
-    const { contacts, addContact, updateContact, deleteContactMutation, loading } = useContacts();
+    const { contacts, addContact, updateContact, deleteContactMutation } = useContacts();
     const [isFormOpen, setIsFormOpen] = useState(false);
     const [editingContact, setEditingContact] = useState<ContactType | null>(null);
 

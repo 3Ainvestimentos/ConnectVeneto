@@ -11,7 +11,7 @@ import { LineChart as LineChartIcon, LogIn, BarChart as BarChartIcon, Users as U
 import { Line, LineChart, CartesianGrid, XAxis, YAxis, Tooltip, Legend, Bar, BarChart, ResponsiveContainer } from 'recharts';
 import { format, parseISO, startOfDay, eachDayOfInterval, compareAsc, endOfDay, isWithinInterval, subMonths, getDay, getHours } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { useCollaborators } from '@/contexts/CollaboratorsContext';
+import { getCollaboratorUserId, useCollaborators } from '@/contexts/CollaboratorsContext';
 import { Progress } from '@/shared/components/ui/progress';
 import { Button } from '@/shared/components/ui/button';
 import Papa from 'papaparse';
@@ -36,7 +36,7 @@ type AuditLogEvent = WithId<{
     userId: string;
     userName: string;
     timestamp: string;
-    details: { [key: string]: any };
+    details: Record<string, unknown>;
 }>;
 
 export default function AuditPage() {
@@ -87,11 +87,11 @@ export default function AuditPage() {
         return [...new Set(collaborators.map(c => c.axis).filter(Boolean))].sort();
     }, [collaborators]);
 
-    // Mapa userId (id3a) → axis para classificação dos eventos
+    // Mapa userId (idVeneto) → axis para classificação dos eventos
     const userIdToAxis = useMemo(() => {
         const map = new Map<string, string>();
         collaborators.forEach(c => {
-            if (c.id3a && c.axis) map.set(c.id3a, c.axis);
+            if (c.idVeneto && c.axis) map.set(c.idVeneto, c.axis);
         });
         return map;
     }, [collaborators]);
@@ -151,11 +151,11 @@ export default function AuditPage() {
         }, {} as Record<string, number>);
 
         return filteredCollaborators.map(collab => ({
-            id: collab.id3a,
+            id: getCollaboratorUserId(collab) || collab.id,
             name: collab.name,
             photoURL: collab.photoURL,
             axis: collab.axis,
-            count: loginCounts[collab.id3a] || 0,
+            count: loginCounts[getCollaboratorUserId(collab) || ''] || 0,
         })).sort((a, b) => b.count - a.count);
     }, [filteredEvents, filteredCollaborators, collaborators.length, isLoading]);
 

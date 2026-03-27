@@ -14,24 +14,8 @@
  */
 export const cleanDataForFirestore = <T extends object>(obj: T): T => {
   if (!obj) return obj;
-  // #region agent log
-  console.log('[DEBUG] cleanDataForFirestore - input:', {
-    objKeys: Object.keys(obj),
-    hasFormData: 'formData' in obj,
-    formDataKeys: (obj as any).formData ? Object.keys((obj as any).formData) : [],
-    formDataSize: (obj as any).formData ? Object.keys((obj as any).formData).length : 0
-  });
-  // #endregion
   // This is a robust way to strip undefined values, which are not allowed by Firestore.
   // It works for the current data models in the app.
   const cleaned = JSON.parse(JSON.stringify(obj));
-  // #region agent log
-  console.log('[DEBUG] cleanDataForFirestore - output:', {
-    cleanedKeys: Object.keys(cleaned),
-    hasFormData: 'formData' in cleaned,
-    formDataKeys: (cleaned as any).formData ? Object.keys((cleaned as any).formData) : [],
-    formDataSize: (cleaned as any).formData ? Object.keys((cleaned as any).formData).length : 0
-  });
-  // #endregion
   return cleaned;
 };

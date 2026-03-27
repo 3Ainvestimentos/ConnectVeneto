@@ -29,7 +29,7 @@ export default function BILeadersPage() {
   if (userLoading || collabLoading) {
     return (
       <div className="flex h-full w-full items-center justify-center bg-background">
-        <LoadingSpinner message="Carregando Painel BI" />
+        <LoadingSpinner />
       </div>
     );
   }

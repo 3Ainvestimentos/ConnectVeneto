@@ -7,13 +7,13 @@ import { format, formatISO, parseISO, isValid } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { useWorkflows, WorkflowRequest, WorkflowHistoryLog } from '@/contexts/WorkflowsContext';
 import { useAuth } from '@/contexts/AuthContext';
-import { useCollaborators, Collaborator } from '@/contexts/CollaboratorsContext';
+import { useCollaborators, Collaborator, getCollaboratorUserId } from '@/contexts/CollaboratorsContext';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { toast } from '@/hooks/use-toast';
-import { Loader2, User, Calendar, Type, Clock, FileText, Check, X, History, MoveRight, Users, MessageSquare, Send, ExternalLink, ShieldQuestion, CheckCircle, Hourglass, XCircle, ThumbsUp, ThumbsDown, Paperclip, UploadCloud, Circle } from 'lucide-react';
+import { Loader2, User, Calendar, Type, Clock, FileText, History, MoveRight, Users, Send, ExternalLink, ShieldQuestion, CheckCircle, Hourglass, XCircle, ThumbsUp, ThumbsDown, Circle } from 'lucide-react';
 import { Badge } from '../ui/badge';
 import { Separator } from '../ui/separator';
 import { ScrollArea } from '../ui/scroll-area';
@@ -21,7 +21,6 @@ import { useApplications, WorkflowStatusDefinition } from '@/contexts/Applicatio
 import { AssigneeSelectionModal } from './AssigneeSelectionModal';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
 import { cn } from '@/lib/utils';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../ui/tooltip';
 import { Input } from '../ui/input';
 import { uploadFile } from '@/lib/firestore-service';
 import { useWorkflowAreas } from '@/contexts/WorkflowAreasContext';
@@ -53,6 +52,15 @@ const actionStatusPastTense: { [key: string]: string } = {
 
 const getTranslatedStatus = (status: string) => actionStatusTranslations[status] || status;
 
+type DateRangeValue = { from?: string; to?: string };
+const isDateRangeValue = (value: unknown): value is DateRangeValue => {
+  if (!value || typeof value !== 'object') return false;
+  const maybeRange = value as { from?: unknown; to?: unknown };
+  const fromOk = maybeRange.from === undefined || typeof maybeRange.from === 'string';
+  const toOk = maybeRange.to === undefined || typeof maybeRange.to === 'string';
+  return fromOk && toOk;
+};
+
 
 export function RequestApprovalModal({ isOpen, onClose, request }: RequestApprovalModalProps) {
   const { user } = useAuth();
@@ -68,7 +76,6 @@ export function RequestApprovalModal({ isOpen, onClose, request }: RequestApprov
   const [isActionRecipientModalOpen, setIsActionRecipientModalOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [actionType, setActionType] = useState<'statusChange' | 'assign' | 'comment' | 'requestAction' | 'actionResponse' | null>(null);
-  const [targetStatus, setTargetStatus] = useState<WorkflowStatusDefinition | null>(null);
   const [actionResponse, setActionResponse] = useState<'approved' | 'rejected' | 'acknowledged' | 'executed' | null>(null);
 
 
@@ -94,7 +101,7 @@ export function RequestApprovalModal({ isOpen, onClose, request }: RequestApprov
 
   const currentUserActionRequest = useMemo(() => {
     if (!adminUser) return null;
-    return actionRequestsForCurrentStatus.find(ar => ar.userId === adminUser.id3a) || null;
+    return actionRequestsForCurrentStatus.find(ar => ar.userId === getCollaboratorUserId(adminUser)) || null;
   }, [actionRequestsForCurrentStatus, adminUser]);
 
 
@@ -118,7 +125,7 @@ export function RequestApprovalModal({ isOpen, onClose, request }: RequestApprov
       setComment('');
       setAttachment(null);
       if (request.assignee) {
-        const currentAssignee = collaborators.find(c => c.id3a === request.assignee?.id);
+        const currentAssignee = collaborators.find(c => getCollaboratorUserId(c) === request.assignee?.id);
         setAssignee(currentAssignee || null);
       } else {
         setAssignee(null);
@@ -132,7 +139,7 @@ export function RequestApprovalModal({ isOpen, onClose, request }: RequestApprov
         <Dialog open={isOpen} onOpenChange={onClose}>
             <DialogContent>
                 <DialogHeader>
-                    <DialogTitle>Carregando...</DialogTitle>
+                    <DialogTitle className="sr-only">Carregando</DialogTitle>
                 </DialogHeader>
                 <div className="flex items-center justify-center p-8">
                     <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
@@ -154,8 +161,8 @@ export function RequestApprovalModal({ isOpen, onClose, request }: RequestApprov
 
     const existingUserIds = new Set(actionRequestsForCurrentStatus.map(ar => ar.userId));
     const newRecipients = recipientIds
-      .map(id => collaborators.find(c => c.id3a === id))
-      .filter((c): c is Collaborator => !!c && !existingUserIds.has(c.id3a));
+      .map(id => collaborators.find(c => getCollaboratorUserId(c) === id))
+      .filter((c): c is Collaborator => !!c && !existingUserIds.has(getCollaboratorUserId(c) || ''));
 
     if (newRecipients.length === 0) {
       toast({ title: "Nenhuma ação necessária", description: "Todos os usuários selecionados já têm uma solicitação de ação pendente ou foram removidos.", variant: "default" });
@@ -165,7 +172,7 @@ export function RequestApprovalModal({ isOpen, onClose, request }: RequestApprov
     }
 
     const newActionRequests = newRecipients.map(recipient => ({
-      userId: recipient.id3a,
+      userId: getCollaboratorUserId(recipient) || '',
       userName: recipient.name,
       status: 'pending' as const,
       requestedAt: formatISO(now),
@@ -175,7 +182,7 @@ export function RequestApprovalModal({ isOpen, onClose, request }: RequestApprov
     const historyEntry: WorkflowHistoryLog = {
       timestamp: formatISO(now),
       status: request.status,
-      userId: adminUser.id3a,
+      userId: getCollaboratorUserId(adminUser) || '',
       userName: adminUser.name,
       notes: historyNote,
     };
@@ -193,7 +200,7 @@ export function RequestApprovalModal({ isOpen, onClose, request }: RequestApprov
     try {
         await updateRequestAndNotify(requestUpdate, undefined, `Você tem uma nova ação pendente para a solicitação #${request.requestId}.`);
         toast({ title: "Sucesso!", description: "Solicitação de ação enviada.", variant: 'success' });
-    } catch (error) {
+    } catch {
         toast({ title: "Erro", description: "Não foi possível solicitar a ação.", variant: "destructive" });
     } finally {
         setIsSubmitting(false);
@@ -232,7 +239,7 @@ export function RequestApprovalModal({ isOpen, onClose, request }: RequestApprov
             attachmentUrl = await uploadFile(attachment, storagePath, request.id, attachment.name);
             historyNote += ` Anexo: ${attachment.name}.`;
         }
-    } catch (e) {
+    } catch {
         toast({ title: "Erro de Upload", description: "Não foi possível enviar o anexo. A ação foi cancelada.", variant: "destructive"});
         setIsSubmitting(false);
         setActionType(null);
@@ -245,7 +252,7 @@ export function RequestApprovalModal({ isOpen, onClose, request }: RequestApprov
     }
     
     const updatedActionRequests = actionRequestsForCurrentStatus.map(ar => 
-        ar.userId === adminUser.id3a ? { 
+        ar.userId === getCollaboratorUserId(adminUser) ? { 
           ...ar, 
           status: response, 
           respondedAt: formatISO(now),
@@ -261,7 +268,7 @@ export function RequestApprovalModal({ isOpen, onClose, request }: RequestApprov
             ...request.actionRequests,
             [request.status]: updatedActionRequests,
         },
-        history: [...request.history, { timestamp: formatISO(now), status: request.status, userId: adminUser.id3a, userName: adminUser.name, notes: historyNote }],
+        history: [...request.history, { timestamp: formatISO(now), status: request.status, userId: getCollaboratorUserId(adminUser) || '', userName: adminUser.name, notes: historyNote }],
     };
 
     const notificationMessage = `A ação na tarefa '${request.type}' #${request.requestId} foi ${actionLabel.toLowerCase()} por ${adminUser.name}.`;
@@ -271,7 +278,7 @@ export function RequestApprovalModal({ isOpen, onClose, request }: RequestApprov
         toast({ title: "Sucesso!", description: `Ação registrada como "${getTranslatedStatus(response)}".`, variant: 'success' });
         setComment('');
         setAttachment(null);
-    } catch (error) {
+    } catch {
         toast({ title: "Erro", description: "Não foi possível registrar sua ação.", variant: "destructive" });
     } finally {
         setIsSubmitting(false);
@@ -284,7 +291,6 @@ const handleStatusChange = async () => {
     if (!nextStatus || !adminUser) return;
 
     setActionType('statusChange');
-    setTargetStatus(nextStatus);
     setIsSubmitting(true);
     
     const now = new Date();
@@ -292,7 +298,7 @@ const handleStatusChange = async () => {
     const historyEntry: WorkflowHistoryLog = {
       timestamp: formatISO(now),
       status: nextStatus.id,
-      userId: adminUser.id3a,
+      userId: getCollaboratorUserId(adminUser) || '',
       userName: adminUser.name,
       notes: comment || `Status alterado para "${nextStatus.label}".`,
     };
@@ -315,12 +321,11 @@ const handleStatusChange = async () => {
       });
       setComment('');
       onClose();
-    } catch (error) {
+    } catch {
       toast({ title: "Erro", description: "Não foi possível processar a ação.", variant: "destructive" });
     } finally {
       setIsSubmitting(false);
       setActionType(null);
-      setTargetStatus(null);
     }
 };
 
@@ -332,7 +337,7 @@ const handleStatusChange = async () => {
       return;
     }
     
-    if (assignee.id3a === request.assignee?.id) {
+    if (getCollaboratorUserId(assignee) === request.assignee?.id) {
         toast({ title: "Atenção", description: "Este colaborador já é o responsável." });
         setActionType(null);
         return;
@@ -345,14 +350,14 @@ const handleStatusChange = async () => {
     const historyEntry: WorkflowHistoryLog = {
       timestamp: formatISO(now),
       status: request.status,
-      userId: adminUser.id3a,
+      userId: getCollaboratorUserId(adminUser) || '',
       userName: adminUser.name,
       notes: historyNote,
     };
 
     const requestUpdate = {
       id: request.id,
-      assignee: { id: assignee.id3a, name: assignee.name },
+      assignee: { id: getCollaboratorUserId(assignee) || '', name: assignee.name },
       lastUpdatedAt: formatISO(now),
       history: [...request.history, historyEntry],
     };
@@ -364,7 +369,7 @@ const handleStatusChange = async () => {
       await updateRequestAndNotify(requestUpdate, requesterNotification, assigneeNotification);
       toast({ title: "Sucesso!", description: `Solicitação atribuída a ${assignee.name}.`, variant: 'success' });
       setComment('');
-    } catch (error) {
+    } catch {
        toast({ title: "Erro", description: "Não foi possível atribuir o responsável.", variant: "destructive" });
     } finally {
       setIsSubmitting(false);
@@ -389,7 +394,7 @@ const handleStatusChange = async () => {
     const historyEntry: WorkflowHistoryLog = {
         timestamp: formatISO(now),
         status: request.status,
-        userId: adminUser.id3a,
+        userId: getCollaboratorUserId(adminUser) || '',
         userName: adminUser.name,
         notes: comment,
     };
@@ -406,7 +411,7 @@ const handleStatusChange = async () => {
         await updateRequestAndNotify(requestUpdate, notificationMessage);
         toast({ title: "Sucesso!", description: "Comentário adicionado ao histórico.", variant: 'success' });
         setComment('');
-    } catch (error) {
+    } catch {
         toast({ title: "Erro", description: "Não foi possível adicionar o comentário.", variant: "destructive" });
     } finally {
         setIsSubmitting(false);
@@ -414,11 +419,11 @@ const handleStatusChange = async () => {
     }
   };
 
-  const renderFieldValue = (fieldId: string, value: any) => {
+  const renderFieldValue = (fieldId: string, value: unknown) => {
     const fieldDef = definition?.fields.find(f => f.id === fieldId);
     if (!fieldDef) return <p><strong>{fieldId}:</strong> {JSON.stringify(value)}</p>;
     
-    let displayValue: React.ReactNode = value;
+    let displayValue: React.ReactNode = typeof value === 'string' ? value : JSON.stringify(value);
 
     if (fieldDef.type === 'file' && typeof value === 'string' && value) {
       const fileName = value.split('%2F').pop()?.split('?')[0] || 'Arquivo';
@@ -435,11 +440,11 @@ const handleStatusChange = async () => {
       );
     }
     else if (fieldDef.type === 'date' && value) {
-      const date = typeof value === 'string' ? parseISO(value) : value;
-      displayValue = isValid(date) ? format(date, 'dd/MM/yyyy', { locale: ptBR }) : 'Data inválida';
+      const date = typeof value === 'string' ? parseISO(value) : null;
+      displayValue = date && isValid(date) ? format(date, 'dd/MM/yyyy', { locale: ptBR }) : 'Data inválida';
     } else if (fieldDef.type === 'date-range' && value) {
-      const from = value.from ? parseISO(value.from) : null;
-      const to = value.to ? parseISO(value.to) : null;
+      const from = isDateRangeValue(value) && value.from ? parseISO(value.from) : null;
+      const to = isDateRangeValue(value) && value.to ? parseISO(value.to) : null;
       displayValue = (from && isValid(from) && to && isValid(to)) 
         ? `${format(from, 'dd/MM/yyyy')} a ${format(to, 'dd/MM/yyyy')}`
         : 'Período inválido';
@@ -509,6 +514,7 @@ const handleStatusChange = async () => {
 
       if (!isPending) {
         const statusConfig = {
+          pending: { icon: Hourglass, color: 'bg-yellow-500', text: 'Pendente' },
           approved: { icon: ThumbsUp, color: 'bg-success', text: 'Aprovado' },
           rejected: { icon: ThumbsDown, color: 'bg-destructive', text: 'Rejeitado' },
           acknowledged: { icon: CheckCircle, color: 'bg-blue-600', text: 'Ciente' },
@@ -676,7 +682,7 @@ const handleStatusChange = async () => {
                                                                 &#8226; {log.userName} em {format(parseISO(log.timestamp), 'dd/MM/yy HH:mm')}
                                                                 {actionResponse && <span className="font-bold"> ({getTranslatedStatus(actionResponse.status)})</span>}
                                                             </p>
-                                                            {log.notes && <blockquote className="border-l-2 pl-2 ml-2 text-foreground/80">"{log.notes}"</blockquote>}
+                                                            {log.notes && <blockquote className="border-l-2 pl-2 ml-2 text-foreground/80">&quot;{log.notes}&quot;</blockquote>}
                                                         </div>
                                                     )
                                                 })}
@@ -719,7 +725,7 @@ const handleStatusChange = async () => {
                       </Button>
                        <Button 
                           onClick={() => handleAssigneeChange()} 
-                          disabled={isSubmitting || !assignee || assignee?.id3a === request.assignee?.id}
+                          disabled={isSubmitting || !assignee || getCollaboratorUserId(assignee) === request.assignee?.id}
                           className="bg-admin-primary hover:bg-admin-primary/90"
                       >
                           {isSubmitting && actionType === 'assign' ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
@@ -733,7 +739,7 @@ const handleStatusChange = async () => {
                   <h3 className="font-semibold text-lg mb-2">Histórico de Ações Solicitadas</h3>
                   <div className="p-4 bg-muted/50 rounded-md text-sm space-y-2">
                       {actionRequestsForCurrentStatus.map((ar) => {
-                        const isCurrentUserAction = ar.userId === adminUser?.id3a;
+                        const isCurrentUserAction = ar.userId === getCollaboratorUserId(adminUser);
                         return (
                           <div key={ar.userId} className={cn("p-2 border rounded-md")}>
                               <div className="flex items-center justify-between">
@@ -790,7 +796,7 @@ const handleStatusChange = async () => {
                         ) : (
                             <MoveRight className="mr-2 h-4 w-4" />
                         )}
-                        Mover para "{nextStatus.label}"
+                        Mover para &quot;{nextStatus.label}&quot;
                     </Button>
                 )}
                 {currentStatusDefinition?.action && (
@@ -815,7 +821,7 @@ const handleStatusChange = async () => {
           isOpen={isAssigneeModalOpen}
           onClose={() => setIsAssigneeModalOpen(false)}
           allCollaborators={collaborators}
-          currentAssigneeId={assignee?.id3a}
+          currentAssigneeId={assignee ? getCollaboratorUserId(assignee) || undefined : undefined}
           onConfirm={(selected) => {
               setAssignee(selected);
               setIsAssigneeModalOpen(false);

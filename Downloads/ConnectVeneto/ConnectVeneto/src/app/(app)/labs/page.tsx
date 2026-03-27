@@ -1,7 +1,6 @@
 "use client";
 
 import { PageHeader } from '@/components/layout/PageHeader';
-import { FlaskConical } from 'lucide-react';
 import { useLabs } from '@/contexts/LabsContext';
 import type { LabType } from '@/contexts/LabsContext';
 import LabsRepositoryClient from '@/components/labs/LabsRepositoryClient';

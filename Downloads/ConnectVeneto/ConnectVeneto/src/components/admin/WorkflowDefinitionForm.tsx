@@ -2,7 +2,7 @@
 "use client";
 
 import React, { useState, useCallback, useEffect } from 'react';
-import { useForm, useFieldArray, Controller } from 'react-hook-form';
+import { useForm, useFieldArray, Controller, type Resolver } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { Button } from '@/components/ui/button';
@@ -12,13 +12,12 @@ import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose } from '@/components/ui/dialog';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { PlusCircle, Trash2, GripVertical, Loader2, Route, ListTodo, Timer, User, ShieldCheck, Users, FolderOpen } from 'lucide-react';
+import { PlusCircle, Trash2, Loader2, Route, ListTodo, Timer, ShieldCheck, Users } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { useApplications, WorkflowDefinition, workflowDefinitionSchema, formFieldSchema, routingRuleSchema } from '@/contexts/ApplicationsContext';
 import { getIcon } from '@/lib/icons';
 import { iconList } from '@/lib/icon-list';
 import { Switch } from '../ui/switch';
-import { cn } from '@/lib/utils';
 import { Separator } from '../ui/separator';
 import { useCollaborators } from '@/contexts/CollaboratorsContext';
 import { RecipientSelectionModal } from './RecipientSelectionModal';
@@ -112,7 +111,7 @@ export function WorkflowDefinitionForm({ isOpen, onClose, definition }: Workflow
     }, []);
 
     const { control, register, handleSubmit, formState: { errors, isSubmitting }, watch, setValue, reset } = useForm<FormValues>({
-        resolver: zodResolver(workflowDefinitionSchema),
+        resolver: zodResolver(workflowDefinitionSchema) as unknown as Resolver<FormValues>,
         defaultValues: normalizeDefinition(definition),
         mode: 'onChange', // Validação apenas quando o usuário interage
         reValidateMode: 'onChange',
@@ -243,7 +242,7 @@ export function WorkflowDefinitionForm({ isOpen, onClose, definition }: Workflow
                         <DialogTitle>{definition ? 'Editar Definição de Workflow' : 'Nova Definição de Workflow'}</DialogTitle>
                     </DialogHeader>
                 
-                <form onSubmit={handleSubmit(onSubmit)} className="flex-grow flex flex-col min-h-0">
+                <form onSubmit={handleSubmit(onSubmit as (data: FormValues) => Promise<void>)} className="flex-grow flex flex-col min-h-0">
                     <ScrollArea className="flex-grow pr-6 -mr-6">
                         <div className="space-y-6 pb-6">
                             {/* Basic Info */}
@@ -531,7 +530,7 @@ export function WorkflowDefinitionForm({ isOpen, onClose, definition }: Workflow
                                                     </p>
                                                 )
                                             }
-                                            return null;
+                                            return <></>;
                                         }} />
                                         <div className="flex justify-between items-center pt-2">
                                             <div className="flex items-center gap-2">
@@ -544,7 +543,7 @@ export function WorkflowDefinitionForm({ isOpen, onClose, definition }: Workflow
                                         </div>
                                     </div>
                                 ))}
-                                <Button type="button" variant="outline" onClick={() => append({ id: `campo_${fields.length + 1}`, label: '', type: 'text', required: false, placeholder: '', options: '' as any })}>
+                                <Button type="button" variant="outline" onClick={() => append({ id: `campo_${fields.length + 1}`, label: '', type: 'text', required: false, placeholder: '', options: '' })}>
                                     <PlusCircle className="mr-2 h-4 w-4" /> Adicionar Campo
                                 </Button>
                             </div>

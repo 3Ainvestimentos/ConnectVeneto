@@ -1,7 +1,7 @@
 
 "use client";
 
-import React, { useState, useRef, useMemo } from 'react';
+import React, { useState, useRef, useMemo, useCallback } from 'react';
 import { useApplications, WorkflowDefinition, workflowDefinitionSchema } from '@/contexts/ApplicationsContext';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -24,7 +24,7 @@ import { ScrollArea } from '../ui/scroll-area';
 type SortKey = 'name' | 'areaId' | 'ownerEmail';
 
 export function WorkflowDefinitionsTab() {
-    const { workflowDefinitions, loading, deleteWorkflowDefinitionMutation, addWorkflowDefinition, updateWorkflowDefinition } = useApplications();
+    const { workflowDefinitions, deleteWorkflowDefinitionMutation, addWorkflowDefinition } = useApplications();
     const { collaborators } = useCollaborators();
     const { workflowAreas } = useWorkflowAreas();
     
@@ -39,13 +39,13 @@ export function WorkflowDefinitionsTab() {
     const [sortKey, setSortKey] = useState<SortKey>('name');
     const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
 
-    const getAreaName = (areaId: string) => {
+    const getAreaName = useCallback((areaId: string) => {
         return workflowAreas.find(a => a.id === areaId)?.name || 'N/A';
-    };
+    }, [workflowAreas]);
 
-    const getOwnerName = (email: string) => {
+    const getOwnerName = useCallback((email: string) => {
         return findCollaboratorByEmail(collaborators, email)?.name || email;
-    };
+    }, [collaborators]);
 
     const uniqueAreas = useMemo(() => {
         const areaIds = new Set(workflowDefinitions.map(def => def.areaId));
@@ -98,7 +98,7 @@ export function WorkflowDefinitionsTab() {
 
 
         return items;
-    }, [workflowDefinitions, searchTerm, areaFilter, ownerFilter, sortKey, sortDirection]);
+    }, [workflowDefinitions, searchTerm, areaFilter, ownerFilter, sortKey, sortDirection, getAreaName, getOwnerName]);
 
     const handleSort = (key: SortKey) => {
         if (sortKey === key) {
@@ -138,7 +138,7 @@ export function WorkflowDefinitionsTab() {
                 if (!text || text.trim() === '') {
                     throw new Error("O arquivo JSON está vazio ou é inválido.");
                 }
-                let jsonData = JSON.parse(text);
+                const jsonData = JSON.parse(text) as Record<string, unknown>;
 
                 if (jsonData.slaDays && !jsonData.defaultSlaDays) {
                     jsonData.defaultSlaDays = jsonData.slaDays;
@@ -146,14 +146,19 @@ export function WorkflowDefinitionsTab() {
                 }
 
                 if (jsonData.routingRules && Array.isArray(jsonData.routingRules)) {
-                    jsonData.routingRules = jsonData.routingRules.filter(
-                        (rule: any) => rule && rule.field && rule.value
+                    jsonData.routingRules = jsonData.routingRules.filter((rule: unknown) =>
+                        typeof rule === 'object' && rule !== null && 'field' in rule && 'value' in rule
                     );
                 }
                 
                 if (jsonData.slaRules && Array.isArray(jsonData.slaRules)) {
-                    jsonData.slaRules = jsonData.slaRules.filter(
-                        (rule: any) => rule && rule.field && rule.value && rule.days !== undefined
+                    jsonData.slaRules = jsonData.slaRules.filter((rule: unknown) =>
+                        typeof rule === 'object' &&
+                        rule !== null &&
+                        'field' in rule &&
+                        'value' in rule &&
+                        'days' in rule &&
+                        (rule as { days?: unknown }).days !== undefined
                     );
                 }
                 
@@ -214,7 +219,22 @@ export function WorkflowDefinitionsTab() {
         return `${ids.length} Colaborador(es)`;
     };
     
-    const FilterableHeader = ({ label, items, selectedItems, onCheckedChange, displayKey, valueKey }: any) => (
+    type HeaderFilterItem = object;
+    const FilterableHeader = <T extends HeaderFilterItem>({
+        label,
+        items,
+        selectedItems,
+        onCheckedChange,
+        displayKey,
+        valueKey,
+    }: {
+        label: string;
+        items: T[];
+        selectedItems: string[];
+        onCheckedChange: (value: string) => void;
+        displayKey: keyof T;
+        valueKey: keyof T;
+    }) => (
         <TableHead>
             <div className="flex items-center gap-2">
                 <span className="flex-grow">{label}</span>
@@ -228,13 +248,13 @@ export function WorkflowDefinitionsTab() {
                         <DropdownMenuLabel>Filtrar por {label}</DropdownMenuLabel>
                         <DropdownMenuSeparator />
                         <ScrollArea className="max-h-60">
-                        {items.map((item: any) => (
+                        {items.map((item) => (
                             <DropdownMenuCheckboxItem
-                                key={item[valueKey]}
-                                checked={selectedItems.includes(item[valueKey])}
-                                onCheckedChange={() => onCheckedChange(item[valueKey])}
+                                key={String(item[valueKey])}
+                                checked={selectedItems.includes(String(item[valueKey]))}
+                                onCheckedChange={() => onCheckedChange(String(item[valueKey]))}
                             >
-                                {item[displayKey]}
+                                {String(item[displayKey])}
                             </DropdownMenuCheckboxItem>
                         ))}
                         </ScrollArea>

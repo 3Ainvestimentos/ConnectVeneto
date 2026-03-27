@@ -6,6 +6,7 @@ import { useQuery, useMutation, useQueryClient, UseMutationResult } from '@tanst
 import { addDocumentToCollection, updateDocumentInCollection, deleteDocumentFromCollection, WithId, listenToCollection, getCollection } from '@/lib/firestore-service';
 import * as z from 'zod';
 import type { Collaborator } from './CollaboratorsContext';
+import { getCollaboratorUserId } from './CollaboratorsContext';
 import { useAuth } from './AuthContext';
 
 export const quickLinkSchema = z.object({
@@ -70,13 +71,14 @@ export const QuickLinksProvider = ({ children }: { children: ReactNode }) => {
     return () => unsubscribe();
   }, [queryClient, user]);
 
-  const getVisibleLinksForUser = useCallback((user: Collaborator | null, allCollaborators: Collaborator[]): QuickLinkType[] => {
+  const getVisibleLinksForUser = useCallback((user: Collaborator | null, _allCollaborators: Collaborator[]): QuickLinkType[] => {
     if (!user) return [];
 
     return quickLinks
       .filter(link => {
         if (link.recipientIds.includes('all')) return true;
-        return link.recipientIds.includes(user.id3a);
+        const userId = getCollaboratorUserId(user);
+        return userId ? link.recipientIds.includes(userId) : false;
       })
       .map(link => {
         if (link.isUserSpecific && link.link.includes('{userEmail}')) {
@@ -122,8 +124,8 @@ export const QuickLinksProvider = ({ children }: { children: ReactNode }) => {
   const value = useMemo(() => ({
     quickLinks,
     loading: isFetching,
-    addQuickLink: (link) => addQuickLinkMutation.mutateAsync(link) as Promise<QuickLinkType>,
-    updateQuickLink: (link) => updateQuickLinkMutation.mutateAsync(link),
+    addQuickLink: (link: Omit<QuickLinkType, 'id'>) => addQuickLinkMutation.mutateAsync(link) as Promise<QuickLinkType>,
+    updateQuickLink: (link: Partial<QuickLinkType> & { id: string }) => updateQuickLinkMutation.mutateAsync(link),
     deleteQuickLinkMutation,
     getVisibleLinksForUser
   }), [quickLinks, isFetching, addQuickLinkMutation, updateQuickLinkMutation, deleteQuickLinkMutation, getVisibleLinksForUser]);

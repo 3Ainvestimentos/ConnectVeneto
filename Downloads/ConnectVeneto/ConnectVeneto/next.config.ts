@@ -6,14 +6,15 @@ const nextConfig: NextConfig = {
   /* config options here */
   // Habilitado temporariamente apenas para Preview de produção a fim de depurar SyntaxError
   productionBrowserSourceMaps: true,
-  // Removido ignoreBuildErrors e ignoreDuringBuilds para garantir qualidade do código
+  // Build local permanece tolerante até zerar dívida histórica de tipagem/lint.
+  // O bloqueio obrigatório está no pipeline (.github/workflows/quality-gates.yml).
   typescript: {
-    // Temporariamente permitir build mesmo com erros de TypeScript (reavaliar antes de endurecer novamente)
-    ignoreBuildErrors: true,
+    // TODO: mudar para false quando typecheck estiver sem baseline.
+    ignoreBuildErrors: false,
   },
   eslint: {
-    // Temporariamente permitir build mesmo com avisos/erros de ESLint (cobrir com pipeline CI futuramente)
-    ignoreDuringBuilds: true,
+    // TODO: mudar para false quando quisermos falhar o next build também localmente.
+    ignoreDuringBuilds: false,
   },
   // Fixar raiz de tracing/monorepo para evitar seleção incorreta de workspace fora do projeto
   outputFileTracingRoot: path.join(__dirname),

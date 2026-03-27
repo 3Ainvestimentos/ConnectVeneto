@@ -8,12 +8,10 @@ import {
   DialogHeader,
   DialogTitle,
   DialogFooter,
-  DialogDescription,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useAuth } from '@/contexts/AuthContext';
-import { useCollaborators } from '@/contexts/CollaboratorsContext';
 import { Separator } from '../ui/separator';
 import { User, Building, Briefcase, Pyramid, MapPin, Users, Fingerprint, ClipboardCopy } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
@@ -50,7 +48,7 @@ Nome de Exibição: ${user.displayName}
 [+] DADOS DO FIRESTORE (useCollaborators)
 ------------------------------------------
 ID do Documento: ${currentUserCollab.id}
-ID Veneto: ${currentUserCollab.idVeneto || currentUserCollab.id3a}
+ID Veneto: ${currentUserCollab.idVeneto}
 Email no Firestore: ${currentUserCollab.email}
 Permissões: ${JSON.stringify(currentUserCollab.permissions, null, 2)}
 Versão dos Termos Aceita: ${currentUserCollab.acceptedTermsVersion || 'N/A'}
@@ -124,7 +122,7 @@ URL dos Termos: ${settings.termsUrl}
 
                 {currentUserCollab ? (
                   <div className="space-y-4">
-                      <InfoItem icon={Fingerprint} label="ID Veneto" value={currentUserCollab.idVeneto || currentUserCollab.id3a} />
+                      <InfoItem icon={Fingerprint} label="ID Veneto" value={currentUserCollab.idVeneto} />
                       <Separator />
                       <InfoItem icon={Briefcase} label="Cargo" value={currentUserCollab.position} />
                       <Separator />

@@ -12,7 +12,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { PlusCircle, Edit, Star, Eye, Link as LinkIcon, Archive, ArchiveRestore, Loader2, Trash2 } from 'lucide-react';
+import { PlusCircle, Edit, Eye, Link as LinkIcon, Archive, ArchiveRestore, Loader2, Trash2 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../ui/card';
 import { toast } from '@/hooks/use-toast';
 import { Switch } from '../ui/switch';
@@ -73,7 +73,6 @@ export function ManageNews() {
             };
             reset(formattedNews);
         } else {
-            const newOrder = newsItems.length > 0 ? Math.max(...newsItems.map(n => n.order)) + 1 : 0;
             reset({
                 id: undefined,
                 title: '',

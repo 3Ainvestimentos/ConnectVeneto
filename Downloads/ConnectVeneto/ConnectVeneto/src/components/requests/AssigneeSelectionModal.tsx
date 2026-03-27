@@ -1,7 +1,7 @@
 
 "use client";
 import React, { useState, useMemo, useEffect } from 'react';
-import type { Collaborator } from '@/contexts/CollaboratorsContext';
+import { getCollaboratorUserId, type Collaborator } from '@/contexts/CollaboratorsContext';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -34,7 +34,7 @@ export function AssigneeSelectionModal({
 
     useEffect(() => {
         if (isOpen) {
-            const current = allCollaborators.find(c => c.id3a === currentAssigneeId);
+            const current = allCollaborators.find(c => getCollaboratorUserId(c) === currentAssigneeId);
             setSelectedAssignee(current || null);
         }
     }, [isOpen, currentAssigneeId, allCollaborators]);

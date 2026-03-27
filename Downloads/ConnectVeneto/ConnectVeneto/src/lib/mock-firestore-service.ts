@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * @fileOverview A mock Firestore service that uses localStorage to simulate database operations.
  * This allows for a fully functional development experience without a live Firebase backend.
@@ -14,7 +13,7 @@ const getFullKey = (collectionName: string) => `firebase_mock_${collectionName}`
  * @param collectionName The name of the collection.
  * @returns A promise that resolves to an array of documents with their IDs.
  */
-export const getCollection = async <T>(collectionName: string, mockData: any[] = []): Promise<WithId<T>[]> => {
+export const getCollection = async <T>(collectionName: string, mockData: WithId<T>[] = []): Promise<WithId<T>[]> => {
     if (typeof window === 'undefined') return mockData as WithId<T>[];
     try {
         const key = getFullKey(collectionName);

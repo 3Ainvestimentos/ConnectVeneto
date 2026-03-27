@@ -4,11 +4,11 @@ import SuperAdminGuard from "@/components/auth/SuperAdminGuard";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { ManageFabMessages } from "@/components/admin/ManageFabMessages";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ListChecks, PieChart, Users, BarChart, Search, Filter, ChevronUp, ChevronDown, BotMessageSquare, MessageCircle } from "lucide-react";
+import { ListChecks, PieChart, Users, Search, Filter, MessageCircle } from "lucide-react";
 import TagDistributionChart from "@/components/admin/TagDistributionChart";
 import CampaignStatusChart from "@/components/admin/CampaignStatusChart";
 import CampaignHistoryChart from "@/components/admin/CampaignHistoryChart";
-import { useCollaborators, type Collaborator } from "@/contexts/CollaboratorsContext";
+import { getCollaboratorUserId, useCollaborators, type Collaborator } from "@/contexts/CollaboratorsContext";
 import { useFabMessages } from "@/contexts/FabMessagesContext";
 import React, { useState, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -25,7 +25,10 @@ export default function FabMessagesAdminPage() {
     const { fabMessages } = useFabMessages();
     const [searchTerm, setSearchTerm] = useState('');
     const [selectedUserIds, setSelectedUserIds] = useState<string[]>(() => 
-        collaborators.filter(c => c.axis === 'Comercial' || ['desenvolvedor@venetomfo.com.br', 'matheus@venetomfo.com.br'].includes(c.email)).map(c => c.id3a)
+        collaborators
+          .filter(c => c.axis === 'Comercial' || ['desenvolvedor@venetomfo.com.br', 'matheus@venetomfo.com.br'].includes(c.email))
+          .map(c => getCollaboratorUserId(c))
+          .filter((id): id is string => !!id)
     );
     
     const [filters, setFilters] = useState<{
@@ -104,7 +107,7 @@ export default function FabMessagesAdminPage() {
     
     const handleSelectAll = (checked: boolean) => {
         if (checked) {
-            setSelectedUserIds(filteredUsers.map(u => u.id3a));
+            setSelectedUserIds(filteredUsers.map(u => getCollaboratorUserId(u)).filter((id): id is string => !!id));
         } else {
             setSelectedUserIds([]);
         }
@@ -121,7 +124,7 @@ export default function FabMessagesAdminPage() {
     };
     
     const isAllSelected = useMemo(() => {
-        return filteredUsers.length > 0 && filteredUsers.every(u => selectedUserIds.includes(u.id3a));
+        return filteredUsers.length > 0 && filteredUsers.every(u => selectedUserIds.includes(getCollaboratorUserId(u) || ''));
     }, [filteredUsers, selectedUserIds]);
 
     const FilterableHeader = ({ fkey, label, uniqueValues }: { fkey: keyof typeof filters, label: string, uniqueValues: string[] }) => (
@@ -224,11 +227,11 @@ export default function FabMessagesAdminPage() {
                                             </TableHeader>
                                             <TableBody>
                                                 {filteredUsers.map(user => (
-                                                    <TableRow key={user.id} data-state={selectedUserIds.includes(user.id3a) ? 'selected' : ''}>
+                                                    <TableRow key={user.id} data-state={selectedUserIds.includes(getCollaboratorUserId(user) || '') ? 'selected' : ''}>
                                                         <TableCell>
                                                             <Checkbox
-                                                                checked={selectedUserIds.includes(user.id3a)}
-                                                                onCheckedChange={checked => handleSelectUser(user.id3a, !!checked)}
+                                                                checked={selectedUserIds.includes(getCollaboratorUserId(user) || '')}
+                                                                onCheckedChange={checked => handleSelectUser(getCollaboratorUserId(user) || '', !!checked)}
                                                             />
                                                         </TableCell>
                                                         <TableCell className="font-medium">{user.name}</TableCell>
