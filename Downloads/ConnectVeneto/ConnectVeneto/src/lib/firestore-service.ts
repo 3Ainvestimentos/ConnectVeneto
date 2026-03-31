@@ -330,11 +330,23 @@ export const addMultipleDocumentsToCollection = async <T extends object>(collect
 
         await batch.commit();
     } catch (error) {
-        console.error(`Error adding multiple documents to ${collectionName}:`, error);
-        if (error instanceof Error) {
-            console.error('Data that caused the error:', dataArray);
+        const code =
+            typeof error === 'object' && error !== null && 'code' in error
+                ? String((error as { code: unknown }).code)
+                : '';
+        // Evita console.error com payload enorme: no Next.js isso abre o overlay vermelho mesmo com catch no caller.
+        if (process.env.NODE_ENV === 'development') {
+            console.warn(
+                `[firestore] batch write failed (${collectionName})`,
+                code || '(no code)',
+                error instanceof Error ? error.message : error,
+                { rowCount: dataArray.length }
+            );
         }
-        throw new Error(`Não foi possível adicionar os itens em lote.`);
+        const msg = error instanceof Error ? error.message : String(error);
+        throw new Error(
+            code ? `Não foi possível adicionar os itens em lote. [${code}] ${msg}` : `Não foi possível adicionar os itens em lote. ${msg}`
+        );
     }
 };
 

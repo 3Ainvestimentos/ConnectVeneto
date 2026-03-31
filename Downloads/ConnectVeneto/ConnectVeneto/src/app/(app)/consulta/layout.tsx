@@ -5,12 +5,12 @@ import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
 
-export default function BILeadersLayout({
+export default function ConsultaLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const { user, loading, permissions } = useAuth();
+  const { user, loading } = useAuth();
   const router = useRouter();
   const [isAuthorized, setIsAuthorized] = useState(false);
 
@@ -18,13 +18,11 @@ export default function BILeadersLayout({
     if (!loading) {
       if (!user) {
         router.replace('/login');
-      } else if (!permissions.canViewBILeaders) {
-        router.replace('/dashboard');
       } else {
         setIsAuthorized(true);
       }
     }
-  }, [user, loading, permissions.canViewBILeaders, router]);
+  }, [user, loading, router]);
 
   if (loading || !isAuthorized) {
     return (
@@ -36,7 +34,7 @@ export default function BILeadersLayout({
 
   return (
     <div className="flex-grow h-[calc(100vh-var(--header-height))]">
-        {children}
+      {children}
     </div>
   );
 }

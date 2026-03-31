@@ -14,6 +14,8 @@ export interface SystemSettings {
   privacyPolicyUrl: string;
   privacyPolicyVersion: number;
   superAdminEmails: string[];
+  /** E-mails que podem importar / criar colaboradores em lote (regra Firestore `isCollaboratorImporter`). */
+  collaboratorAdminEmails: string[];
   collaboratorTableVersion: number;
   isRssNewsletterActive?: boolean;
   rssNewsletterUrl?: string;
@@ -40,6 +42,7 @@ const defaultSettings: SystemSettings = {
     privacyPolicyUrl: '',
     privacyPolicyVersion: 1,
     superAdminEmails: ['desenvolvedor@venetomfo.com.br'],
+    collaboratorAdminEmails: [],
     collaboratorTableVersion: 1,
     isRssNewsletterActive: false,
     rssNewsletterUrl: '',

@@ -18,6 +18,17 @@ service cloud.firestore {
         && request.auth.token.email in get(settingsPath).data.superAdminEmails;
     }
 
+    /** RH / admin que pode criar colaboradores em lote (importação CSV), sem ser Super Admin. */
+    function isCollaboratorImporter() {
+      let settingsPath = /databases/$(database)/documents/systemSettings/config;
+      return isAuthenticated()
+        && request.auth.token.email is string
+        && exists(settingsPath)
+        && 'collaboratorAdminEmails' in get(settingsPath).data
+        && get(settingsPath).data.collaboratorAdminEmails is list
+        && request.auth.token.email in get(settingsPath).data.collaboratorAdminEmails;
+    }
+
     function isOwnerByUid(uidField) {
       return isAuthenticated()
         && resource.data[uidField] is string
@@ -46,6 +57,7 @@ service cloud.firestore {
       allow read: if isAuthenticated();
 
       allow create: if isSuperAdmin()
+                    || isCollaboratorImporter()
                     || (
                       isAuthenticated()
                       && request.resource.data.authUid is string
@@ -79,11 +91,6 @@ service cloud.firestore {
     // =========================
     // Conteúdo principal
     // =========================
-    match /newsItems/{docId} {
-      allow read: if isAuthenticated();
-      allow write: if isSuperAdmin();
-    }
-
     match /documents/{docId} {
       allow read: if isAuthenticated();
       allow write: if isSuperAdmin();

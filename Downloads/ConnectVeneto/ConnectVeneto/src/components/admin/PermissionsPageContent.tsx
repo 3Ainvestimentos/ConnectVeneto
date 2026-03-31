@@ -23,11 +23,10 @@ const allPermissionLabels: { key: keyof CollaboratorPermissions; label: string; 
     { key: 'canManageTripsBirthdays', label: 'Viagens/Aniversários' },
     { key: 'canManageVacation', label: 'Férias' },
     { key: 'canViewTasks', label: 'Minhas Tarefas' },
-    { key: 'canViewBI', label: 'Business Intelligence', featureFlag: 'businessIntelligence' },
+    { key: 'canViewBI', label: 'Painéis', featureFlag: 'businessIntelligence' },
     { key: 'canViewRankings', label: 'Rankings' },
     { key: 'canViewOpportunityMap', label: 'Mapa de Oportunidades' },
     { key: 'canViewMeetAnalyses', label: 'Bob Meet Análises' },
-    { key: 'canViewBILeaders', label: 'BI Líderes', featureFlag: 'businessIntelligenceLeaders' },
 ];
 
 const permissionLabels = allPermissionLabels.filter((item) =>

@@ -4,7 +4,6 @@
 import React, { useState } from 'react';
 import { PageHeader } from '@/components/layout/PageHeader';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { ManageNews } from '@/components/admin/ManageNews';
 import { ManageDocuments } from '@/components/admin/ManageDocuments';
 import { ManageLabs } from '@/components/admin/ManageLabs';
 import AdminGuard from '@/components/auth/AdminGuard';
@@ -16,7 +15,7 @@ import { ManageNewsletter } from '@/components/admin/ManageNewsletter';
 import { ManageContacts } from '@/components/admin/ManageContacts';
 
 export default function AdminContentPage() {
-    const [activeTab, setActiveTab] = useState("news");
+    const [activeTab, setActiveTab] = useState("documents");
 
     return (
         <AdminGuard>
@@ -26,8 +25,7 @@ export default function AdminContentPage() {
                     description="Gerencie as informações dinâmicas da intranet."
                 />
                 <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-                    <TabsList className="grid w-full grid-cols-2 md:grid-cols-4 lg:grid-cols-9">
-                        <TabsTrigger value="news">Notícias</TabsTrigger>
+                    <TabsList className="grid w-full grid-cols-2 md:grid-cols-4 lg:grid-cols-8">
                         <TabsTrigger value="documents">Documentos</TabsTrigger>
                         <TabsTrigger value="labs">Labs</TabsTrigger>
                         <TabsTrigger value="messages">Mensagens</TabsTrigger>
@@ -37,9 +35,6 @@ export default function AdminContentPage() {
                         <TabsTrigger value="newsletter">Newsletter</TabsTrigger>
                         <TabsTrigger value="contacts">Contatos</TabsTrigger>
                     </TabsList>
-                    <TabsContent value="news">
-                        <ManageNews />
-                    </TabsContent>
                     <TabsContent value="documents">
                         <ManageDocuments />
                     </TabsContent>

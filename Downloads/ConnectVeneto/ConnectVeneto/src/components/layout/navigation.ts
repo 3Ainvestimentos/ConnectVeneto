@@ -4,12 +4,11 @@ import type { ComponentType } from "react";
 import { FEATURE_FLAGS, type FeatureFlagKey } from "@/config/features";
 import {
   Home,
-  Newspaper,
+  Table2,
   FolderOpen,
   FlaskConical,
   ShoppingCart,
   BarChart,
-  BarChart2,
   Workflow,
   Award,
 } from "lucide-react";
@@ -25,13 +24,12 @@ export type AppNavItem = {
 
 const allNavItems: AppNavItem[] = [
   { href: "/dashboard", label: "Painel Inicial", icon: Home, external: false, permission: null },
-  { href: "/news", label: "Feed de Notícias", icon: Newspaper, external: false, permission: null },
+  { href: "/consulta", label: "Consulta Pessoal", icon: Table2, external: false, permission: null },
   { href: "/applications", label: "Solicitações", icon: Workflow, external: false, permission: null },
   { href: "/documents", label: "Documentos", icon: FolderOpen, external: false, permission: null },
   { href: "/labs", label: "Labs", icon: FlaskConical, external: false, permission: null, featureFlag: "labs" },
   { href: "/rankings", label: "Rankings e Campanhas", icon: Award, external: false, permission: "canViewRankings", featureFlag: "rankings" },
-  { href: "/bi", label: "Business Intelligence", icon: BarChart, external: false, permission: "canViewBI", featureFlag: "businessIntelligence" },
-  { href: "/bi-leaders", label: "BI Líderes", icon: BarChart2, external: false, permission: "canViewBILeaders", featureFlag: "businessIntelligenceLeaders" },
+  { href: "/bi", label: "Painéis", icon: BarChart, external: false, permission: "canViewBI", featureFlag: "businessIntelligence" },
   { href: "https://www.venetostore.com.br/", label: "Veneto Store", icon: ShoppingCart, external: true, permission: null, featureFlag: "venetoStore" },
 ];
 
@@ -43,7 +41,7 @@ export const noZoomRoutes = [
   "/admin/crm",
   "/admin/strategic-panel",
   "/bi",
-  "/bi-leaders",
+  "/consulta",
   "/personal-panel",
   "/rankings",
   "/store",

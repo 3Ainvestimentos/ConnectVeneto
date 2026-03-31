@@ -8,10 +8,10 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose, DialogDescription } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { useForm, useFieldArray } from 'react-hook-form';
+import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { PlusCircle, Edit, Trash2, Loader2, Upload, FileDown, AlertTriangle, Search, ChevronUp, ChevronDown, Folder, BarChart, Filter, History } from 'lucide-react';
+import { PlusCircle, Edit, Trash2, Loader2, Upload, FileDown, AlertTriangle, Search, ChevronUp, ChevronDown, Folder, Table2, Filter, History } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../ui/card';
 import { toast } from '@/hooks/use-toast';
 import { ScrollArea } from '../ui/scroll-area';
@@ -22,6 +22,48 @@ import { Separator } from '../ui/separator';
 import { DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '../ui/dropdown-menu';
 import { useSystemSettings } from '@/contexts/SystemSettingsContext';
 import { CollaboratorAuditLogModal } from './CollaboratorAuditLogModal';
+
+/** Quando a planilha não traz eixo/segmento. */
+const DEFAULT_AXIS_SEGMENT_IMPORT = '—';
+
+function normCsvHeader(raw: string): string {
+  return raw
+    .trim()
+    .replace(/^\uFEFF/, '')
+    .normalize('NFD')
+    .replace(/\p{M}/gu, '')
+    .toLowerCase()
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function csvRowToNormMap(row: CsvRow): Map<string, string> {
+  const m = new Map<string, string>();
+  for (const [k, val] of Object.entries(row)) {
+    const nk = normCsvHeader(k);
+    if (!nk) continue;
+    m.set(nk, String(val ?? '').trim());
+  }
+  return m;
+}
+
+/** Lê célula por possíveis cabeçalhos (PT/EN). Chaves distintas evitam trocar LÍDER com LIDERANÇA. */
+function pickCsvCell(m: Map<string, string>, ...aliases: string[]): string {
+  for (const a of aliases) {
+    const nk = normCsvHeader(a);
+    const v = m.get(nk);
+    if (v !== undefined && v !== '') return v;
+  }
+  return '';
+}
+
+function normalizeLiderancaCell(raw: string): string {
+  const t = raw.trim();
+  if (!t) return '';
+  const u = t.toUpperCase();
+  if (u === 'SIM' || u === 'NÃO' || u === 'NAO') return u === 'NAO' ? 'NÃO' : u;
+  return t;
+}
 
 const defaultPermissions: Collaborator["permissions"] = {
   canManageWorkflows: false,
@@ -37,40 +79,101 @@ const defaultPermissions: Collaborator["permissions"] = {
   canViewOpportunityMap: false,
   canViewMeetAnalyses: false,
   canViewDirectoria: false,
-  canViewBILeaders: false,
 };
 
-const biLinkSchema = z.object({
-    name: z.string().min(1, "O nome da aba é obrigatório."),
-    url: z.string().transform((value, ctx) => {
-        if (!value) {
-             ctx.addIssue({
-                code: z.ZodIssueCode.custom,
-                message: "A URL ou o código de incorporação do iframe é obrigatório.",
-            });
-            return z.NEVER;
-        };
+function mapCsvRowToCollaboratorDraft(row: CsvRow): Omit<Collaborator, 'id'> | null {
+  const m = csvRowToNormMap(row);
 
-        if (z.string().url().safeParse(value).success) {
-            return value;
-        }
+  const idVeneto = pickCsvCell(m, 'id', 'idVeneto', 'id veneto').trim();
+  const name = pickCsvCell(m, 'nome usual', 'name', 'nome');
+  const email = pickCsvCell(m, 'e-mail', 'email', 'e mail').toLowerCase();
+  const area = pickCsvCell(m, 'área', 'area');
+  const position = pickCsvCell(m, 'cargo', 'position');
+  const leader = pickCsvCell(m, 'líder', 'lider', 'leader') || '—';
+  const lideranca = normalizeLiderancaCell(pickCsvCell(m, 'liderança', 'lideranca'));
+  const city = pickCsvCell(m, 'cidade', 'city');
 
-        if (value.trim().startsWith('<iframe')) {
-            const srcMatch = value.match(/src="([^"]+)"/);
-            if (srcMatch && srcMatch[1]) {
-                const url = srcMatch[1];
-                if (z.string().url().safeParse(url).success) {
-                    return url;
-                }
+  let axis = pickCsvCell(m, 'eixo', 'axis');
+  let segment = pickCsvCell(m, 'segmento', 'segment');
+  if (!axis) axis = DEFAULT_AXIS_SEGMENT_IMPORT;
+  if (!segment) segment = DEFAULT_AXIS_SEGMENT_IMPORT;
+
+  const photoURL = pickCsvCell(m, 'photourl', 'photo url', 'url da foto') || '';
+  const gdlRaw = pickCsvCell(m, 'googledrivelinks', 'google drive links');
+
+  if (!idVeneto || !name || !email || !area || !position || !city) return null;
+
+  return {
+    idVeneto,
+    name,
+    email,
+    photoURL,
+    axis,
+    area,
+    position,
+    segment,
+    leader,
+    ...(lideranca ? { lideranca } : {}),
+    city,
+    permissions: defaultPermissions,
+    googleDriveLinks: gdlRaw ? gdlRaw.split(',').map((l) => l.trim()).filter(Boolean) : [],
+  };
+}
+
+function countConsultaLinksFilled(consultaLinks: Collaborator['consultaLinks']): number {
+    if (!consultaLinks) return 0;
+    return [consultaLinks.mesa, consultaLinks.cliente, consultaLinks.cx].filter(
+        (s) => typeof s === 'string' && s.trim().length > 0
+    ).length;
+}
+
+function csvHeadersLookValid(fieldNames: string[] | undefined): boolean {
+  if (!fieldNames?.length) return false;
+  const s = new Set(fieldNames.map(normCsvHeader).filter(Boolean));
+
+  const portuguese =
+    (s.has('id') || s.has('idveneto')) &&
+    (s.has('nome usual') || s.has('name') || s.has('nome')) &&
+    (s.has('e-mail') || s.has('email')) &&
+    s.has('area') &&
+    (s.has('cargo') || s.has('position')) &&
+    (s.has('lider') || s.has('leader')) &&
+    s.has('cidade');
+
+  const english =
+    s.has('idveneto') &&
+    s.has('name') &&
+    s.has('email') &&
+    s.has('area') &&
+    s.has('position') &&
+    (s.has('lider') || s.has('leader')) &&
+    s.has('city');
+
+  return portuguese || english;
+}
+
+const consultaUrlSchema = z.string().transform((value, ctx) => {
+    if (!value) return '';
+
+    if (z.string().url().safeParse(value).success) {
+        return value;
+    }
+
+    if (value.trim().startsWith('<iframe')) {
+        const srcMatch = value.match(/src="([^"]+)"/);
+        if (srcMatch && srcMatch[1]) {
+            const url = srcMatch[1];
+            if (z.string().url().safeParse(url).success) {
+                return url;
             }
         }
+    }
 
-        ctx.addIssue({
-            code: z.ZodIssueCode.custom,
-            message: "URL inválida. Cole a URL completa ou o código de incorporação do iframe.",
-        });
-        return z.NEVER;
-    })
+    ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "URL inválida. Cole a URL completa ou o código de incorporação do iframe.",
+    });
+    return z.NEVER;
 });
 
 const collaboratorSchema = z.object({
@@ -84,9 +187,14 @@ const collaboratorSchema = z.object({
     position: z.string().min(1, "Cargo é obrigatório"),
     segment: z.string().min(1, "Segmento é obrigatório"),
     leader: z.string().min(1, "Líder é obrigatório"),
+    lideranca: z.string().optional().or(z.literal('')),
     city: z.string().min(1, "Cidade é obrigatória"),
     googleDriveLinks: z.union([z.string(), z.array(z.string().url("URL inválida."))]).optional(),
-    biLinks: z.array(biLinkSchema).optional(),
+    consultaLinks: z.object({
+        mesa: consultaUrlSchema,
+        cliente: consultaUrlSchema,
+        cx: consultaUrlSchema,
+    }).optional(),
 });
 
 type CollaboratorFormValues = z.infer<typeof collaboratorSchema>;
@@ -95,6 +203,31 @@ type CsvRow = { [key: string]: string };
 
 type SortKey = keyof Collaborator | '';
 type SortDirection = 'asc' | 'desc';
+
+function parseCsvFile(file: File): Promise<{ rows: CsvRow[]; headers: string[] | undefined }> {
+  return new Promise((resolve, reject) => {
+    Papa.parse<CsvRow>(file, {
+      header: true,
+      skipEmptyLines: true,
+      // Alguns conversores online adicionam "sep=;" na primeira linha.
+      beforeFirstChunk: (chunk) => chunk.replace(/^\uFEFF?sep=.+\r?\n/i, ''),
+      complete: (results) => resolve({ rows: results.data, headers: results.meta.fields }),
+      error: (error) => reject(error),
+    });
+  });
+}
+
+async function parseXlsxFile(file: File): Promise<{ rows: CsvRow[]; headers: string[] | undefined }> {
+  const XLSX = await import('xlsx');
+  const buffer = await file.arrayBuffer();
+  const workbook = XLSX.read(buffer, { type: 'array' });
+  const firstSheetName = workbook.SheetNames[0];
+  if (!firstSheetName) return { rows: [], headers: undefined };
+  const sheet = workbook.Sheets[firstSheetName];
+  const rows = XLSX.utils.sheet_to_json<CsvRow>(sheet, { defval: '' });
+  const headers = rows.length > 0 ? Object.keys(rows[0]) : undefined;
+  return { rows, headers };
+}
 
 export function ManageCollaborators() {
     const { collaborators, addCollaborator, updateCollaborator, deleteCollaboratorMutation, addMultipleCollaborators } = useCollaborators();
@@ -109,23 +242,19 @@ export function ManageCollaborators() {
     const [searchTerm, setSearchTerm] = useState('');
     const [sortKey, setSortKey] = useState<SortKey>('name');
     const [sortDirection, setSortDirection] = useState<SortDirection>('asc');
-    const [filters, setFilters] = useState<{ area: string[], position: string[], axis: string[], segment: string[], leader: string[], city: string[] }>({ area: [], position: [], axis: [], segment: [], leader: [], city: [] });
+    const [filters, setFilters] = useState<{ area: string[], position: string[], axis: string[], segment: string[], leader: string[], lideranca: string[], city: string[] }>({ area: [], position: [], axis: [], segment: [], leader: [], lideranca: [], city: [] });
 
-    const { control, register, handleSubmit, reset, formState: { errors, isSubmitting: isFormSubmitting } } = useForm<CollaboratorFormValues>({
+    const { register, handleSubmit, reset, formState: { errors, isSubmitting: isFormSubmitting } } = useForm<CollaboratorFormValues>({
         resolver: zodResolver(collaboratorSchema),
     });
 
-    const { fields: biLinksFields, append, remove } = useFieldArray({
-        control,
-        name: "biLinks",
-    });
-
-    const { uniqueAreas, uniquePositions, uniqueAxes, uniqueSegments, uniqueLeaders, uniqueCities } = useMemo(() => {
+    const { uniqueAreas, uniquePositions, uniqueAxes, uniqueSegments, uniqueLeaders, uniqueLideranca, uniqueCities } = useMemo(() => {
         const areas = new Set<string>();
         const positions = new Set<string>();
         const axes = new Set<string>();
         const segments = new Set<string>();
         const leaders = new Set<string>();
+        const liderancas = new Set<string>();
         const cities = new Set<string>();
         collaborators.forEach(c => {
             if(c.area) areas.add(c.area);
@@ -133,6 +262,7 @@ export function ManageCollaborators() {
             if(c.axis) axes.add(c.axis);
             if(c.segment) segments.add(c.segment);
             if(c.leader) leaders.add(c.leader);
+            if (c.lideranca) liderancas.add(c.lideranca);
             if(c.city) cities.add(c.city);
         });
         return {
@@ -141,6 +271,7 @@ export function ManageCollaborators() {
             uniqueAxes: [...axes].sort(),
             uniqueSegments: [...segments].sort(),
             uniqueLeaders: [...leaders].sort(),
+            uniqueLideranca: [...liderancas].sort(),
             uniqueCities: [...cities].sort()
         };
     }, [collaborators]);
@@ -154,13 +285,18 @@ export function ManageCollaborators() {
                 const nameMatch = c.name?.toLowerCase().includes(lowercasedTerm) ?? false;
                 const emailMatch = c.email?.toLowerCase().includes(lowercasedTerm) ?? false;
                 const idMatch = c.idVeneto?.toLowerCase().includes(lowercasedTerm) || false;
-                return nameMatch || emailMatch || idMatch;
+                const leaderMatch = c.leader?.toLowerCase().includes(lowercasedTerm) ?? false;
+                const liderancaMatch = c.lideranca?.toLowerCase().includes(lowercasedTerm) ?? false;
+                return nameMatch || emailMatch || idMatch || leaderMatch || liderancaMatch;
             });
         }
         
         Object.entries(filters).forEach(([key, values]) => {
             if (values.length > 0) {
-                items = items.filter(c => values.includes(c[key as keyof Collaborator] as string));
+                items = items.filter(c => {
+                    const v = c[key as keyof Collaborator];
+                    return typeof v === 'string' && values.includes(v);
+                });
             }
         });
 
@@ -204,7 +340,11 @@ export function ManageCollaborators() {
             reset({
               ...collaborator,
               googleDriveLinks: collaborator.googleDriveLinks ? collaborator.googleDriveLinks.join('\\n') : '',
-              biLinks: collaborator.biLinks || [],
+              consultaLinks: {
+                mesa: collaborator.consultaLinks?.mesa || '',
+                cliente: collaborator.consultaLinks?.cliente || '',
+                cx: collaborator.consultaLinks?.cx || '',
+              },
             });
         } else {
             reset({
@@ -218,9 +358,10 @@ export function ManageCollaborators() {
                 position: '',
                 segment: '',
                 leader: '',
+                lideranca: '',
                 city: '',
                 googleDriveLinks: [],
-                biLinks: [],
+                consultaLinks: { mesa: '', cliente: '', cx: '' },
             });
         }
         setIsFormOpen(true);
@@ -242,6 +383,7 @@ export function ManageCollaborators() {
         const processedData = {
           ...data,
           idVeneto: data.idVeneto,
+          lideranca: data.lideranca?.trim() || undefined,
           permissions: editingCollaborator?.permissions || defaultPermissions,
           googleDriveLinks: typeof data.googleDriveLinks === 'string'
             ? data.googleDriveLinks.split('\\n').map(link => link.trim()).filter(Boolean)
@@ -273,79 +415,70 @@ export function ManageCollaborators() {
         if (!file) return;
 
         setIsImporting(true);
+        (async () => {
+          try {
+            const isExcel = /\.xlsx?$/i.test(file.name);
+            const { rows, headers: fileHeaders } = isExcel
+              ? await parseXlsxFile(file)
+              : await parseCsvFile(file);
 
-        Papa.parse<CsvRow>(file, {
-            header: true,
-            skipEmptyLines: true,
-            complete: async (results) => {
-                const fileHeaders = results.meta.fields;
-                const hasVenetoId = !!fileHeaders?.includes('idVeneto');
-                const requiredBaseHeaders = ['name', 'email', 'axis', 'area', 'position', 'segment', 'leader', 'city'];
-
-                if (!fileHeaders || !requiredBaseHeaders.every(h => fileHeaders.includes(h)) || !hasVenetoId) {
-                    toast({
-                        title: "Erro no Arquivo CSV",
-                        description: "O arquivo deve conter as colunas base e o identificador idVeneto.",
-                        variant: "destructive",
-                    });
-                    setIsImporting(false);
-                    return;
-                }
-
-                const newCollaborators = results.data
-                    .map(row => ({
-                        idVeneto: row.idVeneto?.trim(),
-                        name: row.name?.trim(),
-                        email: row.email?.trim().toLowerCase(),
-                        photoURL: row.photoURL?.trim() || '',
-                        axis: row.axis?.trim(),
-                        area: row.area?.trim(),
-                        position: row.position?.trim(),
-                        segment: row.segment?.trim(),
-                        leader: row.leader?.trim(),
-                        city: row.city?.trim(),
-                        permissions: defaultPermissions,
-                        googleDriveLinks: row.googleDriveLinks?.split(',').map(l => l.trim()).filter(Boolean) || [],
-                        biLinks: [],
-                    }))
-                    .filter(c => c.idVeneto && c.name && c.email); // Basic validation
-
-                if (newCollaborators.length === 0) {
-                     toast({
-                        title: "Nenhum dado válido encontrado",
-                        description: "Verifique o conteúdo do seu arquivo CSV.",
-                        variant: "destructive",
-                    });
-                    setIsImporting(false);
-                    return;
-                }
-                
-                try {
-                    await addMultipleCollaborators(newCollaborators as Omit<Collaborator, 'id'>[]);
-                    toast({
-                        title: "Importação Concluída!",
-                        description: `${newCollaborators.length} colaboradores foram adicionados com sucesso.`,
-                    });
-                    setIsImportOpen(false);
-                } catch(e) {
-                     toast({
-                        title: "Erro na importação",
-                        description: e instanceof Error ? e.message : "Ocorreu um erro desconhecido.",
-                        variant: "destructive",
-                    });
-                } finally {
-                    setIsImporting(false);
-                }
-            },
-            error: (error) => {
-                toast({
-                    title: "Erro ao processar o arquivo",
-                    description: error.message,
-                    variant: "destructive",
-                });
-                setIsImporting(false);
+            if (!csvHeadersLookValid(fileHeaders)) {
+              toast({
+                title: "Erro no arquivo",
+                description:
+                  "Cabeçalhos inválidos. Use: ID, NOME USUAL, E-MAIL, ÁREA, CARGO, LÍDER, LIDERANÇA, CIDADE (ou formato legado em inglês).",
+                variant: "destructive",
+              });
+              return;
             }
-        });
+
+            const mapped = rows.map((row) => mapCsvRowToCollaboratorDraft(row));
+            const newCollaborators = mapped.filter((c): c is Omit<Collaborator, 'id'> => c !== null);
+            const invalidCount = mapped.length - newCollaborators.length;
+
+            if (newCollaborators.length === 0) {
+              toast({
+                title: "Nenhum dado válido encontrado",
+                description:
+                  "Arquivo lido, mas nenhuma linha pôde ser convertida. Verifique se as colunas obrigatórias estão preenchidas (ID, NOME USUAL, E-MAIL, ÁREA, CARGO, CIDADE).",
+                variant: "destructive",
+              });
+              return;
+            }
+
+            try {
+              await addMultipleCollaborators(newCollaborators);
+              toast({
+                title: "Importação concluída",
+                description:
+                  invalidCount > 0
+                    ? `${newCollaborators.length} colaboradores importados (${invalidCount} linhas ignoradas por dados incompletos).`
+                    : `${newCollaborators.length} colaboradores importados com sucesso.`,
+              });
+              setIsImportOpen(false);
+            } catch (e) {
+              const raw = e instanceof Error ? e.message : String(e);
+              const isPermission =
+                /permission-denied|PERMISSION_DENIED/i.test(raw) ||
+                /Missing or insufficient permissions/i.test(raw);
+              toast({
+                title: "Erro na importação",
+                description: isPermission
+                  ? "Sem permissão para importar em lote. Verifique se seu e-mail está em `superAdminEmails` ou em `collaboratorAdminEmails` e publique as regras do Firestore."
+                  : raw || "Ocorreu um erro desconhecido.",
+                variant: "destructive",
+              });
+            }
+          } catch (error) {
+            toast({
+              title: "Erro ao processar arquivo",
+              description: error instanceof Error ? error.message : "Não foi possível ler o arquivo enviado.",
+              variant: "destructive",
+            });
+          } finally {
+            setIsImporting(false);
+          }
+        })();
 
         if (fileInputRef.current) {
             fileInputRef.current.value = '';
@@ -368,6 +501,7 @@ export function ManageCollaborators() {
             position: c.position,
             segment: c.segment,
             leader: c.leader,
+            lideranca: c.lideranca || '',
             city: c.city,
         }));
 
@@ -459,14 +593,17 @@ export function ManageCollaborators() {
                                     <FilterableHeader fkey="position" label="Cargo" uniqueValues={uniquePositions} />
                                     <FilterableHeader fkey="segment" label="Segmento" uniqueValues={uniqueSegments} />
                                     <FilterableHeader fkey="leader" label="Líder" uniqueValues={uniqueLeaders} />
+                                    <FilterableHeader fkey="lideranca" label="Liderança" uniqueValues={uniqueLideranca} />
                                     <FilterableHeader fkey="city" label="Cidade" uniqueValues={uniqueCities} />
                                     <TableHead>Google Drive</TableHead>
-                                    <TableHead>Links de BI</TableHead>
+                                    <TableHead>Links Consulta</TableHead>
                                     <TableHead className="text-right">Ações</TableHead>
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
-                                {filteredAndSortedCollaborators.map(item => (
+                                {filteredAndSortedCollaborators.map((item) => {
+                                    const consultaCount = countConsultaLinksFilled(item.consultaLinks);
+                                    return (
                                     <TableRow key={item.id}>
                                         <TableCell className="font-medium">{item.name}<br/><span className="text-xs text-muted-foreground">{item.email}</span></TableCell>
                                         <TableCell>{item.axis}</TableCell>
@@ -474,6 +611,7 @@ export function ManageCollaborators() {
                                         <TableCell>{item.position}</TableCell>
                                         <TableCell>{item.segment}</TableCell>
                                         <TableCell>{item.leader}</TableCell>
+                                        <TableCell>{item.lideranca || '—'}</TableCell>
                                         <TableCell>{item.city}</TableCell>
                                         <TableCell>
                                             {item.googleDriveLinks && item.googleDriveLinks.length > 0 ? (
@@ -486,10 +624,10 @@ export function ManageCollaborators() {
                                             )}
                                         </TableCell>
                                         <TableCell>
-                                            {item.biLinks && item.biLinks.length > 0 ? (
+                                            {consultaCount > 0 ? (
                                                 <Badge variant="secondary" className="flex items-center w-fit gap-1.5">
-                                                    <BarChart className="h-3 w-3" />
-                                                    {item.biLinks.length} link(s)
+                                                    <Table2 className="h-3 w-3" />
+                                                    {consultaCount} link(s)
                                                 </Badge>
                                             ) : (
                                                  <Badge variant="outline">Nenhum</Badge>
@@ -508,7 +646,8 @@ export function ManageCollaborators() {
                                             </Button>
                                         </TableCell>
                                     </TableRow>
-                                ))}
+                                    );
+                                })}
                             </TableBody>
                         </Table>
                     </div>
@@ -578,11 +717,18 @@ export function ManageCollaborators() {
                         </div>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div>
-                                <Label htmlFor="leader">Líder</Label>
-                                <Input id="leader" {...register('leader')} disabled={isFormSubmitting}/>
+                                <Label htmlFor="leader">Líder (nome do gestor direto)</Label>
+                                <Input id="leader" {...register('leader')} disabled={isFormSubmitting} placeholder="Como na planilha RH"/>
                                 {errors.leader && <p className="text-sm text-destructive mt-1">{errors.leader.message}</p>}
                             </div>
                             <div>
+                                <Label htmlFor="lideranca">Liderança (SIM / NÃO ou texto livre)</Label>
+                                <Input id="lideranca" {...register('lideranca')} disabled={isFormSubmitting} placeholder="SIM, NÃO…"/>
+                                {errors.lideranca && <p className="text-sm text-destructive mt-1">{errors.lideranca.message}</p>}
+                            </div>
+                        </div>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div className="md:col-span-2">
                                 <Label htmlFor="city">Cidade</Label>
                                 <Input id="city" {...register('city')} disabled={isFormSubmitting}/>
                                 {errors.city && <p className="text-sm text-destructive mt-1">{errors.city.message}</p>}
@@ -597,30 +743,23 @@ export function ManageCollaborators() {
                         </div>
                         <Separator/>
                         <div>
-                            <Label>Links do Power BI (opcional)</Label>
+                            <Label>Links Consulta Pessoal (opcional)</Label>
                             <div className="space-y-3 mt-2">
-                                {biLinksFields.map((field, index) => (
-                                    <div key={field.id} className="p-3 border rounded-lg space-y-2 relative bg-background">
-                                         <div className="flex items-end gap-2">
-                                            <div className="flex-grow space-y-1.5">
-                                                <Label htmlFor={`biLinks.${index}.name`}>Nome da Aba</Label>
-                                                <Input id={`biLinks.${index}.name`} {...register(`biLinks.${index}.name`)} placeholder="Ex: Painel de Vendas" />
-                                                {errors.biLinks?.[index]?.name && <p className="text-xs text-destructive mt-1">{errors.biLinks[index]?.name?.message}</p>}
-                                            </div>
-                                             <div className="flex-grow space-y-1.5">
-                                                <Label htmlFor={`biLinks.${index}.url`}>URL ou Iframe do Painel</Label>
-                                                <Input id={`biLinks.${index}.url`} {...register(`biLinks.${index}.url`)} placeholder="Cole a URL ou o código de incorporação" />
-                                                {errors.biLinks?.[index]?.url && <p className="text-xs text-destructive mt-1">{errors.biLinks[index]?.url?.message}</p>}
-                                            </div>
-                                            <Button type="button" variant="destructive" size="icon" onClick={() => remove(index)} className="shrink-0"><Trash2 className="h-4 w-4"/></Button>
-                                         </div>
+                                {(['mesa', 'cliente', 'cx'] as const).map((field) => (
+                                    <div key={field} className="space-y-1.5">
+                                        <Label htmlFor={`consultaLinks.${field}`} className="capitalize">{field === 'cx' ? 'CX' : field.charAt(0).toUpperCase() + field.slice(1)}</Label>
+                                        <Input
+                                            id={`consultaLinks.${field}`}
+                                            {...register(`consultaLinks.${field}`)}
+                                            placeholder="Cole a URL ou o código de incorporação do iframe"
+                                            disabled={isFormSubmitting}
+                                        />
+                                        {errors.consultaLinks?.[field] && (
+                                            <p className="text-xs text-destructive mt-1">{errors.consultaLinks[field]?.message}</p>
+                                        )}
                                     </div>
                                 ))}
                             </div>
-                             <Button type="button" variant="outline" size="sm" onClick={() => append({ name: '', url: '' })} className="mt-2">
-                                <PlusCircle className="mr-2 h-4 w-4"/>
-                                Adicionar Link de BI
-                            </Button>
                         </div>
                         <DialogFooter className="mt-6">
                             <DialogClose asChild><Button type="button" variant="outline" disabled={isFormSubmitting}>Cancelar</Button></DialogClose>
@@ -636,40 +775,56 @@ export function ManageCollaborators() {
             </Dialog>
 
             <Dialog open={isImportOpen} onOpenChange={setIsImportOpen}>
-                <DialogContent>
+                <DialogContent className="sm:max-w-xl max-h-[85vh] overflow-y-auto">
                     <DialogHeader>
                         <DialogTitle>Importar Colaboradores via CSV</DialogTitle>
                         <DialogDescription>
                             Faça o upload de um arquivo CSV para adicionar múltiplos colaboradores de uma só vez.
                         </DialogDescription>
                     </DialogHeader>
-                    <div className="space-y-4 py-4">
-                        <div className="p-4 rounded-md border border-amber-500/50 bg-amber-500/10 text-amber-700">
+                    <div className="space-y-3 py-3">
+                        <div className="p-3 rounded-md border border-amber-500/50 bg-amber-500/10 text-amber-700">
                            <div className="flex items-start gap-3">
-                                <AlertTriangle className="h-5 w-5 mt-0.5 text-amber-600 flex-shrink-0"/>
+                                <AlertTriangle className="h-4 w-4 mt-0.5 text-amber-600 flex-shrink-0"/>
                                 <div>
-                                    <p className="font-semibold">Atenção: A importação irá adicionar novos colaboradores, mas não irá atualizar ou remover os existentes.</p>
+                                    <p className="font-semibold text-sm">Atenção: A importação irá adicionar novos colaboradores, mas não irá atualizar ou remover os existentes.</p>
                                 </div>
                            </div>
                         </div>
 
-                        <h3 className="font-semibold">Instruções:</h3>
-                        <ol className="list-decimal list-inside space-y-2 text-sm text-muted-foreground">
+                        <h3 className="font-semibold text-base">Instruções:</h3>
+                        <ol className="list-decimal list-inside space-y-1.5 text-xs leading-relaxed text-muted-foreground">
                             <li>Crie uma planilha (no Excel, Google Sheets, etc.).</li>
-                            <li>A primeira linha **deve** ser um cabeçalho com os seguintes nomes de coluna, exatamente como mostrado:
-                                <code className="block bg-muted p-2 rounded-md my-2 text-xs">idVeneto,name,email,axis,area,position,segment,leader,city,photoURL,googleDriveLinks</code>
+                            <li>
+                                <strong>Planilha Veneto (Google Sheets / Excel):</strong> exporte CSV com cabeçalhos{' '}
+                                <code className="bg-muted px-1 rounded text-[11px] break-words">ID, NOME USUAL, E-MAIL, ÁREA, CARGO, LÍDER, LIDERANÇA, CIDADE</code>.
+                                Coluna <strong>LÍDER</strong> = nome do gestor (vai para o campo <code className="text-[11px]">leader</code>).
+                                Coluna <strong>LIDERANÇA</strong> = SIM/NÃO (vai para <code className="text-[11px]">lideranca</code>). Eixo e segmento, se ausentes, viram <code className="text-[11px]">—</code>.
+                            </li>
+                            <li>
+                                <strong>Formato legado (inglês):</strong>{' '}
+                                <code className="block bg-muted p-1.5 rounded-md my-1.5 text-[11px] break-all">idVeneto,name,email,area,position,leader,city</code>
+                                e opcionalmente <code className="text-[11px]">axis, segment, lideranca, photoURL, googleDriveLinks</code>.
                             </li>
                              <li>As colunas `photoURL` e `googleDriveLinks` são opcionais. Para múltiplos links do Drive, separe-os por vírgula no campo.</li>
                             <li>Preencha as linhas com os dados de cada colaborador.</li>
                             <li>Exporte ou salve o arquivo no formato **CSV (Valores Separados por Vírgula)**.</li>
                             <li>Clique no botão abaixo para selecionar e enviar o arquivo.</li>
                         </ol>
-                         <a href="/templates/modelo_colaboradores.csv" download className="inline-block" >
-                            <Button variant="secondary">
+                        <div className="flex flex-wrap gap-2">
+                         <a href="/templates/modelo_colaboradores_planilha_veneto.csv" download className="inline-block" >
+                            <Button variant="secondary" type="button">
                                 <FileDown className="mr-2 h-4 w-4"/>
-                                Baixar Modelo CSV
+                                Modelo planilha Veneto (PT)
                             </Button>
                         </a>
+                         <a href="/templates/modelo_colaboradores.csv" download className="inline-block" >
+                            <Button variant="outline" type="button">
+                                <FileDown className="mr-2 h-4 w-4"/>
+                                Modelo legado (EN)
+                            </Button>
+                        </a>
+                        </div>
                     </div>
                     <DialogFooter>
                         <Button variant="outline" onClick={() => setIsImportOpen(false)} disabled={isImporting}>
@@ -683,7 +838,7 @@ export function ManageCollaborators() {
                             type="file"
                             ref={fileInputRef}
                             className="hidden"
-                            accept=".csv"
+                            accept=".csv,.xlsx,.xls"
                             onChange={handleFileImport}
                         />
                     </DialogFooter>

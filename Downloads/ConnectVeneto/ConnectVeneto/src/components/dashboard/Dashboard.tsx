@@ -13,10 +13,6 @@ import {
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { PageHeader } from '@/components/layout/PageHeader';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose } from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
-import { cn } from '@/lib/utils';
-import { useNews, type NewsItemType } from '@/contexts/NewsContext';
 import { useEvents } from '@/contexts/EventsContext';
 import { useQuickLinks } from '@/contexts/QuickLinksContext';
 import { getIcon } from '@/lib/icons';
@@ -24,21 +20,18 @@ import { useAuth } from '@/contexts/AuthContext';
 import { getCollaboratorUserId, useCollaborators } from '@/contexts/CollaboratorsContext';
 import { isSameMonth, parseISO } from 'date-fns';
 import { toZonedTime } from 'date-fns-tz';
-import { addDocumentToCollection } from '@/lib/firestore-service';
 import { ptBR } from 'date-fns/locale';
 import { findCollaboratorByEmail } from '@/lib/email-utils';
 
 
 export default function DashboardPage() {
   const [displayedMonth, setDisplayedMonth] = useState<Date>(new Date());
-  const [selectedNews, setSelectedNews] = useState<NewsItemType | null>(null);
   const [greeting, setGreeting] = useState('');
 
   // Get global data from contexts
   const { user } = useAuth();
   const { collaborators } = useCollaborators();
   const { events, getEventRecipients } = useEvents();
-  const { newsItems } = useNews();
   const { getVisibleLinksForUser } = useQuickLinks();
   
   const currentUserCollab = useMemo(() => {
@@ -90,97 +83,14 @@ export default function DashboardPage() {
   
   const eventDates = useMemo(() => userEvents.map(e => toZonedTime(parseISO(e.date), 'UTC')), [userEvents]);
 
-  const activeHighlights = useMemo(() => newsItems.filter(item => item.isHighlight), [newsItems]);
-
-  const logContentView = (item: NewsItemType) => {
-    if (!currentUserCollab) return;
-    addDocumentToCollection('audit_logs', {
-        eventType: 'content_view',
-        userId: getCollaboratorUserId(currentUserCollab),
-        userName: currentUserCollab.name,
-        timestamp: new Date().toISOString(),
-        details: {
-            contentId: item.id,
-            contentTitle: item.title,
-            contentType: 'news'
-        }
-    }).catch(console.error); // Log silently
-  };
-
-  const handleViewNews = (item: NewsItemType) => {
-      setSelectedNews(item);
-      logContentView(item);
-  };
-
-  const renderHighlights = () => {
-      switch (activeHighlights.length) {
-          case 1:
-              return <HighlightCard item={activeHighlights[0]} />;
-          case 2:
-              return (
-                  <>
-                      <HighlightCard item={activeHighlights[0]} />
-                      <HighlightCard item={activeHighlights[1]} />
-                  </>
-              );
-          case 3:
-              return (
-                  <>
-                      <HighlightCard item={activeHighlights[0]} />
-                      <HighlightCard item={activeHighlights[1]} className="md:row-span-2" />
-                      <HighlightCard item={activeHighlights[2]} />
-                  </>
-              );
-          default:
-              return null;
-      }
-  };
-  
-  const getGridClass = () => {
-    switch (activeHighlights.length) {
-      case 1:
-        return "grid-cols-1";
-      case 2:
-        return "grid-cols-1 md:grid-cols-2";
-      case 3:
-        return "grid-cols-1 md:grid-cols-2 md:grid-rows-2";
-      default:
-        return "grid-cols-1";
-    }
-  }
-
-  const HighlightCard = ({ item, className = "" }: { item: NewsItemType, className?: string }) => (
-    <div 
-        className={cn("relative rounded-lg overflow-hidden group block cursor-pointer", className)}
-        onClick={() => handleViewNews(item)}
-        onKeyDown={(e) => e.key === 'Enter' && handleViewNews(item)}
-        tabIndex={0}
-        role="button"
-        aria-label={`Ver notícia: ${item.title}`}
-    >
-        <Image src={item.imageUrl} alt={item.title} layout="fill" objectFit="cover" className="transition-transform duration-300 group-hover:scale-105" />
-        <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/40 to-transparent p-4 flex flex-col justify-end">
-            <h3 className="text-xl font-headline font-bold text-white">{item.title}</h3>
-            <p className="text-sm text-gray-200 font-body">{item.snippet}</p>
-        </div>
-    </div>
-  );
 
   return (
     <>
       <div className="space-y-6 p-6 md:p-8">
-        {activeHighlights.length > 0 && (
-          <section>
-            <PageHeader
-              title={pageTitle}
-              description="Veja os últimos anúncios e destaques."
-            />
-            <div className={cn("grid gap-3", getGridClass())} style={{ minHeight: '450px' }}>
-              {renderHighlights()}
-            </div>
-          </section>
-        )}
-        
+        <PageHeader
+          title={pageTitle}
+          description="Veja os eventos e links rápidos da empresa."
+        />
         <section className="grid grid-cols-1 lg:grid-cols-3 gap-3">
           {/* Main Content Column */}
           <div className="lg:col-span-2 flex flex-col gap-3">
@@ -283,44 +193,6 @@ export default function DashboardPage() {
           </div>
         </section>
       </div>
-
-      <Dialog open={!!selectedNews} onOpenChange={(isOpen) => !isOpen && setSelectedNews(null)}>
-        <DialogContent className="max-w-2xl">
-          {selectedNews && (
-            <>
-              <DialogHeader>
-                <div className="relative w-full h-64 rounded-lg overflow-hidden mb-4">
-                    <Image
-                        src={selectedNews.imageUrl}
-                        alt={selectedNews.title}
-                        layout="fill"
-                        objectFit="cover"
-                    />
-                </div>
-                <DialogTitle className="font-headline text-2xl text-left">{selectedNews.title}</DialogTitle>
-                <div className="text-left !mt-2">
-                    <Badge variant="outline" className="font-body text-foreground">{selectedNews.category}</Badge>
-                    <span className="text-xs text-muted-foreground font-body ml-2">
-                        {new Date(selectedNews.date).toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' })}
-                    </span>
-                </div>
-              </DialogHeader>
-              <ScrollArea className="max-h-[40vh] pr-4">
-                <div className="py-4 text-sm text-foreground space-y-4">
-                  {selectedNews.content && selectedNews.content.split('\n').map((paragraph, index) => (
-                    <p key={index}>{paragraph}</p>
-                  ))}
-                </div>
-              </ScrollArea>
-              <DialogFooter>
-                <DialogClose asChild>
-                  <Button type="button" variant="outline" className="hover:bg-muted">Fechar</Button>
-                </DialogClose>
-              </DialogFooter>
-            </>
-          )}
-        </DialogContent>
-      </Dialog>
     </>
   );
 }

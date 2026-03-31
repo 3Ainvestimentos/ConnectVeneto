@@ -1,7 +1,6 @@
 export const FEATURE_FLAGS = {
   rankings: true,
   businessIntelligence: false,
-  businessIntelligenceLeaders: false,
   venetoStore: true,
   labs: true,
   debugBootstrap: false,

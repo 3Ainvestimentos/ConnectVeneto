@@ -12,12 +12,15 @@ import { useAuth } from '@/contexts/AuthContext';
 import { WorkflowGroupModal } from '@/components/applications/WorkflowGroupModal';
 import { useWorkflowAreas } from '@/contexts/WorkflowAreasContext';
 import { getCollaboratorUserId } from '@/contexts/CollaboratorsContext';
+import { FileSpreadsheet } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 
 interface GroupedWorkflows {
   [area: string]: WorkflowDefinition[];
 }
 
 export default function ApplicationsPage() {
+  const router = useRouter();
   const { currentUserCollab, permissions, isSuperAdmin } = useAuth();
   const { workflowDefinitions } = useApplications();
   const { workflowAreas } = useWorkflowAreas();
@@ -124,6 +127,19 @@ export default function ApplicationsPage() {
                 </Card>
               );
             })}
+            <Card
+              className="h-32 w-48 flex items-center justify-center hover:bg-muted/50 transition-colors cursor-pointer border-dashed"
+              onClick={() => router.push('/test-sheet')}
+              onKeyDown={(e) => e.key === 'Enter' && router.push('/test-sheet')}
+              tabIndex={0}
+            >
+              <CardContent className="p-0 h-full w-full">
+                <div className="flex flex-col items-center justify-center h-full text-center p-4">
+                  <FileSpreadsheet className="mb-2 h-7 w-7 text-muted-foreground" />
+                  <span className="font-semibold font-body text-sm text-card-foreground">Planilha Teste</span>
+                </div>
+              </CardContent>
+            </Card>
           </div>
         </div>
         

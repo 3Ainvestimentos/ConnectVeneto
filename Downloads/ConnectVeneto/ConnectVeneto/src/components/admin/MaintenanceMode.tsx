@@ -148,6 +148,103 @@ function SuperAdminsCard() {
   )
 }
 
+/** Quem pode criar colaboradores em lote (importação CSV) — regra Firestore `isCollaboratorImporter`. Super Admins já têm permissão. */
+function CollaboratorImporterAdminsCard() {
+  const { settings, loading, updateSystemSettings } = useSystemSettings();
+  const [newEmail, setNewEmail] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const importerList = settings.collaboratorAdminEmails ?? [];
+
+  const handleAdd = async () => {
+    const emailToAdd = normalizeEmail(newEmail.trim());
+    if (!emailToAdd) return;
+    if (!z.string().email().safeParse(emailToAdd).success) {
+      toast({ title: 'E-mail inválido', variant: 'destructive' });
+      return;
+    }
+    const normalizedExisting = importerList.map((e) => normalizeEmail(e)).filter((e): e is string => e !== null);
+    if (normalizedExisting.includes(emailToAdd)) {
+      toast({ title: 'E-mail já está na lista', variant: 'destructive' });
+      return;
+    }
+    setIsSubmitting(true);
+    try {
+      await updateSystemSettings({ collaboratorAdminEmails: [...importerList, emailToAdd] });
+      toast({ title: 'Sucesso', description: `${emailToAdd} pode importar colaboradores em lote. Faça deploy das regras do Firestore se ainda não aplicou.` });
+      setNewEmail('');
+    } catch {
+      toast({ title: 'Erro', description: 'Não foi possível salvar.', variant: 'destructive' });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleRemove = async (emailToRemove: string) => {
+    setIsSubmitting(true);
+    try {
+      await updateSystemSettings({
+        collaboratorAdminEmails: importerList.filter((e) => e !== emailToRemove),
+      });
+      toast({ title: 'Removido', description: emailToRemove });
+    } catch {
+      toast({ title: 'Erro', description: 'Não foi possível remover.', variant: 'destructive' });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <Users className="h-6 w-6" />
+          Importação de colaboradores (RH)
+        </CardTitle>
+        <CardDescription>
+          E-mails aqui podem usar &quot;Importar&quot; na tela de colaboradores (criação em lote no Firestore). Super Admins não precisam estar nesta lista.
+          Após alterar, publique as regras: <span className="font-mono text-xs">firebase deploy --only firestore:rules</span>
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <div className="space-y-2">
+          <Label>E-mails autorizados na importação em lote</Label>
+          {loading ? (
+            <div className="flex justify-center py-2">
+              <LoadingSpinner className="h-5 w-5" />
+            </div>
+          ) : importerList.length === 0 ? (
+            <p className="text-sm text-muted-foreground">Nenhum — apenas Super Admins podem importar até você adicionar e-mails.</p>
+          ) : (
+            <div className="space-y-2">
+              {importerList.map((email) => (
+                <div key={email} className="flex items-center justify-between p-2 border rounded-md bg-background">
+                  <span className="text-sm font-mono">{email}</span>
+                  <Button variant="ghost" size="icon" onClick={() => handleRemove(email)} disabled={isSubmitting}>
+                    <Trash2 className="h-4 w-4 text-destructive" />
+                  </Button>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+        <div className="flex gap-2">
+          <Input
+            type="email"
+            placeholder="rh@venetomfo.com.br"
+            value={newEmail}
+            onChange={(e) => setNewEmail(e.target.value)}
+            disabled={isSubmitting}
+          />
+          <Button onClick={handleAdd} disabled={isSubmitting || !newEmail} className="bg-admin-primary hover:bg-admin-primary/90 shrink-0">
+            {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <PlusCircle className="mr-2 h-4 w-4" />}
+            Adicionar
+          </Button>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
 
 function MaintenanceCard() {
   const { settings, loading, updateSystemSettings } = useSystemSettings();
@@ -478,6 +575,7 @@ export function MaintenanceMode() {
   return (
     <div className="space-y-6">
       <SuperAdminsCard />
+      <CollaboratorImporterAdminsCard />
       <MaintenanceCard />
       <LegalDocsCard />
     </div>

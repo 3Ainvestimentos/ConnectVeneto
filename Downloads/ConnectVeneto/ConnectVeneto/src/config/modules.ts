@@ -20,13 +20,6 @@ const allModules: Omit<AppModule, "enabled">[] = [
     permissions: [],
   },
   {
-    id: "news",
-    name: "Feed de Notícias",
-    description: "Publicação e leitura de comunicados internos",
-    routes: ["/news"],
-    permissions: ["canManageContent"],
-  },
-  {
     id: "applications",
     name: "Solicitações",
     description: "Hub de solicitações e formulários",
@@ -39,6 +32,13 @@ const allModules: Omit<AppModule, "enabled">[] = [
     description: "Repositório de materiais e documentos compartilhados",
     routes: ["/documents"],
     permissions: ["canManageContent"],
+  },
+  {
+    id: "consulta",
+    name: "Consulta Pessoal",
+    description: "Planilhas Mesa, Cliente e CX configuráveis por colaborador",
+    routes: ["/consulta"],
+    permissions: [],
   },
   {
     id: "labs",
@@ -58,19 +58,11 @@ const allModules: Omit<AppModule, "enabled">[] = [
   },
   {
     id: "bi",
-    name: "Business Intelligence",
-    description: "Dashboards de BI para assessores",
+    name: "Painéis",
+    description: "Painéis e relatórios embutidos para assessores",
     featureFlag: "businessIntelligence",
     routes: ["/bi"],
     permissions: ["canViewBI"],
-  },
-  {
-    id: "bi-leaders",
-    name: "BI Líderes",
-    description: "Dashboards de BI para gestores e líderes",
-    featureFlag: "businessIntelligenceLeaders",
-    routes: ["/bi-leaders"],
-    permissions: ["canViewBILeaders"],
   },
   {
     id: "veneto-store",
