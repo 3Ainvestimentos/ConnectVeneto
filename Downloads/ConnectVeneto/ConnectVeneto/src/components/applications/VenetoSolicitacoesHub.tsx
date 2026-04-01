@@ -224,62 +224,78 @@ export default function VenetoSolicitacoesHub() {
           }
         }}
       >
-        <DialogContent className={isWealthLayout ? "sm:max-w-5xl" : "sm:max-w-3xl"}>
+        <DialogContent
+          className={`max-h-[92vh] overflow-hidden p-0 ${
+            isWealthLayout ? "sm:max-w-5xl" : "sm:max-w-3xl"
+          }`}
+        >
           {activeArea && (
             <>
-              <DialogHeader>
+              <DialogHeader className="px-6 pt-6 pb-2">
                 <DialogTitle className="text-2xl">{activeArea.title}</DialogTitle>
                 <DialogDescription>
                   Selecione um item para abrir formulario, documento ou material de apoio.
                 </DialogDescription>
               </DialogHeader>
 
-              <div className="space-y-4">
-                {activeArea.overviewUrl && (
-                  <div>
-                    <Button variant="outline" asChild>
-                      <a
-                        href={activeArea.overviewUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        onClick={() =>
-                          trackSolicitacaoEvent("overview_click", {
-                            areaId: activeArea.id,
-                            areaKey: activeArea.trackingKey || activeArea.title,
-                          })
-                        }
-                      >
-                        Pagina da area <ExternalLink className="ml-2 h-4 w-4" />
-                      </a>
-                    </Button>
-                  </div>
-                )}
+              <ScrollArea className="h-[calc(92vh-110px)] px-6 pb-6 pr-4">
+                <div className="space-y-4 pt-1">
+                  {activeArea.overviewUrl && (
+                    <div>
+                      <Button variant="outline" asChild>
+                        <a
+                          href={activeArea.overviewUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          onClick={() =>
+                            trackSolicitacaoEvent("overview_click", {
+                              areaId: activeArea.id,
+                              areaKey: activeArea.trackingKey || activeArea.title,
+                            })
+                          }
+                        >
+                          Pagina da area <ExternalLink className="ml-2 h-4 w-4" />
+                        </a>
+                      </Button>
+                    </div>
+                  )}
 
-                {activeArea.showSlaImage && activeArea.slaImageSrc && (
-                  <div className="rounded-md border p-3 space-y-2">
-                    <Image
-                      src={activeArea.slaImageSrc}
-                      alt={activeArea.slaImageAlt || "SLAs da area"}
-                      width={1200}
-                      height={760}
-                      className="w-full h-auto rounded-sm"
-                    />
-                    {activeArea.slaImageCaption && (
-                      <p className="text-xs text-muted-foreground">{activeArea.slaImageCaption}</p>
-                    )}
-                    <a
-                      href={activeArea.slaImageSrc}
-                      download
-                      className="inline-flex text-xs text-[#0d1d2c] hover:underline"
-                    >
-                      Baixar imagem
-                    </a>
-                  </div>
-                )}
+                  {activeArea.showSlaImage && activeArea.slaImageSrc && (
+                    <div className="rounded-md border p-3 space-y-2">
+                      <div className="overflow-x-auto">
+                        <Image
+                          src={activeArea.slaImageSrc}
+                          alt={activeArea.slaImageAlt || "SLAs da area"}
+                          width={1200}
+                          height={760}
+                          className="h-auto min-w-[640px] w-full rounded-sm"
+                        />
+                      </div>
+                      {activeArea.slaImageCaption && (
+                        <p className="text-xs text-muted-foreground">{activeArea.slaImageCaption}</p>
+                      )}
+                      <div className="flex flex-wrap items-center gap-3">
+                        <a
+                          href={activeArea.slaImageSrc}
+                          download
+                          className="inline-flex text-xs text-[#0d1d2c] hover:underline"
+                        >
+                          Baixar imagem
+                        </a>
+                        <a
+                          href={activeArea.slaImageSrc}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex text-xs text-[#0d1d2c] hover:underline"
+                        >
+                          Abrir SLA em tela cheia
+                        </a>
+                      </div>
+                    </div>
+                  )}
 
-                <ScrollArea className="max-h-[58vh] pr-2">
                   {isWealthLayout ? (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3 py-1">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3 py-1 pr-1">
                       {activeArea.items.map((item, idx) => (
                         <WealthPill
                           key={`${item.title}-${idx}`}
@@ -290,7 +306,7 @@ export default function VenetoSolicitacoesHub() {
                       ))}
                     </div>
                   ) : (
-                    <div className="space-y-3 py-1">
+                    <div className="space-y-3 py-1 pr-1">
                       {activeArea.items.map((item, idx) => (
                         <ItemCard
                           key={`${item.title}-${idx}`}
@@ -301,8 +317,8 @@ export default function VenetoSolicitacoesHub() {
                       ))}
                     </div>
                   )}
-                </ScrollArea>
-              </div>
+                </div>
+              </ScrollArea>
             </>
           )}
         </DialogContent>
