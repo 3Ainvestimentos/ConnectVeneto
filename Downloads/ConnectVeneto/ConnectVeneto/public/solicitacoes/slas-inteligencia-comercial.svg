@@ -1,0 +1,66 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="760" viewBox="0 0 1200 760" role="img" aria-labelledby="title desc">
+  <title id="title">SLAs da Inteligencia Comercial</title>
+  <desc id="desc">Tabela de prazos de atendimento para diagnostico, help comercial, cadastros, custodia, previdencia, cambio e demandas fora do rol.</desc>
+  <rect width="1200" height="760" fill="#ffffff"/>
+  <text x="40" y="56" font-family="Arial, sans-serif" font-size="36" font-weight="700" fill="#0d1d2c">SLAS da Inteligencia Comercial</text>
+
+  <g font-family="Arial, sans-serif" font-size="20" fill="#0d1d2c">
+    <rect x="40" y="90" width="420" height="54" rx="12" fill="#0d1d2c"/>
+    <text x="250" y="124" text-anchor="middle" fill="#ffffff" font-weight="700">Diagnostico</text>
+    <line x1="468" y1="117" x2="510" y2="117" stroke="#a9a9a8" stroke-width="3"/>
+    <rect x="520" y="90" width="640" height="54" rx="10" fill="#ffffff" stroke="#0d1d2c" stroke-width="2"/>
+    <text x="548" y="124">15 dias corridos</text>
+
+    <rect x="40" y="158" width="420" height="54" rx="12" fill="#0d1d2c"/>
+    <text x="250" y="192" text-anchor="middle" fill="#ffffff" font-weight="700">Help Comercial</text>
+    <line x1="468" y1="185" x2="510" y2="185" stroke="#a9a9a8" stroke-width="3"/>
+    <rect x="520" y="158" width="640" height="54" rx="10" fill="#ffffff" stroke="#0d1d2c" stroke-width="2"/>
+    <text x="548" y="192">Dias uteis - 09h as 18h | Tempo de resposta: 10 minutos</text>
+
+    <rect x="40" y="226" width="420" height="54" rx="12" fill="#0d1d2c"/>
+    <text x="250" y="260" text-anchor="middle" fill="#ffffff" font-weight="700">Solicitacoes gerais (forms)</text>
+    <line x1="468" y1="253" x2="510" y2="253" stroke="#a9a9a8" stroke-width="3"/>
+    <rect x="520" y="226" width="640" height="54" rx="10" fill="#ffffff" stroke="#0d1d2c" stroke-width="2"/>
+    <text x="548" y="260">24h uteis para iniciar o processo</text>
+
+    <rect x="40" y="294" width="420" height="54" rx="12" fill="#0d1d2c"/>
+    <text x="250" y="328" text-anchor="middle" fill="#ffffff" font-weight="700">Novo cliente carteira ADM Brasil</text>
+    <line x1="468" y1="321" x2="510" y2="321" stroke="#a9a9a8" stroke-width="3"/>
+    <rect x="520" y="294" width="640" height="54" rx="10" fill="#ffffff" stroke="#0d1d2c" stroke-width="2"/>
+    <text x="548" y="328">24h uteis para iniciar (KYC + forms de cadastro + API preenchidos)</text>
+
+    <rect x="40" y="362" width="420" height="54" rx="12" fill="#0d1d2c"/>
+    <text x="250" y="396" text-anchor="middle" fill="#ffffff" font-weight="700">Transferencia de custodia</text>
+    <line x1="468" y1="389" x2="510" y2="389" stroke="#a9a9a8" stroke-width="3"/>
+    <rect x="520" y="362" width="640" height="54" rx="10" fill="#ffffff" stroke="#0d1d2c" stroke-width="2"/>
+    <text x="548" y="396">72h uteis para iniciar (notas de negociacao + forms)</text>
+
+    <rect x="40" y="430" width="420" height="54" rx="12" fill="#0d1d2c"/>
+    <text x="250" y="464" text-anchor="middle" fill="#ffffff" font-weight="700">Constituicao de companhia offshore</text>
+    <line x1="468" y1="457" x2="510" y2="457" stroke="#a9a9a8" stroke-width="3"/>
+    <rect x="520" y="430" width="640" height="54" rx="10" fill="#ffffff" stroke="#0d1d2c" stroke-width="2"/>
+    <text x="548" y="464">72h uteis para iniciar (documentacao completa + forms)</text>
+
+    <rect x="40" y="498" width="420" height="54" rx="12" fill="#0d1d2c"/>
+    <text x="250" y="532" text-anchor="middle" fill="#ffffff" font-weight="700">Abertura de conta PF exterior</text>
+    <line x1="468" y1="525" x2="510" y2="525" stroke="#a9a9a8" stroke-width="3"/>
+    <rect x="520" y="498" width="640" height="54" rx="10" fill="#ffffff" stroke="#0d1d2c" stroke-width="2"/>
+    <text x="548" y="532">72h uteis para iniciar (documentacao completa + forms)</text>
+
+    <rect x="40" y="566" width="420" height="54" rx="12" fill="#0d1d2c"/>
+    <text x="250" y="600" text-anchor="middle" fill="#ffffff" font-weight="700">Previdencia (contratacao/portabilidade)</text>
+    <line x1="468" y1="593" x2="510" y2="593" stroke="#a9a9a8" stroke-width="3"/>
+    <rect x="520" y="566" width="640" height="54" rx="10" fill="#ffffff" stroke="#0d1d2c" stroke-width="2"/>
+    <text x="548" y="600">72h uteis para iniciar (documentacao completa + forms)</text>
+
+    <rect x="40" y="634" width="420" height="54" rx="12" fill="#0d1d2c"/>
+    <text x="250" y="668" text-anchor="middle" fill="#ffffff" font-weight="700">Cambio / Fora do rol</text>
+    <line x1="468" y1="661" x2="510" y2="661" stroke="#a9a9a8" stroke-width="3"/>
+    <rect x="520" y="634" width="640" height="54" rx="10" fill="#ffffff" stroke="#0d1d2c" stroke-width="2"/>
+    <text x="548" y="668">1h util para suporte em cambio e enquadramento</text>
+  </g>
+
+  <text x="40" y="734" font-family="Arial, sans-serif" font-size="20" fill="#0d1d2c" font-weight="700">
+    Importante: para prazo medio por instituicao, consultar a equipe de Inteligencia Comercial.
+  </text>
+</svg>

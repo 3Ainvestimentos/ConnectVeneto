@@ -32,7 +32,7 @@ const faqItems = [
   },
   {
     question: "Onde eu inicio uma solicitação (reembolso, férias, etc.)?",
-    answer: "Vá para a seção 'Solicitações' no menu lateral. Lá, você verá botões para cada área (Financeiro, RH, etc.). Clique na área desejada para ver os processos disponíveis e iniciar sua solicitação."
+    answer: "Vá para a seção 'Solicitações' no menu lateral. La voce vera cards fixos por area (ex.: Legal e Compliance, Inteligencia Comercial, Mesa, Financeiro, Wealth Planning e TI/Suporte). Clique em uma area para abrir os links de formularios e documentos; abaixo, acompanhe o andamento em 'Minhas Solicitacoes'."
   },
   {
     question: "Como acompanho minhas solicitações e tarefas?",

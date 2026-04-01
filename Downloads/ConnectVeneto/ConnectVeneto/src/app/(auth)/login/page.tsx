@@ -71,7 +71,7 @@ export default function LoginPage() {
 
       {/* Footer Text */}
       <footer className="absolute bottom-4 left-0 right-0 z-20 text-center text-xs text-white/60 p-4">
-        <p>Sujeito aos Termos de Uso e a Politica de Privacidade da Veneto Family Office.</p>
+        <p>Sujeito aos Termos de Uso e à Política de Privacidade da Vêneto Family Office.</p>
         <p>Todos os direitos reservados.</p>
       </footer>
     </main>

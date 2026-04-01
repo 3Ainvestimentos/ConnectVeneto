@@ -63,7 +63,7 @@ function IframePanel({ url, label }: { url: string; label: string }) {
       <div className="relative flex-1 min-h-0 overflow-hidden">
         <iframe
           key={src}
-          title={label}
+          aria-label={`Planilha de consulta: ${label}`}
           width="100%"
           height="100%"
           src={src}
