@@ -5,7 +5,6 @@ import React, { useState } from 'react';
 import { PageHeader } from '@/components/layout/PageHeader';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ManageDocuments } from '@/components/admin/ManageDocuments';
-import { ManageLabs } from '@/components/admin/ManageLabs';
 import AdminGuard from '@/components/auth/AdminGuard';
 import { ManageMessages } from '@/components/admin/ManageMessages';
 import { ManageQuickLinks } from '@/components/admin/ManageQuickLinks';
@@ -25,9 +24,8 @@ export default function AdminContentPage() {
                     description="Gerencie as informações dinâmicas da intranet."
                 />
                 <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-                    <TabsList className="grid w-full grid-cols-2 md:grid-cols-4 lg:grid-cols-8">
+                    <TabsList className="grid w-full grid-cols-2 md:grid-cols-4 lg:grid-cols-7">
                         <TabsTrigger value="documents">Documentos</TabsTrigger>
-                        <TabsTrigger value="labs">Labs</TabsTrigger>
                         <TabsTrigger value="messages">Mensagens</TabsTrigger>
                         <TabsTrigger value="quicklinks">Links Rápidos</TabsTrigger>
                         <TabsTrigger value="polls">Pesquisas</TabsTrigger>
@@ -37,9 +35,6 @@ export default function AdminContentPage() {
                     </TabsList>
                     <TabsContent value="documents">
                         <ManageDocuments />
-                    </TabsContent>
-                    <TabsContent value="labs">
-                        <ManageLabs />
                     </TabsContent>
                     <TabsContent value="messages">
                         <ManageMessages />

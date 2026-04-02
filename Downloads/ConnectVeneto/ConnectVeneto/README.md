@@ -30,7 +30,7 @@ A aplicação consolida diversas funcionalidades essenciais para o dia a dia cor
     -   **Formulário de Submissão (Modal):** Após selecionar um workflow, um formulário dinâmico é apresentado para o preenchimento da solicitação.
     -   **Tabela "Minhas Solicitações":** Uma seção na mesma página que lista todas as solicitações já feitas pelo usuário, permitindo o acompanhamento de status e previsão de conclusão.
 -   **Repositório de Documentos (`/documents`):** Biblioteca centralizada para documentos importantes (políticas, manuais, relatórios), com funcionalidades de busca e filtragem por categoria e tipo.
--   **Labs (`/labs`):** Repositório de vídeos de treinamento, painéis de estudo e outros materiais para desenvolvimento contínuo.
+-   **Regras Comerciais (`/regras-comerciais`):** Framework de Reuniões (R1, R1 Offshore, R2 e R3) e Mix de Serviços com política comercial vigente.
 -   **Loja 3A RIVA (`/store`):** Integração via `iframe` com a loja da NuvemShop, permitindo acesso direto aos produtos da marca.
 -   **Chatbot Bob 1.0 (`/chatbot`):** Um assistente virtual com IA (Inteligência Artificial) integrado, capaz de responder a perguntas, buscar informações em documentos da plataforma e executar tarefas simples como resumir conversas.
 -   **Business Intelligence (`/bi`):** Página com acesso restrito que exibe um painel de Power BI embarcado, destinado a análises gerenciais.
@@ -42,7 +42,7 @@ A aplicação consolida diversas funcionalidades essenciais para o dia a dia cor
 
 -   **Caixa de Entrada (`/requests`):** Visão de gerenciamento para proprietários de workflows, onde eles podem visualizar, atribuir, arquivar e processar as solicitações pendentes.
 -   **Gerenciamento de Conteúdo (`/admin/content`):** Painel central para administrar todo o conteúdo dinâmico da intranet.
-    -   **Gerenciar Notícias, Documentos, Labs, Mensagens, Links Rápidos, Pesquisas e Rankings.**
+    -   **Gerenciar Notícias, Documentos, Mensagens, Links Rápidos, Pesquisas e Rankings.**
 -   **Gerenciamento de Workflows (`/admin/workflows`):** O centro de controle para todos os processos digitais da empresa.
     -   **Aba "Definições":** Permite gerenciar as "Áreas de Workflow" e as "Definições de Workflow" (onde se constrói o formulário, as etapas, as regras de SLA e as notificações de cada processo).
     -   **Aba "Histórico Geral":** Uma tabela completa com todas as solicitações já feitas no sistema, permitindo uma visão global e auditoria de todos os processos.
@@ -98,7 +98,7 @@ Esta é uma visão estruturada das páginas e funcionalidades disponíveis.
     ├── /news (Feed de Notícias)
     ├── /solicitacoes (Portal de início de processos)
     ├── /documents (Repositório de Documentos)
-    ├── /labs (Vídeos e Materiais)
+    ├── /regras-comerciais (Framework de Reuniões e Mix de Serviços)
     ├── /rankings (Rankings e Campanhas)
     ├── /store (Loja 3A RIVA - Embed)
     ├── /chatbot (Assistente Bob 1.0)

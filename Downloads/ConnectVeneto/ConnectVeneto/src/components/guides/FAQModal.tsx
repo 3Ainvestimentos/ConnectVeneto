@@ -39,8 +39,8 @@ const faqItems = [
     answer: "Para solicitações abertas pelos links desta intranet, o acompanhamento costuma ser pelo próprio formulário (e-mail de confirmação, Monday, Google Forms etc.) ou pela área responsável. Se você usa fluxos internos de aprovação da plataforma, tarefas pendentes podem aparecer em 'Minhas Tarefas/Ações', pelo menu do seu avatar."
   },
   {
-    question: "O que encontro na seção 'Labs'?",
-    answer: "A seção 'Labs' é nosso repositório de conhecimento. Lá você encontra vídeos de treinamento, painéis de estudo e outros materiais para o seu desenvolvimento contínuo."
+    question: "O que encontro na seção 'Regras Comerciais'?",
+    answer: "A seção 'Regras Comerciais' reúne o Framework de Reuniões (R1, R1 Offshore, R2 e R3) e a apresentação de Mix de Serviços da Vêneto, incluindo a política comercial vigente."
   },
   {
     question: "Como posso visualizar meu perfil e alterar o tema?",

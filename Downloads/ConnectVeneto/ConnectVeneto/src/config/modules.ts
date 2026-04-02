@@ -41,11 +41,11 @@ const allModules: Omit<AppModule, "enabled">[] = [
     permissions: [],
   },
   {
-    id: "labs",
-    name: "Labs",
-    description: "Área experimental para ferramentas internas",
-    featureFlag: "labs",
-    routes: ["/labs"],
+    id: "regras-comerciais",
+    name: "Regras Comerciais",
+    description: "Framework de reuniões e Mix de Serviços da Vêneto",
+    featureFlag: "regrasComerciais",
+    routes: ["/regras-comerciais"],
     permissions: [],
   },
   {

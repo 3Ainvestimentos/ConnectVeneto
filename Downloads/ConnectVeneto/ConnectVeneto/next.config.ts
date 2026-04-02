@@ -19,6 +19,16 @@ const nextConfig: NextConfig = {
   // Fixar raiz de tracing/monorepo para evitar seleção incorreta de workspace fora do projeto
   outputFileTracingRoot: path.join(__dirname),
   
+  async redirects() {
+    return [
+      {
+        source: "/labs",
+        destination: "/regras-comerciais",
+        permanent: true,
+      },
+    ];
+  },
+
   // Headers de segurança
   async headers() {
     const isProd = process.env.NODE_ENV === 'production';

@@ -7,7 +7,7 @@ const PROTECTED_PREFIXES = [
   "/applications",
   "/documents",
   "/consulta",
-  "/labs",
+  "/regras-comerciais",
   "/store",
   "/requests",
   "/rankings",
