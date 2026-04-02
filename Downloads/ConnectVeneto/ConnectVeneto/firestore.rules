@@ -41,6 +41,26 @@ service cloud.firestore {
         && request.resource.data[uidField] == request.auth.uid;
     }
 
+    /** Repositório /documents: downloadUrl obrigatório em HTTPS; bloqueia javascript:, data:, etc. */
+    function repositoryDocumentDownloadUrlOk() {
+      return request.resource.data.downloadUrl is string
+        && request.resource.data.downloadUrl.matches('^https://[^\\s]+$')
+        && !('internalPath' in request.resource.data);
+    }
+
+    function repositoryDocumentCreateOk() {
+      return repositoryDocumentDownloadUrlOk()
+        && request.resource.data.name is string
+        && request.resource.data.name.size() > 0
+        && request.resource.data.category is string
+        && request.resource.data.category.size() > 0
+        && request.resource.data.type is string
+        && request.resource.data.type.size() > 0
+        && request.resource.data.size is string
+        && request.resource.data.lastModified is string
+        && (!('dataAiHint' in request.resource.data) || request.resource.data.dataAiHint is string);
+    }
+
     // =========================
     // systemSettings
     // =========================
@@ -93,7 +113,9 @@ service cloud.firestore {
     // =========================
     match /documents/{docId} {
       allow read: if isAuthenticated();
-      allow write: if isSuperAdmin();
+      allow create: if isSuperAdmin() && repositoryDocumentCreateOk();
+      allow update: if isSuperAdmin() && repositoryDocumentDownloadUrlOk();
+      allow delete: if isSuperAdmin();
     }
 
     match /quickLinks/{docId} {

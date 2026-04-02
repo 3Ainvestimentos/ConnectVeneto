@@ -1,4 +1,4 @@
-
+﻿
 "use client";
 
 import React, { createContext, useContext, ReactNode, useMemo } from 'react';
@@ -14,6 +14,8 @@ export interface DocumentType {
   size: string;
   lastModified: string;
   downloadUrl: string;
+  /** Só em linhas estáticas (código); não persistir no Firestore. */
+  internalPath?: string;
   dataAiHint?: string;
 }
 
@@ -55,14 +57,21 @@ export const DocumentsProvider = ({ children }: { children: ReactNode }) => {
 
 
   const addDocumentMutation = useMutation<WithId<Omit<DocumentType, 'id'>>, Error, Omit<DocumentType, 'id'>>({
-    mutationFn: (docData: Omit<DocumentType, 'id'>) => addDocumentToCollection(COLLECTION_NAME, docData),
+    mutationFn: (docData: Omit<DocumentType, 'id'>) => {
+      const { internalPath: _internalPathAdd, ...rest } = docData;
+      return addDocumentToCollection(COLLECTION_NAME, rest);
+    },
     onSuccess: () => {
         queryClient.invalidateQueries({ queryKey: [COLLECTION_NAME] });
     },
   });
 
   const updateDocumentMutation = useMutation<void, Error, DocumentType>({
-    mutationFn: (updatedDoc: DocumentType) => updateDocumentInCollection(COLLECTION_NAME, updatedDoc.id, updatedDoc),
+    mutationFn: (updatedDoc: DocumentType) => {
+      const { id, internalPath: _internalPath, ...payload } = updatedDoc;
+      delete (payload as Record<string, unknown>).id;
+      return updateDocumentInCollection(COLLECTION_NAME, id, payload);
+    },
     onSuccess: () => {
         queryClient.invalidateQueries({ queryKey: [COLLECTION_NAME] });
     },
@@ -71,7 +80,7 @@ export const DocumentsProvider = ({ children }: { children: ReactNode }) => {
   const deleteDocumentMutation = useMutation<void, Error, string>({
     mutationFn: (id: string) => deleteDocumentFromCollection(COLLECTION_NAME, id),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [COLLECTION_NAME] });
+        queryClient.invalidateQueries({ queryKey: [COLLECTION_NAME] });
     },
   });
 
@@ -97,3 +106,4 @@ export const useDocuments = (): DocumentsContextType => {
   }
   return context;
 };
+

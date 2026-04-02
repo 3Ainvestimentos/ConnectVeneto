@@ -32,11 +32,11 @@ const faqItems = [
   },
   {
     question: "Onde eu inicio uma solicitação (reembolso, férias, etc.)?",
-    answer: "Vá para a seção 'Solicitações' no menu lateral. La voce vera cards fixos por area (ex.: Legal e Compliance, Inteligencia Comercial, Mesa, Financeiro, Wealth Planning e TI/Suporte). Clique em uma area para abrir os links de formularios e documentos; abaixo, acompanhe o andamento em 'Minhas Solicitacoes'."
+    answer: "Vá para a seção 'Solicitações' no menu lateral. Lá você verá cards fixos por área (ex.: Legal e Compliance, Inteligência Comercial, Mesa, Financeiro, Wealth Planning e TI/Suporte). Clique em uma área para abrir os links de formulários e documentos. O retorno de cada pedido depende do formulário ou da equipe — esta página só direciona aos canais."
   },
   {
     question: "Como acompanho minhas solicitações e tarefas?",
-    answer: "Na mesma página de 'Solicitações', há uma tabela com 'Minhas Solicitações' para você ver o andamento do que pediu. Se você precisa aprovar ou executar uma tarefa, ela aparecerá em 'Minhas Tarefas/Ações', acessível pelo menu do seu avatar."
+    answer: "Para solicitações abertas pelos links desta intranet, o acompanhamento costuma ser pelo próprio formulário (e-mail de confirmação, Monday, Google Forms etc.) ou pela área responsável. Se você usa fluxos internos de aprovação da plataforma, tarefas pendentes podem aparecer em 'Minhas Tarefas/Ações', pelo menu do seu avatar."
   },
   {
     question: "O que encontro na seção 'Labs'?",

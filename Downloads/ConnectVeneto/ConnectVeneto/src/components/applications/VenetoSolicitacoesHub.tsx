@@ -18,8 +18,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
-import { ExternalLink, Link2, Info } from "lucide-react";
+import { Link2, Info } from "lucide-react";
 import Image from "next/image";
 
 function trackSolicitacaoEvent(eventName: string, payload: Record<string, string>) {
@@ -182,10 +181,10 @@ export default function VenetoSolicitacoesHub() {
 
   const isWealthLayout = activeArea?.subitemsLayout === "pill-grid";
 
+  const sortedAreas = React.useMemo(() => venetoSolicitacoesAreas, []);
+
   const areaCardClassName =
     "w-full sm:w-[calc(50%-0.5rem)] lg:w-[calc(33.333%-0.75rem)] max-w-[280px]";
-
-  const sortedAreas = React.useMemo(() => venetoSolicitacoesAreas, []);
 
   return (
     <>
@@ -240,26 +239,6 @@ export default function VenetoSolicitacoesHub() {
 
               <ScrollArea className="h-[calc(92vh-110px)] px-6 pb-6 pr-4">
                 <div className="space-y-4 pt-1">
-                  {activeArea.overviewUrl && (
-                    <div>
-                      <Button variant="outline" asChild>
-                        <a
-                          href={activeArea.overviewUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          onClick={() =>
-                            trackSolicitacaoEvent("overview_click", {
-                              areaId: activeArea.id,
-                              areaKey: activeArea.trackingKey || activeArea.title,
-                            })
-                          }
-                        >
-                          Pagina da area <ExternalLink className="ml-2 h-4 w-4" />
-                        </a>
-                      </Button>
-                    </div>
-                  )}
-
                   {activeArea.showSlaImage && activeArea.slaImageSrc && (
                     <div className="rounded-md border p-3 space-y-2">
                       <div className="overflow-x-auto">

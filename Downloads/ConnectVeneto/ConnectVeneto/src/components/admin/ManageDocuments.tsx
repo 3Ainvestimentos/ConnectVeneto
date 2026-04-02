@@ -21,7 +21,19 @@ const documentSchema = z.object({
     category: z.string().min(1, "Categoria é obrigatória"),
     type: z.string().min(1, "Tipo é obrigatório"),
     size: z.string().min(1, "Tamanho é obrigatório."),
-    downloadUrl: z.string().url("URL para download é obrigatória e deve ser um link válido."),
+    downloadUrl: z
+        .string()
+        .url("URL para download é obrigatória e deve ser um link válido.")
+        .refine(
+          (u) => {
+            try {
+              return new URL(u).protocol === "https:";
+            } catch {
+              return false;
+            }
+          },
+          { message: "O link deve usar HTTPS (requisito das regras de segurança do Firestore)." }
+        ),
     dataAiHint: z.string().optional(),
 });
 
