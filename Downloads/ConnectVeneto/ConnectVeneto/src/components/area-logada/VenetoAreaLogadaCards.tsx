@@ -8,41 +8,31 @@ const BRAND_NAVY = "#0d1d2c";
 
 export default function VenetoAreaLogadaCards() {
   return (
-    <div className="mx-auto grid w-full max-w-7xl grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4 lg:gap-8">
+    <div className="mx-auto grid w-full max-w-4xl grid-cols-1 gap-6 md:grid-cols-3 md:gap-6">
       {venetoAreaLogadaCards.map((card) => (
         <div
           key={card.id}
-          className="flex min-h-[300px] flex-col items-center px-8 py-10 text-center shadow-none"
+          className="relative flex min-h-[300px] flex-col items-center justify-center px-6 py-10 text-center shadow-none"
           style={{ backgroundColor: CARD_BG, color: BRAND_NAVY }}
         >
-          {/* Espaçador flexível superior para empurrar o conteúdo para o meio */}
-          <div className="flex-1" />
-
-          {/* Container do Título com altura mínima para acomodar quebra de linha */}
-          <div className="flex min-h-[64px] items-end justify-center">
-            <h2 className="font-serif text-xl font-bold tracking-tight md:text-2xl">
+          {/* O container principal centraliza o título e o botão verticalmente */}
+          <div className="flex flex-col items-center justify-center gap-6">
+            <h2 className="font-serif text-[22px] leading-tight font-bold tracking-tight">
               {card.title}
             </h2>
-          </div>
-
-          {/* Espaçamento fixo entre título e botão */}
-          <div className="h-8" />
-
-          {/* Botão */}
-          <div>
             <a
               href={card.href}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex min-w-[160px] items-center justify-center rounded-full border border-[#0d1d2c] bg-transparent px-8 py-2.5 text-xs font-medium uppercase tracking-wide transition-colors hover:bg-[#0d1d2c]/5"
+              className="inline-flex min-w-[150px] items-center justify-center rounded-full border border-[#0d1d2c] bg-transparent px-6 py-2 text-[11px] font-semibold uppercase tracking-wider transition-colors hover:bg-[#0d1d2c]/5"
             >
               Clique aqui
             </a>
           </div>
 
-          {/* Container do link do manual - ou um espaçador vazio se não tiver manual */}
-          <div className="mt-8 min-h-[20px]">
-            {card.manualHref && card.manualLabel ? (
+          {/* Se houver manual, ele fica preso absolutamente na base do card para não atrapalhar a centralização vertical do conteúdo acima */}
+          {card.manualHref && card.manualLabel && (
+            <div className="absolute bottom-6 left-0 right-0">
               <a
                 href={card.manualHref}
                 target="_blank"
@@ -51,11 +41,8 @@ export default function VenetoAreaLogadaCards() {
               >
                 {card.manualLabel}
               </a>
-            ) : null}
-          </div>
-
-          {/* Espaçador flexível inferior */}
-          <div className="flex-1" />
+            </div>
+          )}
         </div>
       ))}
     </div>
