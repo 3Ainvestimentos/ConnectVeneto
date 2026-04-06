@@ -113,42 +113,6 @@ export function UserNav({ onProfileClick, hasPendingRequests, hasPendingTasks }:
           </DropdownMenuPortal>
         </DropdownMenuSub>
 
-        {hasTools && <DropdownMenuSeparator />}
-
-        {hasTools && (
-          <DropdownMenuGroup>
-            <DropdownMenuLabel className="text-xs text-muted-foreground font-normal">Ferramentas</DropdownMenuLabel>
-            {permissions.canManageRequests && (
-              <DropdownMenuItem asChild>
-                <Link
-                  href="/requests"
-                  className={cn(
-                    "cursor-pointer font-body",
-                    hasPendingRequests && "bg-admin-primary/10 text-admin-primary font-bold hover:!bg-admin-primary/20"
-                  )}
-                >
-                  <Mailbox className="mr-2 h-4 w-4" />
-                  <span>Gestão de Solicitações</span>
-                </Link>
-              </DropdownMenuItem>
-            )}
-            {permissions.canViewTasks && (
-              <DropdownMenuItem asChild>
-                <Link
-                  href="/me/tasks"
-                  className={cn(
-                    "cursor-pointer font-body",
-                    hasPendingTasks && "bg-admin-primary/10 text-admin-primary font-bold hover:!bg-admin-primary/20"
-                  )}
-                >
-                  <ListTodo className="mr-2 h-4 w-4" />
-                  <span>Minhas Tarefas/Ações</span>
-                </Link>
-              </DropdownMenuItem>
-            )}
-          </DropdownMenuGroup>
-        )}
-
         {hasAdminPanels && (
           <>
             <DropdownMenuSeparator />

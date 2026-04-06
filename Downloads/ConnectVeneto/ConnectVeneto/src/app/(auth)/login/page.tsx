@@ -10,6 +10,7 @@ import { useSystemSettings } from '@/contexts/SystemSettingsContext';
 import { useTheme } from '@/contexts/ThemeContext';
 import logoVenetoDark from '../../../../docs/PNG/logotipo_vênetoPrancheta 1.png';
 import logoVenetoLight from '../../../../docs/PNG/logotipo_vênetoPrancheta_3_upscaled.png';
+import { VenetoMarketingFooter } from '@/components/layout/VenetoMarketingFooter';
 
 const GoogleIcon = (props: React.SVGProps<SVGSVGElement>) => (
     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="20px" height="20px" {...props}>
@@ -32,7 +33,7 @@ export default function LoginPage() {
   const logoAsset = theme === 'dark' ? logoVenetoLight : logoVenetoDark;
 
   return (
-    <main className="relative flex h-screen w-screen items-center justify-center overflow-hidden bg-[#0d1d2c]">
+    <main className="relative flex min-h-screen w-screen items-center justify-center overflow-hidden bg-[#0d1d2c] pb-28 sm:pb-24">
       <div className="absolute inset-0 z-10 bg-gradient-to-b from-black/25 via-black/35 to-black/55" />
 
       {/* Login Card */}
@@ -69,11 +70,14 @@ export default function LoginPage() {
         </Button>
       </div>
 
-      {/* Footer Text */}
-      <footer className="absolute bottom-4 left-0 right-0 z-20 text-center text-xs text-white/60 p-4">
-        <p>Sujeito aos Termos de Uso e à Política de Privacidade da Vêneto Family Office.</p>
-        <p>Todos os direitos reservados.</p>
-      </footer>
+      <VenetoMarketingFooter
+        legalSlot={
+          <>
+            <p>Sujeito aos Termos de Uso e à Política de Privacidade da Vêneto Family Office.</p>
+            <p>Todos os direitos reservados.</p>
+          </>
+        }
+      />
     </main>
   );
 }
