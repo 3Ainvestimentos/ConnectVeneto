@@ -133,16 +133,24 @@ export default function ConsultaPage() {
           <p className="text-sm text-muted-foreground">Acesse suas planilhas de consulta.</p>
         </div>
         {availableTabs.length > 1 && (
-          <div className="flex gap-1">
+          <div
+            role="tablist"
+            aria-label="Tipo de consulta"
+            className="inline-flex h-9 shrink-0 items-center rounded-md bg-muted p-1 text-muted-foreground"
+          >
             {availableTabs.map((tab) => (
               <button
                 key={tab}
+                type="button"
+                role="tab"
+                aria-selected={activeTab === tab}
                 onClick={() => setActiveTab(tab)}
                 className={cn(
-                  'px-3 py-1.5 text-xs font-semibold rounded border transition-colors',
+                  'inline-flex items-center justify-center whitespace-nowrap rounded-sm px-3 py-1.5 text-xs font-medium transition-all',
+                  'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background',
                   activeTab === tab
-                    ? 'bg-[#0d1d2c] text-white border-[#0d1d2c]'
-                    : 'bg-background text-foreground border-border hover:bg-muted'
+                    ? 'bg-background text-foreground shadow-sm'
+                    : 'bg-transparent text-muted-foreground hover:text-foreground'
                 )}
               >
                 {TAB_LABELS[tab]}

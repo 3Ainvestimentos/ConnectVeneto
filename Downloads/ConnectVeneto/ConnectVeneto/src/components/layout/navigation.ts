@@ -44,5 +44,4 @@ export const noZoomRoutes = [
   "/consulta",
   "/personal-panel",
   "/area-logada",
-  "/store",
 ];

@@ -183,19 +183,16 @@ export default function VenetoSolicitacoesHub() {
 
   const sortedAreas = React.useMemo(() => venetoSolicitacoesAreas, []);
 
-  const areaCardClassName =
-    "w-full sm:w-[calc(50%-0.5rem)] lg:w-[calc(33.333%-0.75rem)] max-w-[280px]";
-
   return (
     <>
-      <div className="flex flex-wrap justify-center gap-4">
+      <div className="mx-auto grid w-full max-w-7xl grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4 lg:gap-6">
         {sortedAreas.map((area) => {
           const Icon = getIcon(area.icon);
           return (
             <button
               key={area.id}
               type="button"
-              className={areaCardClassName}
+              className="w-full min-w-0 text-left"
               onClick={() => {
                 trackSolicitacaoEvent("area_open", {
                   areaId: area.id,

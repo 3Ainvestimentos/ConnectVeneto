@@ -8,7 +8,6 @@ const PROTECTED_PREFIXES = [
   "/documents",
   "/consulta",
   "/regras-comerciais",
-  "/store",
   "/requests",
   "/area-logada",
   "/bi",

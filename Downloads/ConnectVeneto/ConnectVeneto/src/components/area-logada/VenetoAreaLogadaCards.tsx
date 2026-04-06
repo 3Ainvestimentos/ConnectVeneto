@@ -8,7 +8,7 @@ const BRAND_NAVY = "#0d1d2c";
 
 export default function VenetoAreaLogadaCards() {
   return (
-    <div className="mx-auto grid w-full max-w-5xl grid-cols-1 gap-6 md:grid-cols-3 md:gap-8">
+    <div className="mx-auto grid w-full max-w-7xl grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4 lg:gap-8">
       {venetoAreaLogadaCards.map((card) => (
         <div
           key={card.id}
