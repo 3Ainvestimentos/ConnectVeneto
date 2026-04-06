@@ -96,7 +96,6 @@ describe('WorkflowSubmissionModal - Campos com IDs Duplicados', () => {
       canManageNews: false,
       canManageNewsletter: false,
       canManageQuickLinks: false,
-      canManageRankings: false,
       canViewAudit: false,
       canManageFabMessages: false,
       canManageIdleFabMessages: false,

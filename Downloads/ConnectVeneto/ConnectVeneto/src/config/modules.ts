@@ -49,12 +49,12 @@ const allModules: Omit<AppModule, "enabled">[] = [
     permissions: [],
   },
   {
-    id: "rankings",
-    name: "Rankings e Campanhas",
-    description: "Gamificação e campanhas de incentivo",
-    featureFlag: "rankings",
-    routes: ["/rankings"],
-    permissions: ["canViewRankings"],
+    id: "area-logada",
+    name: "Área Logada",
+    description: "Relatório virtual, terminal de consulta e área do cliente",
+    featureFlag: "areaLogada",
+    routes: ["/area-logada"],
+    permissions: [],
   },
   {
     id: "bi",

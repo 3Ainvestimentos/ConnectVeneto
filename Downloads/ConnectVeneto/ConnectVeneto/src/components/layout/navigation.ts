@@ -10,7 +10,7 @@ import {
   ShoppingCart,
   BarChart,
   Workflow,
-  Award,
+  Lock,
 } from "lucide-react";
 
 export type AppNavItem = {
@@ -28,7 +28,7 @@ const allNavItems: AppNavItem[] = [
   { href: "/applications", label: "Solicitações", icon: Workflow, external: false, permission: null },
   { href: "/documents", label: "Documentos", icon: FolderOpen, external: false, permission: null },
   { href: "/regras-comerciais", label: "Regras Comerciais", icon: Scale, external: false, permission: null, featureFlag: "regrasComerciais" },
-  { href: "/rankings", label: "Rankings e Campanhas", icon: Award, external: false, permission: "canViewRankings", featureFlag: "rankings" },
+  { href: "/area-logada", label: "Área Logada", icon: Lock, external: false, permission: null, featureFlag: "areaLogada" },
   { href: "/bi", label: "Painéis", icon: BarChart, external: false, permission: "canViewBI", featureFlag: "businessIntelligence" },
   { href: "https://www.venetostore.com.br/", label: "Veneto Store", icon: ShoppingCart, external: true, permission: null, featureFlag: "venetoStore" },
 ];
@@ -43,6 +43,6 @@ export const noZoomRoutes = [
   "/bi",
   "/consulta",
   "/personal-panel",
-  "/rankings",
+  "/area-logada",
   "/store",
 ];

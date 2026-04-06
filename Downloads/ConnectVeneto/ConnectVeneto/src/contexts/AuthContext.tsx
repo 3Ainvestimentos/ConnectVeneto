@@ -118,7 +118,6 @@ const defaultPermissions: CollaboratorPermissions = {
   canManageVacation: false,
   canViewTasks: false,
   canViewBI: false,
-  canViewRankings: false,
   canViewCRM: false,
   canViewStrategicPanel: false,
   canViewOpportunityMap: false,

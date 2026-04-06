@@ -24,7 +24,6 @@ const allPermissionLabels: { key: keyof CollaboratorPermissions; label: string; 
     { key: 'canManageVacation', label: 'Férias' },
     { key: 'canViewTasks', label: 'Minhas Tarefas' },
     { key: 'canViewBI', label: 'Painéis', featureFlag: 'businessIntelligence' },
-    { key: 'canViewRankings', label: 'Rankings' },
     { key: 'canViewOpportunityMap', label: 'Mapa de Oportunidades' },
     { key: 'canViewMeetAnalyses', label: 'Bob Meet Análises' },
 ];

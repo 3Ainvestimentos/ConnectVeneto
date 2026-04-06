@@ -1,5 +1,5 @@
 export const FEATURE_FLAGS = {
-  rankings: true,
+  areaLogada: true,
   businessIntelligence: false,
   venetoStore: true,
   regrasComerciais: true,

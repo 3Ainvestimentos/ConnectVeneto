@@ -42,7 +42,7 @@ A aplicação consolida diversas funcionalidades essenciais para o dia a dia cor
 
 -   **Caixa de Entrada (`/requests`):** Visão de gerenciamento para proprietários de workflows, onde eles podem visualizar, atribuir, arquivar e processar as solicitações pendentes.
 -   **Gerenciamento de Conteúdo (`/admin/content`):** Painel central para administrar todo o conteúdo dinâmico da intranet.
-    -   **Gerenciar Notícias, Documentos, Mensagens, Links Rápidos, Pesquisas e Rankings.**
+    -   **Gerenciar Notícias, Documentos, Mensagens, Links Rápidos e Pesquisas.**
 -   **Gerenciamento de Workflows (`/admin/workflows`):** O centro de controle para todos os processos digitais da empresa.
     -   **Aba "Definições":** Permite gerenciar as "Áreas de Workflow" e as "Definições de Workflow" (onde se constrói o formulário, as etapas, as regras de SLA e as notificações de cada processo).
     -   **Aba "Histórico Geral":** Uma tabela completa com todas as solicitações já feitas no sistema, permitindo uma visão global e auditoria de todos os processos.
@@ -99,7 +99,7 @@ Esta é uma visão estruturada das páginas e funcionalidades disponíveis.
     ├── /solicitacoes (Portal de início de processos)
     ├── /documents (Repositório de Documentos)
     ├── /regras-comerciais (Framework de Reuniões e Mix de Serviços)
-    ├── /rankings (Rankings e Campanhas)
+    ├── /area-logada (Área Logada)
     ├── /store (Loja 3A RIVA - Embed)
     ├── /chatbot (Assistente Bob 1.0)
     ├── /bi (Business Intelligence - Acesso Restrito)

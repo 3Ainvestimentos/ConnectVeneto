@@ -192,7 +192,6 @@ service cloud.firestore {
         'workflowDefinitions',
         'workflows',
         'messages',
-        'rankings',
         'fabMessages',
         'idleFabMessages',
         'polls',

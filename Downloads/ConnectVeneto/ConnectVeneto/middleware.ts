@@ -10,7 +10,7 @@ const PROTECTED_PREFIXES = [
   "/regras-comerciais",
   "/store",
   "/requests",
-  "/rankings",
+  "/area-logada",
   "/bi",
   "/opportunity-map",
   "/personal-panel",

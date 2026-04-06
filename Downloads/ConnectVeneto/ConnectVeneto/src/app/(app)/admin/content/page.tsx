@@ -9,7 +9,6 @@ import AdminGuard from '@/components/auth/AdminGuard';
 import { ManageMessages } from '@/components/admin/ManageMessages';
 import { ManageQuickLinks } from '@/components/admin/ManageQuickLinks';
 import { ManagePolls } from '@/components/admin/ManagePolls';
-import { ManageRankings } from '@/components/admin/ManageRankings';
 import { ManageNewsletter } from '@/components/admin/ManageNewsletter';
 import { ManageContacts } from '@/components/admin/ManageContacts';
 
@@ -24,12 +23,11 @@ export default function AdminContentPage() {
                     description="Gerencie as informações dinâmicas da intranet."
                 />
                 <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-                    <TabsList className="grid w-full grid-cols-2 md:grid-cols-4 lg:grid-cols-7">
+                    <TabsList className="grid w-full grid-cols-2 md:grid-cols-3 lg:grid-cols-6">
                         <TabsTrigger value="documents">Documentos</TabsTrigger>
                         <TabsTrigger value="messages">Mensagens</TabsTrigger>
                         <TabsTrigger value="quicklinks">Links Rápidos</TabsTrigger>
                         <TabsTrigger value="polls">Pesquisas</TabsTrigger>
-                        <TabsTrigger value="rankings">Rankings</TabsTrigger>
                         <TabsTrigger value="newsletter">Newsletter</TabsTrigger>
                         <TabsTrigger value="contacts">Contatos</TabsTrigger>
                     </TabsList>
@@ -44,9 +42,6 @@ export default function AdminContentPage() {
                     </TabsContent>
                     <TabsContent value="polls">
                         <ManagePolls />
-                    </TabsContent>
-                     <TabsContent value="rankings">
-                        <ManageRankings />
                     </TabsContent>
                     <TabsContent value="newsletter">
                         <ManageNewsletter />

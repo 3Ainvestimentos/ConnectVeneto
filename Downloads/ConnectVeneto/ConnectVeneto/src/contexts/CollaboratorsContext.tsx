@@ -15,7 +15,6 @@ export interface CollaboratorPermissions {
   canManageVacation: boolean;
   canViewTasks: boolean;
   canViewBI: boolean;
-  canViewRankings: boolean;
   canViewCRM: boolean;
   canViewStrategicPanel: boolean;
   canViewOpportunityMap: boolean;
@@ -77,7 +76,6 @@ const defaultPermissions: CollaboratorPermissions = {
   canManageVacation: false,
   canViewTasks: false,
   canViewBI: false,
-  canViewRankings: false,
   canViewCRM: false,
   canViewStrategicPanel: false,
   canViewOpportunityMap: false,

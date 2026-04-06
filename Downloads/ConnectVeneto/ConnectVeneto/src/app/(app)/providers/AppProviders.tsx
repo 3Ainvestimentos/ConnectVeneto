@@ -6,7 +6,6 @@ import { IdleFabMessagesProvider } from "@/contexts/IdleFabMessagesContext";
 import { MessagesProvider } from "@/contexts/MessagesContext";
 import { PollsProvider } from "@/contexts/PollsContext";
 import { QuickLinksProvider } from "@/contexts/QuickLinksContext";
-import { RankingsProvider } from "@/contexts/RankingsContext";
 import { RequestsProvider } from "@/contexts/RequestsContext";
 import { WorkflowAreasProvider } from "@/contexts/WorkflowAreasContext";
 import { WorkflowsProvider } from "@/contexts/WorkflowsContext";
@@ -27,25 +26,23 @@ export default function AppProviders({ children }: { children: React.ReactNode }
                   <WorkflowsProvider>
                     <QuickLinksProvider>
                       <PollsProvider>
-                        <RankingsProvider>
-                          <FabMessagesProvider>
-                            <IdleFabMessagesProvider>
-                              <ContactsProvider>
-                                <MeetingAnalysesProvider>
-                                  <TripsBirthdaysProvider>
-                                    <VacationApproversProvider>
-                                      <VacationRequestsProvider>
-                                        <VacationProvider>
-                                          <RequestsProvider>{children}</RequestsProvider>
-                                        </VacationProvider>
-                                      </VacationRequestsProvider>
-                                    </VacationApproversProvider>
-                                  </TripsBirthdaysProvider>
-                                </MeetingAnalysesProvider>
-                              </ContactsProvider>
-                            </IdleFabMessagesProvider>
-                          </FabMessagesProvider>
-                        </RankingsProvider>
+                        <FabMessagesProvider>
+                          <IdleFabMessagesProvider>
+                            <ContactsProvider>
+                              <MeetingAnalysesProvider>
+                                <TripsBirthdaysProvider>
+                                  <VacationApproversProvider>
+                                    <VacationRequestsProvider>
+                                      <VacationProvider>
+                                        <RequestsProvider>{children}</RequestsProvider>
+                                      </VacationProvider>
+                                    </VacationRequestsProvider>
+                                  </VacationApproversProvider>
+                                </TripsBirthdaysProvider>
+                              </MeetingAnalysesProvider>
+                            </ContactsProvider>
+                          </IdleFabMessagesProvider>
+                        </FabMessagesProvider>
                       </PollsProvider>
                     </QuickLinksProvider>
                   </WorkflowsProvider>

@@ -26,6 +26,11 @@ const nextConfig: NextConfig = {
         destination: "/regras-comerciais",
         permanent: true,
       },
+      {
+        source: "/rankings",
+        destination: "/area-logada",
+        permanent: true,
+      },
     ];
   },
 
