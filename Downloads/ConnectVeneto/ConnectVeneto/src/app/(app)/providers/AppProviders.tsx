@@ -2,6 +2,7 @@ import { ApplicationsProvider } from "@/contexts/ApplicationsContext";
 import { CollaboratorsProvider } from "@/components/providers/CollaboratorsProvider";
 import { DocumentsProvider } from "@/contexts/DocumentsContext";
 import { FabMessagesProvider } from "@/contexts/FabMessagesContext";
+import { NewsProvider } from "@/contexts/NewsContext";
 import { IdleFabMessagesProvider } from "@/contexts/IdleFabMessagesContext";
 import { MessagesProvider } from "@/contexts/MessagesContext";
 import { PollsProvider } from "@/contexts/PollsContext";
@@ -21,7 +22,8 @@ export default function AppProviders({ children }: { children: React.ReactNode }
     <CollaboratorsProvider>
       <WorkflowAreasProvider>
         <ApplicationsProvider>
-          <DocumentsProvider>
+          <NewsProvider>
+            <DocumentsProvider>
             <MessagesProvider>
                   <WorkflowsProvider>
                     <QuickLinksProvider>
@@ -47,7 +49,8 @@ export default function AppProviders({ children }: { children: React.ReactNode }
                     </QuickLinksProvider>
                   </WorkflowsProvider>
               </MessagesProvider>
-          </DocumentsProvider>
+            </DocumentsProvider>
+          </NewsProvider>
         </ApplicationsProvider>
       </WorkflowAreasProvider>
     </CollaboratorsProvider>

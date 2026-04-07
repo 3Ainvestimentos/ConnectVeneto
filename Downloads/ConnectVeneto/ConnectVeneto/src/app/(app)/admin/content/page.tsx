@@ -10,6 +10,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { ShieldAlert } from 'lucide-react';
 import { ManageMessages } from '@/components/admin/ManageMessages';
+import { ManageNews } from '@/components/admin/ManageNews';
 import { ManageQuickLinks } from '@/components/admin/ManageQuickLinks';
 import { ManagePolls } from '@/components/admin/ManagePolls';
 import { ManageNewsletter } from '@/components/admin/ManageNewsletter';
@@ -42,7 +43,8 @@ export default function AdminContentPage() {
                     </Alert>
                 ) : null}
                 <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-                    <TabsList className="grid w-full grid-cols-2 md:grid-cols-3 lg:grid-cols-6">
+                    <TabsList className="grid w-full grid-cols-2 md:grid-cols-4 lg:grid-cols-7">
+                        <TabsTrigger value="news">Notícias</TabsTrigger>
                         <TabsTrigger value="documents">Documentos</TabsTrigger>
                         <TabsTrigger value="messages">Mensagens</TabsTrigger>
                         <TabsTrigger value="quicklinks">Links Rápidos</TabsTrigger>
@@ -50,6 +52,9 @@ export default function AdminContentPage() {
                         <TabsTrigger value="newsletter">Newsletter</TabsTrigger>
                         <TabsTrigger value="contacts">Contatos</TabsTrigger>
                     </TabsList>
+                    <TabsContent value="news">
+                        <ManageNews />
+                    </TabsContent>
                     <TabsContent value="documents">
                         <ManageDocuments />
                     </TabsContent>

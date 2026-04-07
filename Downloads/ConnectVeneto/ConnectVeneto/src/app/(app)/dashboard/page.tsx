@@ -9,9 +9,10 @@ import { useQuickLinks } from '@/contexts/QuickLinksContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCollaborators } from '@/contexts/CollaboratorsContext';
 import GoogleCalendar from '@/components/dashboard-v2/GoogleCalendar';
-  import RssFeed from '@/components/dashboard-v2/RssFeed';
-  import TradingViewWidget from '@/components/dashboard-v2/TradingViewWidget';
-  import { useContacts } from '@/contexts/ContactsContext';
+import RssFeed from '@/components/dashboard-v2/RssFeed';
+import TradingViewWidget from '@/components/dashboard-v2/TradingViewWidget';
+import NewsHighlights from '@/components/dashboard-v2/NewsHighlights';
+import { useContacts } from '@/contexts/ContactsContext';
 import { findCollaboratorByEmail } from '@/lib/email-utils';
 import { WidgetErrorBoundary } from '@/components/error/WidgetErrorBoundary';
 import { bootstrapTrace } from '@/lib/bootstrap-trace';
@@ -72,6 +73,8 @@ export default function DashboardV2Page() {
             description="Veja os eventos e links rápidos da empresa."
           />
         </section>
+
+        <NewsHighlights />
 
         <section className="flex flex-col md:flex-row gap-6">
           <div className="w-full md:w-3/4">
