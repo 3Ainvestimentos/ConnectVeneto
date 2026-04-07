@@ -1,4 +1,4 @@
-﻿
+
 "use client";
 
 import React, { createContext, useContext, ReactNode, useMemo } from 'react';
@@ -58,8 +58,11 @@ export const DocumentsProvider = ({ children }: { children: ReactNode }) => {
 
   const addDocumentMutation = useMutation<WithId<Omit<DocumentType, 'id'>>, Error, Omit<DocumentType, 'id'>>({
     mutationFn: (docData: Omit<DocumentType, 'id'>) => {
-      const { internalPath: _internalPathAdd, ...rest } = docData;
-      return addDocumentToCollection(COLLECTION_NAME, rest);
+      const payload = { ...docData } as Record<string, unknown>;
+      if (!(payload.type === "interno" && payload.internalPath)) {
+        delete payload.internalPath;
+      }
+      return addDocumentToCollection(COLLECTION_NAME, payload as Omit<DocumentType, "id">);
     },
     onSuccess: () => {
         queryClient.invalidateQueries({ queryKey: [COLLECTION_NAME] });
@@ -68,8 +71,12 @@ export const DocumentsProvider = ({ children }: { children: ReactNode }) => {
 
   const updateDocumentMutation = useMutation<void, Error, DocumentType>({
     mutationFn: (updatedDoc: DocumentType) => {
-      const { id, internalPath: _internalPath, ...payload } = updatedDoc;
-      delete (payload as Record<string, unknown>).id;
+      const { id, ...rest } = updatedDoc;
+      const payload = { ...rest } as Record<string, unknown>;
+      delete payload.id;
+      if (!(payload.type === "interno" && payload.internalPath)) {
+        delete payload.internalPath;
+      }
       return updateDocumentInCollection(COLLECTION_NAME, id, payload);
     },
     onSuccess: () => {

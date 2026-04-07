@@ -9,24 +9,27 @@ service cloud.firestore {
       return request.auth != null;
     }
 
+    /** superAdminEmails / collaboratorAdminEmails: guarde cada e-mail em minúsculas (igual à app). */
     function isSuperAdmin() {
       let settingsPath = /databases/$(database)/documents/systemSettings/config;
+      let cfg = get(settingsPath).data;
       return isAuthenticated()
         && request.auth.token.email is string
         && exists(settingsPath)
-        && get(settingsPath).data.superAdminEmails is list
-        && request.auth.token.email in get(settingsPath).data.superAdminEmails;
+        && cfg.superAdminEmails is list
+        && request.auth.token.email.lower() in cfg.superAdminEmails;
     }
 
     /** RH / admin que pode criar colaboradores em lote (importação CSV), sem ser Super Admin. */
     function isCollaboratorImporter() {
       let settingsPath = /databases/$(database)/documents/systemSettings/config;
+      let cfg = get(settingsPath).data;
       return isAuthenticated()
         && request.auth.token.email is string
         && exists(settingsPath)
-        && 'collaboratorAdminEmails' in get(settingsPath).data
-        && get(settingsPath).data.collaboratorAdminEmails is list
-        && request.auth.token.email in get(settingsPath).data.collaboratorAdminEmails;
+        && 'collaboratorAdminEmails' in cfg
+        && cfg.collaboratorAdminEmails is list
+        && request.auth.token.email.lower() in cfg.collaboratorAdminEmails;
     }
 
     function isOwnerByUid(uidField) {
@@ -41,11 +44,28 @@ service cloud.firestore {
         && request.resource.data[uidField] == request.auth.uid;
     }
 
-    /** Repositório /documents: downloadUrl obrigatório em HTTPS; bloqueia javascript:, data:, etc. */
+    /**
+     * Repositório /documents:
+     * - Itens externos: downloadUrl HTTPS; sem internalPath.
+     * - Página interna (ex.: glossário): type interno, downloadUrl vazio, internalPath na allowlist.
+     */
+    function repositoryDocumentExternalOk() {
+      return !('internalPath' in request.resource.data)
+        && request.resource.data.downloadUrl is string
+        && request.resource.data.downloadUrl.matches('^https://[^\\s]+$');
+    }
+
+    function repositoryDocumentInternalOk() {
+      return 'internalPath' in request.resource.data
+        && request.resource.data.internalPath is string
+        && request.resource.data.internalPath == '/documents/glossario'
+        && request.resource.data.downloadUrl is string
+        && request.resource.data.downloadUrl.size() == 0
+        && request.resource.data.type == 'interno';
+    }
+
     function repositoryDocumentDownloadUrlOk() {
-      return request.resource.data.downloadUrl is string
-        && request.resource.data.downloadUrl.matches('^https://[^\\s]+$')
-        && !('internalPath' in request.resource.data);
+      return repositoryDocumentExternalOk() || repositoryDocumentInternalOk();
     }
 
     function repositoryDocumentCreateOk() {

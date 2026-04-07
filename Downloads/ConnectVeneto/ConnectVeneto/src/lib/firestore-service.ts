@@ -357,17 +357,42 @@ export const addMultipleDocumentsToCollection = async <T extends object>(collect
  * @param data The data for the document.
  * @returns A promise that resolves to void on success.
  */
+function firestoreThrownMessage(error: unknown, fallback: string): string {
+    const code =
+        typeof error === "object" && error !== null && "code" in error
+            ? String((error as { code: unknown }).code)
+            : "";
+    if (code === "permission-denied") {
+        return "Permissão negada pelo Firestore. Gravar documentos exige conta de super administrador (e-mail em superAdminEmails em systemSettings/config) e regras publicadas.";
+    }
+    if (code) {
+        return `${fallback} [${code}]`;
+    }
+    return fallback;
+}
+
 export const setDocumentInCollection = async <T extends object>(collectionName: string, id: string, data: Partial<Omit<T, 'id'>>): Promise<void> => {
     try {
         const cleanedData = cleanDataForFirestore(data);
         const docRef = doc(db, collectionName, id);
         await setDoc(docRef, cleanedData, { merge: true }); // Use merge: true to avoid overwriting fields not in data
     } catch (error) {
-        console.error(`Error setting document ${id} in ${collectionName}:`, error);
-        if (error instanceof Error) {
-            console.error('Data that caused the error:', data);
+        const code =
+            typeof error === "object" && error !== null && "code" in error
+                ? String((error as { code: unknown }).code)
+                : "";
+        // Next.js em dev abre overlay vermelho em todo console.error; permission-denied é esperado até haver super admin.
+        if (code === "permission-denied") {
+            console.warn(`[firestore] setDocumentInCollection permission-denied: ${collectionName}/${id}`, error);
+        } else {
+            console.error(`Error setting document ${id} in ${collectionName}:`, error);
         }
-        throw new Error('Não foi possível salvar os dados.');
+        if (process.env.NODE_ENV === "development") {
+            const keys =
+                data && typeof data === "object" ? Object.keys(data as object).join(", ") : "(n/a)";
+            console.warn("[firestore] setDocumentInCollection payload keys:", keys);
+        }
+        throw new Error(firestoreThrownMessage(error, "Não foi possível salvar os dados."));
     }
 };
 

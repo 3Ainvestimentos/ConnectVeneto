@@ -15,6 +15,7 @@ import GoogleCalendar from '@/components/dashboard-v2/GoogleCalendar';
 import { findCollaboratorByEmail } from '@/lib/email-utils';
 import { WidgetErrorBoundary } from '@/components/error/WidgetErrorBoundary';
 import { bootstrapTrace } from '@/lib/bootstrap-trace';
+import { VenetoMarketingFooter } from '@/components/layout/VenetoMarketingFooter';
 
 export default function DashboardV2Page() {
   const [greeting, setGreeting] = useState('');
@@ -160,6 +161,7 @@ export default function DashboardV2Page() {
             )}
         </section>
       </div>
+      <VenetoMarketingFooter variant="flow" />
     </>
   );
 }

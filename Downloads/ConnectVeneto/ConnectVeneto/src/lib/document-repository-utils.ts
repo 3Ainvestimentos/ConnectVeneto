@@ -1,3 +1,5 @@
+import type { DocumentType } from "@/contexts/DocumentsContext";
+
 /** Rotas internas permitidas ao abrir a partir da tabela de documentos (evita open redirect). */
 const ALLOWED_INTERNAL_PATHS = new Set<string>(["/documents/glossario"]);
 
@@ -64,4 +66,22 @@ export function formatRepositorySizeForDisplay(doc: {
   }
 
   return "—";
+}
+
+/**
+ * Une o catálogo estático (código) com a coleção Firestore.
+ * Em caso de mesmo `id`, prevalece o documento do Firestore (edições via admin).
+ */
+export function mergeStaticAndFirestoreDocuments(
+  firestoreDocs: DocumentType[],
+  staticDocs: DocumentType[]
+): DocumentType[] {
+  const byId = new Map<string, DocumentType>();
+  for (const d of staticDocs) {
+    byId.set(d.id, d);
+  }
+  for (const d of firestoreDocs) {
+    byId.set(d.id, d);
+  }
+  return Array.from(byId.values());
 }

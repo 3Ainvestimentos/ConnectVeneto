@@ -6,6 +6,9 @@ import { PageHeader } from '@/components/layout/PageHeader';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ManageDocuments } from '@/components/admin/ManageDocuments';
 import AdminGuard from '@/components/auth/AdminGuard';
+import { useAuth } from '@/contexts/AuthContext';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { ShieldAlert } from 'lucide-react';
 import { ManageMessages } from '@/components/admin/ManageMessages';
 import { ManageQuickLinks } from '@/components/admin/ManageQuickLinks';
 import { ManagePolls } from '@/components/admin/ManagePolls';
@@ -14,6 +17,7 @@ import { ManageContacts } from '@/components/admin/ManageContacts';
 
 export default function AdminContentPage() {
     const [activeTab, setActiveTab] = useState("documents");
+    const { isSuperAdmin } = useAuth();
 
     return (
         <AdminGuard>
@@ -22,6 +26,21 @@ export default function AdminContentPage() {
                     title="Gerenciamento de Conteúdo"
                     description="Gerencie as informações dinâmicas da intranet."
                 />
+                {!isSuperAdmin ? (
+                    <Alert variant="destructive" className="font-body">
+                        <ShieldAlert className="h-4 w-4" />
+                        <AlertTitle>Alterações exigem super administrador</AlertTitle>
+                        <AlertDescription>
+                            Ler o painel pode ser possível com permissões de colaborador, mas gravar no Firestore (documentos, links, mensagens, etc.) só é permitido se o seu e-mail constar em
+                            {" "}
+                            <code className="rounded bg-muted px-1 text-xs">superAdminEmails</code>
+                            {" "}no documento
+                            {" "}
+                            <code className="rounded bg-muted px-1 text-xs">systemSettings/config</code>
+                            , coincidindo com o e-mail da conta Google.
+                        </AlertDescription>
+                    </Alert>
+                ) : null}
                 <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
                     <TabsList className="grid w-full grid-cols-2 md:grid-cols-3 lg:grid-cols-6">
                         <TabsTrigger value="documents">Documentos</TabsTrigger>

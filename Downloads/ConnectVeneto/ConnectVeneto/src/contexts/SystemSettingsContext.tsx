@@ -4,6 +4,7 @@
 import React, { createContext, useContext, ReactNode, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { getDocument, setDocumentInCollection } from '@/lib/firestore-service';
+import { normalizeEmail } from '@/lib/email-utils';
 
 export interface SystemSettings {
   maintenanceMode: boolean;
@@ -56,18 +57,42 @@ export const SystemSettingsProvider = ({ children }: { children: ReactNode }) =>
     queryKey: [COLLECTION_NAME, DOC_ID],
     queryFn: async () => {
       const doc = await getDocument<SystemSettings>(COLLECTION_NAME, DOC_ID);
-      return doc ? { ...defaultSettings, ...doc } : defaultSettings;
+      const merged = doc ? { ...defaultSettings, ...doc } : defaultSettings;
+      const normList = (emails: string[] | undefined) =>
+        (emails ?? [])
+          .map((e) => normalizeEmail(e))
+          .filter((e): e is string => e !== null);
+      const superNorm = normList(merged.superAdminEmails);
+      return {
+        ...merged,
+        superAdminEmails: superNorm.length ? superNorm : defaultSettings.superAdminEmails,
+        collaboratorAdminEmails: normList(merged.collaboratorAdminEmails),
+      };
     },
     staleTime: 5 * 60 * 1000,
   });
 
-  const updateSettingsMutation = useMutation<void, Error, Partial<SystemSettings>>({
-    mutationFn: (newSettings) => setDocumentInCollection(COLLECTION_NAME, DOC_ID, newSettings),
-    onSuccess: (data, variables) => {
-        queryClient.setQueryData([COLLECTION_NAME, DOC_ID], (old: SystemSettings | undefined) => ({
-            ...(old || defaultSettings),
-            ...variables,
-        }));
+  const updateSettingsMutation = useMutation<Partial<SystemSettings>, Error, Partial<SystemSettings>>({
+    mutationFn: async (newSettings) => {
+      const patch: Partial<SystemSettings> = { ...newSettings };
+      if (patch.superAdminEmails != null) {
+        patch.superAdminEmails = patch.superAdminEmails
+          .map((e) => normalizeEmail(e))
+          .filter((e): e is string => e !== null);
+      }
+      if (patch.collaboratorAdminEmails != null) {
+        patch.collaboratorAdminEmails = patch.collaboratorAdminEmails
+          .map((e) => normalizeEmail(e))
+          .filter((e): e is string => e !== null);
+      }
+      await setDocumentInCollection(COLLECTION_NAME, DOC_ID, patch);
+      return patch;
+    },
+    onSuccess: (appliedPatch) => {
+      queryClient.setQueryData([COLLECTION_NAME, DOC_ID], (old: SystemSettings | undefined) => ({
+        ...(old || defaultSettings),
+        ...appliedPatch,
+      }));
     },
   });
 

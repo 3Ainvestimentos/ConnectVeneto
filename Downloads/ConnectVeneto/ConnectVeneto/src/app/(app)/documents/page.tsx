@@ -1,16 +1,17 @@
-﻿"use client";
+"use client";
 
 import { useMemo } from "react";
 import { PageHeader } from "@/components/layout/PageHeader";
 import DocumentRepositoryClient from "@/components/documents/DocumentRepositoryClient";
 import { useDocuments } from "@/contexts/DocumentsContext";
 import { venetoRepositoryDocuments } from "@/config/veneto-documentos";
+import { mergeStaticAndFirestoreDocuments } from "@/lib/document-repository-utils";
 
 export default function DocumentsPage() {
   const { documents } = useDocuments();
 
   const mergedDocuments = useMemo(
-    () => [...venetoRepositoryDocuments, ...documents],
+    () => mergeStaticAndFirestoreDocuments(documents, venetoRepositoryDocuments),
     [documents]
   );
 
