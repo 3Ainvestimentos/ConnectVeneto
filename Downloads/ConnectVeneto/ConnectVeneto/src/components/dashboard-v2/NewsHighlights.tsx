@@ -24,7 +24,10 @@ export default function NewsHighlights() {
     return findCollaboratorByEmail(collaborators, user.email) || null;
   }, [user, collaborators]);
 
-  const activeHighlights = useMemo(() => newsItems.filter(item => item.isHighlight), [newsItems]);
+  const activeHighlights = useMemo(() => {
+    const filtered = newsItems.filter(item => item.isHighlight && item.status === 'published');
+    return [...filtered].sort((a, b) => (b.order || 0) - (a.order || 0)).slice(0, 3);
+  }, [newsItems]);
 
   const logContentView = (item: NewsItemType) => {
     if (!currentUserCollab) return;
@@ -49,21 +52,26 @@ export default function NewsHighlights() {
   if (activeHighlights.length === 0) return null;
 
   const getGridClass = () => {
-    switch (activeHighlights.length) {
+    const count = Math.min(activeHighlights.length, 3); // Agora permite até 3
+    
+    switch (count) {
       case 1:
         return "grid-cols-1";
       case 2:
-        return "grid-cols-1 md:grid-cols-2";
+        // Lógica de 2 cards (uma pode ser grande e pegar 2 colunas de 3)
+        const highlights2 = activeHighlights.sort((a, b) => (b.order || 0) - (a.order || 0)).slice(0, 2);
+        const hasLarge = highlights2.some(h => h.highlightType === 'large');
+        return hasLarge ? "grid-cols-1 md:grid-cols-3" : "grid-cols-1 md:grid-cols-2";
       case 3:
-        return "grid-cols-1 md:grid-cols-2 md:grid-rows-2";
       default:
+        // Grid original para 3 cards (empilhados)
         return "grid-cols-1 md:grid-cols-2 md:grid-rows-2";
     }
   };
 
   const HighlightCard = ({ item, className = "" }: { item: NewsItemType, className?: string }) => (
     <div
-      className={cn("relative rounded-lg overflow-hidden group block cursor-pointer", className)}
+      className={cn("relative rounded-xl overflow-hidden group block cursor-pointer", className)}
       onClick={() => handleViewNews(item)}
       onKeyDown={(e) => e.key === 'Enter' && handleViewNews(item)}
       tabIndex={0}
@@ -71,32 +79,65 @@ export default function NewsHighlights() {
       aria-label={`Ver notícia: ${item.title}`}
     >
       <Image src={item.imageUrl} alt={item.title} fill style={{ objectFit: 'cover' }} className="transition-transform duration-300 group-hover:scale-105" />
-      <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/40 to-transparent p-4 flex flex-col justify-end">
-        <h3 className="text-xl font-headline font-bold text-white">{item.title}</h3>
-        <p className="text-sm text-gray-200 font-body">{item.snippet}</p>
+      <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent p-5 pb-6 flex flex-col justify-end">
+        <h3 className="text-xl font-headline font-bold text-white tracking-tight">{item.title}</h3>
+        <p className="text-sm text-gray-200 font-body font-light line-clamp-2">{item.snippet}</p>
       </div>
     </div>
   );
 
   const renderHighlights = () => {
-    const highlights = activeHighlights.slice(0, 3); // max 3
+    // Permite 3 novamente
+    const highlights = [...activeHighlights].sort((a, b) => (b.order || 0) - (a.order || 0)).slice(0, 3);
+    
     switch (highlights.length) {
       case 1:
-        return <HighlightCard item={highlights[0]} className="min-h-[300px] md:min-h-[450px]" />;
+        return <HighlightCard item={highlights[0]} className="h-[300px] md:h-[500px] md:min-h-[500px] w-full" />;
       case 2:
+        const largeIndex2 = highlights.findIndex(h => h.highlightType === 'large');
+        if (largeIndex2 === -1) {
+          return (
+            <>
+              <HighlightCard item={highlights[0]} className="h-[300px] md:h-[500px] md:min-h-[500px] w-full" />
+              <HighlightCard item={highlights[1]} className="h-[300px] md:h-[500px] md:min-h-[500px] w-full" />
+            </>
+          );
+        }
+
+        const mainCard2 = highlights[largeIndex2];
+        const sideCard2 = highlights[largeIndex2 === 0 ? 1 : 0];
+
         return (
           <>
-            <HighlightCard item={highlights[0]} className="min-h-[220px] md:min-h-[450px]" />
-            <HighlightCard item={highlights[1]} className="min-h-[220px] md:min-h-[450px]" />
+            {largeIndex2 === 0 ? (
+              <>
+                <HighlightCard item={mainCard2} className="h-[300px] md:h-[500px] md:min-h-[500px] md:col-span-2 w-full" />
+                <HighlightCard item={sideCard2} className="h-[300px] md:h-[500px] md:min-h-[500px] w-full" />
+              </>
+            ) : (
+              <>
+                <HighlightCard item={sideCard2} className="h-[300px] md:h-[500px] md:min-h-[500px] w-full" />
+                <HighlightCard item={mainCard2} className="h-[300px] md:h-[500px] md:min-h-[500px] md:col-span-2 w-full" />
+              </>
+            )}
           </>
         );
       case 3:
       default:
+        // Lógica da Bento Box original
+        const largeIndex3 = highlights.findIndex(h => h.highlightType === 'large');
+        const mainIdx = largeIndex3 !== -1 ? largeIndex3 : 1; 
+        
+        const mainCard3 = highlights[mainIdx];
+        const sideCards3 = highlights.filter((_, idx) => idx !== mainIdx);
+
         return (
           <>
-            <HighlightCard item={highlights[0]} className="min-h-[220px] md:min-h-[450px]" />
-            <HighlightCard item={highlights[1]} className="md:row-span-2 min-h-[220px] md:min-h-[450px]" />
-            <HighlightCard item={highlights[2]} className="min-h-[220px] md:min-h-[450px]" />
+            <div className="flex flex-col gap-3">
+              <HighlightCard item={sideCards3[0]} className="h-[200px] md:h-[242px] w-full" />
+              <HighlightCard item={sideCards3[1]} className="h-[200px] md:h-[242px] w-full" />
+            </div>
+            <HighlightCard item={mainCard3} className="h-[250px] md:h-[500px] md:min-h-[500px] md:row-span-2 w-full" />
           </>
         );
     }
@@ -104,7 +145,7 @@ export default function NewsHighlights() {
 
   return (
     <>
-      <div className="mb-6">
+      <div className="mb-8">
         <div className={cn("grid gap-3", getGridClass())}>
           {renderHighlights()}
         </div>

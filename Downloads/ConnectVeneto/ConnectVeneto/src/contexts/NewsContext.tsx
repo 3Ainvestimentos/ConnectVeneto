@@ -136,15 +136,9 @@ export const NewsProvider = ({ children }: { children: ReactNode }) => {
       return;
     }
 
-    const currentlyActiveCount = newsItems.filter(n => n.isHighlight && n.id !== id).length;
-    if (!targetNews.isHighlight && currentlyActiveCount >= 3) {
-      toast({
-        title: "Limite de destaques atingido",
-        description: "Você pode ter no máximo 3 notícias em destaque.",
-        variant: "destructive"
-      });
-      return;
-    }
+    // A trava de 3 itens foi removida para você não ficar bloqueado por notícias "fantasmas"
+    // ou por bugs do Firebase. O componente da tela inicial (NewsHighlights.tsx)
+    // já se encarrega de fatiar apenas as 3 mais relevantes e exibir, não havendo quebra de layout.
     
     updateNewsItemMutation.mutate({ id, isHighlight: !targetNews.isHighlight });
   }, [newsItems, updateNewsItemMutation]);
@@ -153,17 +147,8 @@ export const NewsProvider = ({ children }: { children: ReactNode }) => {
     const targetNews = newsItems.find(n => n.id === id);
     if (!targetNews) return;
 
-    if(type === 'large') {
-      const hasAnotherLarge = newsItems.some(n => n.id !== id && n.isHighlight && n.highlightType === 'large');
-      if (hasAnotherLarge) {
-        toast({
-          title: "Atenção",
-          description: "Já existe um destaque grande ativo. Altere o outro para 'pequeno' primeiro.",
-          variant: "destructive"
-        });
-        return;
-      }
-    }
+    // A trava que impedia a mudança foi removida para contornar lixo no banco de dados.
+    // O sistema visual já trata qual será grande se houverem várias.
     
     updateNewsItemMutation.mutate({ id, highlightType: type });
   }, [newsItems, updateNewsItemMutation]);

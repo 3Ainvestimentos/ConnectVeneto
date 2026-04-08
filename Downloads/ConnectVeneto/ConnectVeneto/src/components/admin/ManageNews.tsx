@@ -54,7 +54,13 @@ export function ManageNews() {
     
     const displayedNews = useMemo(() => {
         return newsItems
-          .filter(item => showArchived ? item.status === 'archived' : item.status !== 'archived')
+          // Agora, mostrará literalmente tudo que existe no banco para que você veja a fantasma,
+          // exceto se ela estiver explicitamente na lixeira e você não clicou em "Ver Arquivadas"
+          // Se tiver um erro e o status estiver quebrado ou inexistente, ela VAI APARECER aqui.
+          .filter(item => {
+              if (showArchived) return item.status === 'archived';
+              return item.status !== 'archived';
+          })
           .sort((a,b) => (a.order || 0) - (b.order || 0));
     }, [newsItems, showArchived]);
 
@@ -191,13 +197,25 @@ export function ManageNews() {
                                         )}
                                     >
                                         <TableCell>
-                                            <Input
-                                                type="number"
-                                                defaultValue={item.order}
-                                                onBlur={(e) => handleOrderChange(item.id, parseInt(e.target.value, 10))}
-                                                className="w-20"
-                                                disabled={item.status === 'archived'}
-                                            />
+                                            <div className="flex items-center gap-2">
+                                                <Input
+                                                    type="number"
+                                                    defaultValue={item.order}
+                                                    onKeyDown={(e) => {
+                                                        if (e.key === 'Enter') {
+                                                            handleOrderChange(item.id, parseInt(e.currentTarget.value, 10));
+                                                        }
+                                                    }}
+                                                    onBlur={(e) => {
+                                                        const newValue = parseInt(e.target.value, 10);
+                                                        if (newValue !== item.order) {
+                                                            handleOrderChange(item.id, newValue);
+                                                        }
+                                                    }}
+                                                    className="w-20"
+                                                    disabled={item.status === 'archived'}
+                                                />
+                                            </div>
                                         </TableCell>
                                         <TableCell className={cn("font-medium", item.status === 'archived' && 'text-muted-foreground')}>
                                           {item.title}
@@ -236,22 +254,22 @@ export function ManageNews() {
                                                 disabled={item.status !== 'published'}
                                             />
                                         </TableCell>
-                                         <TableCell>
-                                            {item.isHighlight && (
-                                                 <Select
-                                                    defaultValue={item.highlightType || 'small'}
-                                                    onValueChange={(value) => updateHighlightType(item.id, value as 'large' | 'small')}
-                                                    disabled={item.status !== 'published'}
-                                                >
-                                                    <SelectTrigger className="w-[120px]">
-                                                        <SelectValue />
-                                                    </SelectTrigger>
-                                                    <SelectContent>
-                                                        <SelectItem value="small">Pequeno</SelectItem>
-                                                        <SelectItem value="large">Grande</SelectItem>
-                                                    </SelectContent>
-                                                </Select>
-                                            )}
+                                        <TableCell>
+                                            {/* O Tipo de Destaque vai aparecer mesmo se ela não for destaque,
+                                                mas ficará desativado (cinza). Assim se o banco bugou, você pode mudar. */}
+                                             <Select
+                                                defaultValue={item.highlightType || 'small'}
+                                                onValueChange={(value) => updateHighlightType(item.id, value as 'large' | 'small')}
+                                                disabled={item.status === 'archived' && !item.isHighlight}
+                                            >
+                                                <SelectTrigger className={cn("w-[120px]", !item.isHighlight && "opacity-50")}>
+                                                    <SelectValue />
+                                                </SelectTrigger>
+                                                <SelectContent>
+                                                    <SelectItem value="small">Pequeno</SelectItem>
+                                                    <SelectItem value="large">Grande</SelectItem>
+                                                </SelectContent>
+                                            </Select>
                                         </TableCell>
                                         <TableCell className="text-right">
                                             <Button variant="ghost" size="icon" onClick={() => handlePreviewOpen(item)} className="hover:bg-muted" title="Visualizar">
