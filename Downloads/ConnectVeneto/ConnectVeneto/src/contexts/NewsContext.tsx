@@ -98,10 +98,10 @@ export const NewsProvider = ({ children }: { children: ReactNode }) => {
     onSuccess: () => {
         queryClient.invalidateQueries({ queryKey: [COLLECTION_NAME] });
     },
-    onError: () => {
+    onError: (error) => {
         toast({
             title: "Erro ao Salvar",
-            description: "Não foi possível salvar a notícia. Verifique suas permissões ou a conexão.",
+            description: `Não foi possível salvar a notícia. Detalhes: ${error.message}`,
             variant: "destructive",
         });
     }

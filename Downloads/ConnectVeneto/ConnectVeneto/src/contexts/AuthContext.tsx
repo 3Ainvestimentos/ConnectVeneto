@@ -15,10 +15,8 @@ import type { FirebaseError } from 'firebase/app';
 import { normalizeEmail } from '@/lib/email-utils';
 import { bootstrapTrace, resetBootstrapTrace } from '@/lib/bootstrap-trace';
 
-const scopes = [
-  'https://www.googleapis.com/auth/calendar.readonly',
-  'https://www.googleapis.com/auth/drive.readonly'
-];
+/** Drive ainda usa OAuth no widget de arquivos; calendário passou a API pública via /api/calendar. */
+const scopes = ['https://www.googleapis.com/auth/drive.readonly'];
 scopes.forEach(scope => googleProvider.addScope(scope));
 googleProvider.setCustomParameters({
   hd: 'venetomfo.com.br',

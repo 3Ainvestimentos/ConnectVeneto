@@ -307,7 +307,8 @@ export const addDocumentToCollection = async <T extends object>(collectionName: 
         if (error instanceof Error) {
             console.error('Data that caused the error:', data);
         }
-        throw new Error('Não foi possível adicionar o novo item.');
+        const msg = error instanceof Error ? error.message : String(error);
+        throw new Error(`Não foi possível adicionar o novo item. Detalhes: ${msg}`);
     }
 };
 
@@ -415,7 +416,8 @@ export const updateDocumentInCollection = async <T extends object>(collectionNam
          if (error instanceof Error) {
             console.error('Data that caused the error:', data);
         }
-        throw new Error('Não foi possível salvar as alterações.');
+        const msg = error instanceof Error ? error.message : String(error);
+        throw new Error(`Não foi possível salvar as alterações. Detalhes: ${msg}`);
     }
 };
 

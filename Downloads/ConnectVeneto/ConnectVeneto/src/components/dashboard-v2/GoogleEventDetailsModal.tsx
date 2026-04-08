@@ -64,7 +64,7 @@ export function GoogleEventDetailsModal({ isOpen, onClose, event }: GoogleEventD
              <Calendar className="h-6 w-6 mt-1 text-muted-foreground" />
              <span>{event.summary}</span>
           </DialogTitle>
-          <DialogDescription>Detalhes do evento do Google Calendar.</DialogDescription>
+          <DialogDescription>Detalhes do evento da agenda.</DialogDescription>
         </DialogHeader>
         
         <ScrollArea className="max-h-[60vh] pr-4">
