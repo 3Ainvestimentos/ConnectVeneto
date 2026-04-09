@@ -18,14 +18,10 @@ import { FEATURE_FLAGS } from '@/config/features';
 
 const allPermissionLabels: { key: keyof CollaboratorPermissions; label: string; featureFlag?: keyof typeof FEATURE_FLAGS }[] = [
     { key: 'canManageContent', label: 'Conteúdo' },
-    { key: 'canManageWorkflows', label: 'Workflows' },
     { key: 'canManageRequests', label: 'Solicitações' },
     { key: 'canManageTripsBirthdays', label: 'Viagens/Aniversários' },
     { key: 'canManageVacation', label: 'Férias' },
-    { key: 'canViewTasks', label: 'Minhas Tarefas' },
     { key: 'canViewBI', label: 'Painéis', featureFlag: 'businessIntelligence' },
-    { key: 'canViewOpportunityMap', label: 'Mapa de Oportunidades' },
-    { key: 'canViewMeetAnalyses', label: 'Bob Meet Análises' },
 ];
 
 const permissionLabels = allPermissionLabels.filter((item) =>

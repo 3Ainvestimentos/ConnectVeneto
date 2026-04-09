@@ -64,8 +64,8 @@ export default function NewsHighlights() {
         return hasLarge ? "grid-cols-1 md:grid-cols-3" : "grid-cols-1 md:grid-cols-2";
       case 3:
       default:
-        // Grid original para 3 cards (empilhados)
-        return "grid-cols-1 md:grid-cols-2 md:grid-rows-2";
+        // Grid original para 3 cards (empilhados) - removido md:grid-rows-2 que estava quebrando o layout
+        return "grid-cols-1 md:grid-cols-2";
     }
   };
 
@@ -131,13 +131,25 @@ export default function NewsHighlights() {
         const mainCard3 = highlights[mainIdx];
         const sideCards3 = highlights.filter((_, idx) => idx !== mainIdx);
 
+        if (mainIdx === 0) {
+          return (
+            <>
+              <HighlightCard item={mainCard3} className="h-[250px] md:h-[500px] w-full" />
+              <div className="flex flex-col gap-3">
+                <HighlightCard item={sideCards3[0]} className="h-[200px] md:h-[244px] w-full" />
+                <HighlightCard item={sideCards3[1]} className="h-[200px] md:h-[244px] w-full" />
+              </div>
+            </>
+          );
+        }
+
         return (
           <>
             <div className="flex flex-col gap-3">
-              <HighlightCard item={sideCards3[0]} className="h-[200px] md:h-[242px] w-full" />
-              <HighlightCard item={sideCards3[1]} className="h-[200px] md:h-[242px] w-full" />
+              <HighlightCard item={sideCards3[0]} className="h-[200px] md:h-[244px] w-full" />
+              <HighlightCard item={sideCards3[1]} className="h-[200px] md:h-[244px] w-full" />
             </div>
-            <HighlightCard item={mainCard3} className="h-[250px] md:h-[500px] md:min-h-[500px] md:row-span-2 w-full" />
+            <HighlightCard item={mainCard3} className="h-[250px] md:h-[500px] w-full" />
           </>
         );
     }

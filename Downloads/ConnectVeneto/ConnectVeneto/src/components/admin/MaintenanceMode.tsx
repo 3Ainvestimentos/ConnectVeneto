@@ -577,7 +577,6 @@ export function MaintenanceMode() {
       <SuperAdminsCard />
       <CollaboratorImporterAdminsCard />
       <MaintenanceCard />
-      <LegalDocsCard />
     </div>
   );
 }

@@ -63,12 +63,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (loading || collaboratorsLoading || settingsLoading || isSuperAdmin) return;
     
-    if (currentUserCollab) {
-      const userTermsVersion = currentUserCollab.acceptedTermsVersion || 0;
-      if (userTermsVersion < settings.termsVersion) {
-        setShowTermsModal(true);
-      }
-    }
+    // Funcionalidade de Termos de Uso desativada
   }, [currentUserCollab, settings.termsVersion, loading, collaboratorsLoading, settingsLoading, isSuperAdmin]);
   
   const handleAcceptTerms = async () => {

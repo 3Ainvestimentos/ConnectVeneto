@@ -11,13 +11,12 @@ import { Label } from '@/components/ui/label';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { PlusCircle, Edit, Trash2, Loader2, Upload, FileDown, AlertTriangle, Search, ChevronUp, ChevronDown, Folder, Table2, Filter, History } from 'lucide-react';
+import { PlusCircle, Edit, Trash2, Loader2, Upload, FileDown, AlertTriangle, Search, ChevronUp, ChevronDown, Table2, Filter, History } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../ui/card';
 import { toast } from '@/hooks/use-toast';
 import { ScrollArea } from '../ui/scroll-area';
 import Papa from 'papaparse';
 import { Badge } from '../ui/badge';
-import { Textarea } from '../ui/textarea';
 import { Separator } from '../ui/separator';
 import { DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '../ui/dropdown-menu';
 import { useSystemSettings } from '@/contexts/SystemSettingsContext';
@@ -98,7 +97,6 @@ function mapCsvRowToCollaboratorDraft(row: CsvRow): Omit<Collaborator, 'id'> | n
   if (!segment) segment = DEFAULT_AXIS_SEGMENT_IMPORT;
 
   const photoURL = pickCsvCell(m, 'photourl', 'photo url', 'url da foto') || '';
-  const gdlRaw = pickCsvCell(m, 'googledrivelinks', 'google drive links');
 
   if (!idVeneto || !name || !email || !area || !position || !city) return null;
 
@@ -115,7 +113,6 @@ function mapCsvRowToCollaboratorDraft(row: CsvRow): Omit<Collaborator, 'id'> | n
     ...(lideranca ? { lideranca } : {}),
     city,
     permissions: defaultPermissions,
-    googleDriveLinks: gdlRaw ? gdlRaw.split(',').map((l) => l.trim()).filter(Boolean) : [],
   };
 }
 
@@ -188,7 +185,6 @@ const collaboratorSchema = z.object({
     leader: z.string().min(1, "Líder é obrigatório"),
     lideranca: z.string().optional().or(z.literal('')),
     city: z.string().min(1, "Cidade é obrigatória"),
-    googleDriveLinks: z.union([z.string(), z.array(z.string().url("URL inválida."))]).optional(),
     consultaLinks: z.object({
         mesa: consultaUrlSchema,
         cliente: consultaUrlSchema,
@@ -338,7 +334,6 @@ export function ManageCollaborators() {
         if (collaborator) {
             reset({
               ...collaborator,
-              googleDriveLinks: collaborator.googleDriveLinks ? collaborator.googleDriveLinks.join('\\n') : '',
               consultaLinks: {
                 mesa: collaborator.consultaLinks?.mesa || '',
                 cliente: collaborator.consultaLinks?.cliente || '',
@@ -359,7 +354,6 @@ export function ManageCollaborators() {
                 leader: '',
                 lideranca: '',
                 city: '',
-                googleDriveLinks: [],
                 consultaLinks: { mesa: '', cliente: '', cx: '' },
             });
         }
@@ -384,9 +378,6 @@ export function ManageCollaborators() {
           idVeneto: data.idVeneto,
           lideranca: data.lideranca?.trim() || undefined,
           permissions: editingCollaborator?.permissions || defaultPermissions,
-          googleDriveLinks: typeof data.googleDriveLinks === 'string'
-            ? data.googleDriveLinks.split('\\n').map(link => link.trim()).filter(Boolean)
-            : data.googleDriveLinks || []
         };
         
         try {
@@ -594,7 +585,6 @@ export function ManageCollaborators() {
                                     <FilterableHeader fkey="leader" label="Líder" uniqueValues={uniqueLeaders} />
                                     <FilterableHeader fkey="lideranca" label="Liderança" uniqueValues={uniqueLideranca} />
                                     <FilterableHeader fkey="city" label="Cidade" uniqueValues={uniqueCities} />
-                                    <TableHead>Google Drive</TableHead>
                                     <TableHead>Links Consulta</TableHead>
                                     <TableHead className="text-right">Ações</TableHead>
                                 </TableRow>
@@ -612,16 +602,6 @@ export function ManageCollaborators() {
                                         <TableCell>{item.leader}</TableCell>
                                         <TableCell>{item.lideranca || '—'}</TableCell>
                                         <TableCell>{item.city}</TableCell>
-                                        <TableCell>
-                                            {item.googleDriveLinks && item.googleDriveLinks.length > 0 ? (
-                                                <Badge variant="secondary" className="flex items-center w-fit gap-1.5">
-                                                    <Folder className="h-3 w-3" />
-                                                    {item.googleDriveLinks.length} pasta(s)
-                                                </Badge>
-                                            ) : (
-                                                <Badge variant="outline">Padrão</Badge>
-                                            )}
-                                        </TableCell>
                                         <TableCell>
                                             {consultaCount > 0 ? (
                                                 <Badge variant="secondary" className="flex items-center w-fit gap-1.5">
@@ -734,13 +714,6 @@ export function ManageCollaborators() {
                             </div>
                         </div>
                         <Separator/>
-                         <div>
-                            <Label htmlFor="googleDriveLinks">Links do Google Drive (um por linha)</Label>
-                             <Textarea id="googleDriveLinks" {...register('googleDriveLinks')} placeholder="https://drive.google.com/drive/folders/...\\nhttps://drive.google.com/drive/folders/..." disabled={isFormSubmitting} rows={3}/>
-                            <p className="text-xs text-muted-foreground mt-1">Deixe em branco para usar a pasta &quot;Meu Drive&quot; padrão.</p>
-                            {errors.googleDriveLinks && <p className="text-sm text-destructive mt-1">{errors.googleDriveLinks.message}</p>}
-                        </div>
-                        <Separator/>
                         <div>
                             <Label>Links Consulta Pessoal (opcional)</Label>
                             <div className="space-y-3 mt-2">
@@ -803,9 +776,9 @@ export function ManageCollaborators() {
                             <li>
                                 <strong>Formato legado (inglês):</strong>{' '}
                                 <code className="block bg-muted p-1.5 rounded-md my-1.5 text-[11px] break-all">idVeneto,name,email,area,position,leader,city</code>
-                                e opcionalmente <code className="text-[11px]">axis, segment, lideranca, photoURL, googleDriveLinks</code>.
+                                e opcionalmente <code className="text-[11px]">axis, segment, lideranca, photoURL</code>.
                             </li>
-                             <li>As colunas `photoURL` e `googleDriveLinks` são opcionais. Para múltiplos links do Drive, separe-os por vírgula no campo.</li>
+                             <li>A coluna `photoURL` é opcional.</li>
                             <li>Preencha as linhas com os dados de cada colaborador.</li>
                             <li>Exporte ou salve o arquivo no formato **CSV (Valores Separados por Vírgula)**.</li>
                             <li>Clique no botão abaixo para selecionar e enviar o arquivo.</li>

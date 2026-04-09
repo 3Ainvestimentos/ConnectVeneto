@@ -48,12 +48,20 @@ export function TermsOfUseModal({ isOpen, termsUrl, onAccept, onDecline }: Terms
             Por favor, leia e aceite os termos para continuar.
           </DialogDescription>
         </DialogHeader>
-        <div className="flex-grow min-h-0 border rounded-md bg-muted/30">
-            <iframe 
-                src={viewerUrl}
-                className="w-full h-full border-0"
-                title="Termos de Uso"
-            />
+        <div className="flex-grow min-h-0 border rounded-md bg-muted/30 flex items-center justify-center">
+            {termsUrl ? (
+                <iframe 
+                    src={viewerUrl}
+                    className="w-full h-full border-0"
+                    title="Termos de Uso"
+                />
+            ) : (
+                <div className="text-center p-6 text-muted-foreground">
+                   <p className="font-semibold text-lg text-foreground mb-2">Termos de Uso Indisponíveis</p>
+                   <p>O administrador do sistema ainda não configurou o link para os Termos de Uso e Política de Privacidade.</p>
+                   <p className="text-sm mt-4">Você ainda pode aceitar para prosseguir se foi orientado a isso, ou aguardar a configuração.</p>
+                </div>
+            )}
         </div>
         <div className="flex items-center space-x-2 pt-4">
           <Checkbox id="terms-checkbox" checked={isChecked} onCheckedChange={(checked) => setIsChecked(!!checked)} />

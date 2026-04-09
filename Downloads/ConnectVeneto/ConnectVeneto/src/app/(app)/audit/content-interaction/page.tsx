@@ -8,12 +8,11 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { getCollection, WithId, listenToCollection } from '@/lib/firestore-service';
 import { Skeleton } from '@/shared/components/ui/skeleton';
-import { Eye, FileText, Newspaper, User, Medal, FileDown, Route, Trophy, Bot, LineChart as LineChartIcon } from 'lucide-react';
+import { Eye, FileText, Newspaper, User, Medal, FileDown, Route, Trophy } from 'lucide-react';
 import { Badge } from '@/shared/components/ui/badge';
 import { Button } from '@/shared/components/ui/button';
 import Papa from 'papaparse';
-import { format, parseISO, startOfDay, eachDayOfInterval, compareAsc, isWithinInterval, endOfDay } from 'date-fns';
-import { ResponsiveContainer, LineChart, CartesianGrid, XAxis, YAxis, Tooltip, Legend, Line } from 'recharts';
+import { format, parseISO, startOfDay, isWithinInterval, endOfDay } from 'date-fns';
 import { useAudit } from '@/contexts/AuditContext';
 
 type AuditLogEvent = WithId<{
@@ -68,8 +67,8 @@ export default function ContentInteractionPage() {
     }, [allEvents, dateRange]);
 
 
-    const { contentStats, top5Contents, pageAccessCounts, chatbotAccessHistory, topChatbotUsers } = useMemo(() => {
-        if (isLoading || !events.length) return { contentStats: [], top5Contents: [], pageAccessCounts: [], chatbotAccessHistory: [], topChatbotUsers: [] };
+    const { contentStats, top5Contents, pageAccessCounts } = useMemo(() => {
+        if (isLoading || !events.length) return { contentStats: [], top5Contents: [], pageAccessCounts: [] };
 
         const viewEvents = events.filter(e => e.eventType === 'content_view' || e.eventType === 'document_download');
 
@@ -110,57 +109,10 @@ export default function ContentInteractionPage() {
           
         const top5Contents = contentStats.slice(0, 5);
 
-        // Chatbot specific analytics
-        const chatbotEvents = events
-          .filter(e => e.eventType === 'page_view' && e.details.path === '/chatbot')
-          .sort((a, b) => compareAsc(parseISO(a.timestamp), parseISO(b.timestamp)));
-        
-        // Chatbot History
-        let chatbotAccessHistory: { date: string; "Acessos Totais": number; "Acessos Únicos": number }[] = [];
-        if (chatbotEvents.length > 0 && dateRange?.from && dateRange.to) {
-            const startDate = startOfDay(dateRange.from);
-            const endDate = startOfDay(dateRange.to);
 
-            const dateRangeInterval = eachDayOfInterval({ start: startDate, end: endDate });
+        return { contentStats, top5Contents, pageAccessCounts };
 
-            const accessByDay: { [key: string]: { total: number, uniqueUsers: Set<string> } } = {};
-            chatbotEvents.forEach(event => {
-                const dayKey = format(startOfDay(parseISO(event.timestamp)), 'yyyy-MM-dd');
-                if (!accessByDay[dayKey]) {
-                    accessByDay[dayKey] = { total: 0, uniqueUsers: new Set() };
-                }
-                accessByDay[dayKey].total += 1;
-                accessByDay[dayKey].uniqueUsers.add(event.userId);
-            });
-
-            chatbotAccessHistory = dateRangeInterval.map(day => {
-                const dayKey = format(day, 'yyyy-MM-dd');
-                return {
-                    date: format(day, 'dd/MM'),
-                    'Acessos Totais': accessByDay[dayKey]?.total || 0,
-                    'Acessos Únicos': accessByDay[dayKey]?.uniqueUsers.size || 0,
-                };
-            });
-        }
-
-        // Top 5 chatbot users
-        const chatbotUserCounts = chatbotEvents.reduce((acc, event) => {
-            if (!acc[event.userId]) {
-                acc[event.userId] = { name: event.userName, count: 0 };
-            }
-            acc[event.userId].count++;
-            return acc;
-        }, {} as Record<string, { name: string; count: number }>);
-
-        const topChatbotUsers = Object.entries(chatbotUserCounts)
-            .map(([userId, data]) => ({ userId, ...data }))
-            .sort((a, b) => b.count - a.count)
-            .slice(0, 5);
-
-
-        return { contentStats, top5Contents, pageAccessCounts, chatbotAccessHistory, topChatbotUsers };
-
-    }, [events, isLoading, dateRange]);
+    }, [events, isLoading]);
 
     const handleExport = () => {
         const dataForCsv = contentStats.map(item => ({
@@ -243,68 +195,6 @@ export default function ContentInteractionPage() {
                         </CardContent>
                     </Card>
                 </div>
-                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                    <Card className="lg:col-span-2">
-                        <CardHeader>
-                            <CardTitle className="flex items-center gap-2"><Bot className="h-5 w-5"/>Histórico de Acessos ao Chatbot Bob</CardTitle>
-                            <CardDescription>Acessos totais e únicos à página do chatbot ao longo do tempo.</CardDescription>
-                        </CardHeader>
-                        <CardContent>
-                            {isLoading ? <Skeleton className="h-64 w-full" /> : chatbotAccessHistory.length > 0 ? (
-                                <ResponsiveContainer width="100%" height={300}>
-                                    <LineChart data={chatbotAccessHistory}>
-                                        <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))"/>
-                                        <XAxis dataKey="date" stroke="hsl(var(--muted-foreground))" fontSize={12}/>
-                                        <YAxis stroke="hsl(var(--muted-foreground))" fontSize={12} allowDecimals={false}/>
-                                        <Tooltip contentStyle={{ backgroundColor: "hsl(var(--background))", borderColor: "hsl(var(--border))" }}/>
-                                        <Legend />
-                                        <Line type="monotone" dataKey="Acessos Totais" stroke="hsl(var(--chart-1))" strokeWidth={2} activeDot={{ r: 8 }} dot={false}/>
-                                        <Line type="monotone" dataKey="Acessos Únicos" stroke="hsl(var(--chart-2))" strokeWidth={2} activeDot={{ r: 8 }} dot={false}/>
-                                    </LineChart>
-                                </ResponsiveContainer>
-                            ) : (
-                                <div className="text-center py-10 text-muted-foreground">
-                                    <LineChartIcon className="mx-auto h-12 w-12 text-muted-foreground/50" />
-                                    <p className="mt-4">Ainda não há dados de acesso para o chatbot.</p>
-                                </div>
-                            )}
-                        </CardContent>
-                    </Card>
-                    <Card>
-                         <CardHeader>
-                            <CardTitle className="flex items-center gap-2"><Trophy className="h-5 w-5 text-amber-500"/> Top 5 - Maiores Usuários do Bob</CardTitle>
-                            <CardDescription>Colaboradores com mais acessos à página do chatbot.</CardDescription>
-                        </CardHeader>
-                        <CardContent>
-                            {isLoading ? <Skeleton className="h-48 w-full" /> : topChatbotUsers.length > 0 ? (
-                                <div className="border rounded-lg overflow-hidden">
-                                    <Table>
-                                        <TableHeader>
-                                            <TableRow>
-                                                <TableHead>#</TableHead>
-                                                <TableHead>Colaborador</TableHead>
-                                                <TableHead className="text-right">Acessos</TableHead>
-                                            </TableRow>
-                                        </TableHeader>
-                                        <TableBody>
-                                            {topChatbotUsers.map((user, index) => (
-                                                <TableRow key={user.userId}>
-                                                    <TableCell className="font-medium">{index + 1}</TableCell>
-                                                    <TableCell>{user.name}</TableCell>
-                                                    <TableCell className="text-right font-mono font-bold">{user.count}</TableCell>
-                                                </TableRow>
-                                            ))}
-                                        </TableBody>
-                                    </Table>
-                                </div>
-                            ) : (
-                                <p className="text-sm text-muted-foreground text-center py-10">Sem dados de acesso.</p>
-                            )}
-                        </CardContent>
-                    </Card>
-                </div>
-
-
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                     <Card className="lg:col-span-2">
                         <CardHeader>
