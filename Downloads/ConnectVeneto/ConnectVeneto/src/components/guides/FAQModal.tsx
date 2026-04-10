@@ -28,24 +28,44 @@ interface FAQModalProps {
 const faqItems = [
   {
     question: "Como faço para acessar a plataforma?",
-    answer: "O login na Intranet Veneto é feito com sua conta Google corporativa da Veneto (@venetomfo.com.br). Na página inicial, clique em 'Entrar com Google' e use suas credenciais."
+    answer:
+      "O login na Intranet Veneto é feito com sua conta Google corporativa da Veneto (@venetomfo.com.br). Na página inicial, clique em 'Entrar com Google' e use suas credenciais.",
   },
   {
     question: "Onde eu inicio uma solicitação (reembolso, férias, etc.)?",
-    answer: "Vá para a seção 'Solicitações' no menu lateral. Lá você verá cards fixos por área (ex.: Legal e Compliance, Inteligência Comercial, Mesa, Financeiro, Wealth Planning e TI/Suporte). Clique em uma área para abrir os links de formulários e documentos. O retorno de cada pedido depende do formulário ou da equipe — esta página só direciona aos canais."
+    answer:
+      "Vá para 'Solicitações' no menu lateral. Há um card para cada área: Legal e Compliance, Geral, Marketing, Inteligência Comercial, Mesa, Financeiro, Wealth Planning e TI/Suporte. Clique no card desejado para abrir formulários, documentos e materiais daquele tema. Em Inteligência Comercial você também encontra a tabela de SLAs para consulta. O acompanhamento de cada pedido fica no canal correspondente (e-mail, Monday, Google Forms etc.) ou com a equipe responsável — esta página apenas direciona aos links.",
   },
   {
     question: "Como acompanho minhas solicitações e tarefas?",
-    answer: "Para solicitações abertas pelos links desta intranet, o acompanhamento costuma ser pelo próprio formulário (e-mail de confirmação, Monday, Google Forms etc.) ou pela área responsável. Se você usa fluxos internos de aprovação da plataforma, tarefas pendentes podem aparecer em 'Minhas Tarefas/Ações', pelo menu do seu avatar."
+    answer:
+      "Para pedidos feitos pelos links desta intranet, o acompanhamento costuma ser pelo próprio canal de envio (confirmação por e-mail, Monday, Google Forms) ou diretamente com a área responsável. Se você usa fluxos internos de aprovação na plataforma, tarefas pendentes podem aparecer em 'Minhas Tarefas/Ações', pelo menu do seu avatar.",
+  },
+  {
+    question: "O que é a Consulta Pessoal?",
+    answer:
+      "A Consulta Pessoal reúne os links para as principais planilhas pessoais dos colaboradores. Quando houver mais de um tipo (por exemplo MESA, CLIENTE ou CX), use as abas no topo da página para alternar entre elas.",
+  },
+  {
+    question: "Onde estão os documentos da instituição?",
+    answer:
+      "Os documentos ficam no Repositório de Documentos: use o item 'Documentos' no menu lateral para abrir essa página. Lá há materiais fixos da Vêneto e demais documentos cadastrados; use a pesquisa e os filtros por categoria e tipo para localizar o que precisa.",
+  },
+  {
+    question: "O que encontro na Área Logada?",
+    answer:
+      "Na Área Logada há acesso ao Relatório Virtual, ao Terminal de consulta e à Área do Cliente. Os links abrem em nova aba.",
   },
   {
     question: "O que encontro na seção 'Regras Comerciais'?",
-    answer: "A seção 'Regras Comerciais' reúne o Framework de Reuniões (R1, R1 Offshore, R2 e R3) e a apresentação de Mix de Serviços da Vêneto, incluindo a política comercial vigente."
+    answer:
+      "A seção 'Regras Comerciais' reúne o Framework de Reuniões (R1, R1 Offshore, R2 e R3) e a apresentação de Mix de Serviços da Vêneto, incluindo a política comercial vigente.",
   },
   {
     question: "Como posso visualizar meu perfil e alterar o tema?",
-    answer: "Clique no seu avatar no canto superior direito para abrir o menu. Selecione 'Meu Perfil' para ver suas informações. No mesmo menu, você encontrará a opção 'Tema' para alternar entre os modos claro e escuro."
-  }
+    answer:
+      "Clique no seu avatar no canto superior direito para abrir o menu. Selecione 'Meu Perfil' para ver suas informações. No mesmo menu, use a opção 'Tema' para alternar entre os modos claro e escuro.",
+  },
 ];
 
 export default function FAQModal({ open, onOpenChange }: FAQModalProps) {
@@ -60,7 +80,7 @@ export default function FAQModal({ open, onOpenChange }: FAQModalProps) {
             <DialogTitle className="font-headline text-2xl">Guias e FAQ</DialogTitle>
           </div>
           <DialogDescription className="text-sm">
-            Encontre respostas para perguntas frequentes e guias de utilizacao da Intranet Veneto
+            Encontre respostas para perguntas frequentes e guias de utilização da Intranet Veneto
           </DialogDescription>
         </DialogHeader>
         <div className="py-2 max-h-[60vh] overflow-y-auto pr-4">

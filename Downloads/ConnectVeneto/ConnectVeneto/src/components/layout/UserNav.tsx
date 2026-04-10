@@ -34,7 +34,6 @@ import {
   Fingerprint,
   Shield,
   Edit,
-  Plane,
 } from "lucide-react";
 
 type UserNavProps = {
@@ -64,8 +63,6 @@ export function UserNav({ onProfileClick, hasPendingRequests, hasPendingTasks }:
   const hasAdminPanels =
     permissions.canManageContent ||
     permissions.canManageWorkflows ||
-    permissions.canManageTripsBirthdays ||
-    permissions.canManageVacation ||
     isSuperAdmin;
 
   return (
@@ -123,14 +120,6 @@ export function UserNav({ onProfileClick, hasPendingRequests, hasPendingTasks }:
                   <Link href="/admin/content" className="cursor-pointer font-body">
                     <Edit className="mr-2 h-4 w-4" />
                     <span>Conteúdo</span>
-                  </Link>
-                </DropdownMenuItem>
-              )}
-              {(permissions.canManageTripsBirthdays || permissions.canManageVacation) && (
-                <DropdownMenuItem asChild>
-                  <Link href="/admin/travel-birthdays" className="cursor-pointer font-body">
-                    <Plane className="mr-2 h-4 w-4" />
-                    <span>Viagens/Férias</span>
                   </Link>
                 </DropdownMenuItem>
               )}

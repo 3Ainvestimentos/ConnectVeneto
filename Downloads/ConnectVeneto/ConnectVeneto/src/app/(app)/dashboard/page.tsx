@@ -76,14 +76,14 @@ export default function DashboardV2Page() {
 
         <NewsHighlights />
 
-        <section className="flex flex-col md:flex-row gap-6">
-          <div className="w-full md:w-3/4">
+        <section className="grid grid-cols-1 md:grid-cols-12 gap-6">
+          <div className="md:col-span-9 min-w-0">
             <WidgetErrorBoundary title="Feed RSS indisponível">
               <RssFeed />
             </WidgetErrorBoundary>
           </div>
-          <div className="w-full md:w-1/4">
-            <Card className="h-full flex flex-col">
+          <div className="md:col-span-3 min-w-0 flex">
+            <Card className="h-full w-full flex flex-col">
               <CardHeader>
                 <Image src="https://firebasestorage.googleapis.com/v0/b/a-riva-hub.firebasestorage.app/o/Imagens%20institucionais%20(logos%20e%20etc)%2FTradingView-Logo.png?alt=media&token=197efd23-e52d-42d2-8554-424ad5df43a4" alt="TradingView Logo" width={195} height={52} />
                  <CardDescription>
@@ -100,68 +100,84 @@ export default function DashboardV2Page() {
         </section>
         
         <section className="space-y-6">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                 <div>
-                    <GoogleCalendar />
-                 </div>
-                <div>
-                    <Card className="shadow-sm w-full h-full flex flex-col">
-                        <CardHeader>
-                            <CardTitle className="font-headline text-foreground text-xl">Contatos</CardTitle>
-                            <CardDescription>Canal Slack dos responsáveis pelas áreas da empresa.</CardDescription>
-                        </CardHeader>
-                        <CardContent className="flex-grow">
-                            {contacts.length === 0 ? (
-                                <p className="text-sm text-muted-foreground p-4">Nenhum contato encontrado.</p>
-                            ) : (
-                                <div className="space-y-2">
-                                    {contacts.map(contact => (
-                                         <a href={contact.slackUrl} key={contact.id} target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 text-sm p-2 rounded-md hover:bg-muted">
-                                            <Image src="https://firebasestorage.googleapis.com/v0/b/a-riva-hub.firebasestorage.app/o/Imagens%20institucionais%20(logos%20e%20etc)%2Ficons8-slack-new-48.png?alt=media&token=7a2d489c-3501-4b01-a206-32673c8a8a99" alt="Slack icon" width={16} height={16} />
-                                            <div className="truncate">
-                                                <p className="font-semibold truncate">{contact.area}</p>
-                                                <p className="text-xs text-muted-foreground truncate">{contact.manager}</p>
-                                            </div>
-                                        </a>
-                                    ))}
-                                </div>
-                            )}
-                        </CardContent>
-                    </Card>
-                </div>
+          <div className="grid grid-cols-1 md:grid-cols-12 md:items-stretch gap-6">
+            <div className="md:col-span-6 min-w-0">
+              <GoogleCalendar />
             </div>
-            {quickLinks.length > 0 && (
-                <Card className="shadow-sm w-full">
-                    <CardHeader>
-                        <CardTitle className="font-headline text-foreground text-xl">Links Rápidos</CardTitle>
-                        <CardDescription>Acesse sistemas e recursos.</CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                        <div className="flex flex-wrap justify-center gap-4">
-                            {quickLinks.map(link => (
-                                <a
-                                    href={link.link}
-                                    key={link.id}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="flex items-center p-2 rounded-md hover:bg-muted transition-colors shrink-0"
-                                    title={link.name || 'Link Rápido'}
-                                >
-                                    <span className="shrink-0 w-32 h-12 flex items-center justify-center bg-card dark:bg-white rounded overflow-hidden">
-                                        <Image
-                                            src={link.imageUrl}
-                                            alt={link.name || 'Quick Link'}
-                                            width={112}
-                                            height={40}
-                                            className="object-contain p-1"
-                                        />
-                                    </span>
-                                </a>
-                            ))}
-                        </div>
-                    </CardContent>
-                </Card>
-            )}
+            <div className="md:col-span-3 min-w-0 flex">
+              <Card className="shadow-sm w-full h-full flex flex-col">
+                <CardHeader>
+                  <CardTitle className="font-headline text-foreground text-xl">Contatos</CardTitle>
+                  <CardDescription>Canal Slack dos responsáveis pelas áreas da empresa.</CardDescription>
+                </CardHeader>
+                <CardContent className="flex-grow min-h-0 overflow-y-auto">
+                  {contacts.length === 0 ? (
+                    <p className="text-sm text-muted-foreground p-4">Nenhum contato encontrado.</p>
+                  ) : (
+                    <div className="space-y-2">
+                      {contacts.map((contact) => (
+                        <a
+                          href={contact.slackUrl}
+                          key={contact.id}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center gap-3 text-sm p-2 rounded-md hover:bg-muted"
+                        >
+                          <Image
+                            src="https://firebasestorage.googleapis.com/v0/b/a-riva-hub.firebasestorage.app/o/Imagens%20institucionais%20(logos%20e%20etc)%2Ficons8-slack-new-48.png?alt=media&token=7a2d489c-3501-4b01-a206-32673c8a8a99"
+                            alt="Slack icon"
+                            width={16}
+                            height={16}
+                          />
+                          <div className="truncate min-w-0">
+                            <p className="font-semibold truncate">{contact.area}</p>
+                            <p className="text-xs text-muted-foreground truncate">{contact.manager}</p>
+                          </div>
+                        </a>
+                      ))}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
+            <div className="md:col-span-3 min-w-0 flex">
+              <Card className="shadow-sm w-full h-full flex flex-col">
+                <CardHeader>
+                  <CardTitle className="font-headline text-foreground text-xl">Links Rápidos</CardTitle>
+                  <CardDescription>Acesse sistemas e recursos.</CardDescription>
+                </CardHeader>
+                <CardContent className="flex-grow min-h-0 overflow-y-auto">
+                  {quickLinks.length > 0 ? (
+                    <div className="flex flex-col gap-2">
+                      {quickLinks.map((link) => (
+                        <a
+                          href={link.link}
+                          key={link.id}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center gap-3 p-2 rounded-md hover:bg-muted transition-colors min-w-0"
+                          title={link.name || 'Link rápido'}
+                        >
+                          <span className="shrink-0 w-10 h-10 flex items-center justify-center bg-card dark:bg-white rounded overflow-hidden border border-border/60">
+                            <Image
+                              src={link.imageUrl}
+                              alt={link.name || 'Link rápido'}
+                              width={36}
+                              height={36}
+                              className="object-contain p-0.5"
+                            />
+                          </span>
+                          {link.name ? (
+                            <span className="text-sm font-medium truncate min-w-0">{link.name}</span>
+                          ) : null}
+                        </a>
+                      ))}
+                    </div>
+                  ) : null}
+                </CardContent>
+              </Card>
+            </div>
+          </div>
         </section>
       </div>
       <VenetoMarketingFooter variant="flow" />

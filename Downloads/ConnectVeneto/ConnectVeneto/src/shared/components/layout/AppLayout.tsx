@@ -15,7 +15,7 @@ import {
 } from '@/shared/components/ui/sidebar';
 import { Header } from './Header';
 import Link from 'next/link';
-import { LogOut, UserCircle, Sun, Moon, HelpCircle, Shield, Mailbox, ListTodo, Fingerprint, Edit, Plane } from 'lucide-react';
+import { LogOut, UserCircle, Sun, Moon, HelpCircle, Shield, Mailbox, ListTodo, Fingerprint, Edit } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRouter, usePathname } from 'next/navigation';
 import Image from 'next/image';
@@ -74,8 +74,6 @@ function UserNav({ onProfileClick, hasPendingRequests, hasPendingTasks }: { onPr
   const hasAdminPanels =
     permissions.canManageContent ||
     permissions.canManageWorkflows ||
-    permissions.canManageTripsBirthdays ||
-    permissions.canManageVacation ||
     isSuperAdmin;
 
   return (
@@ -166,14 +164,6 @@ function UserNav({ onProfileClick, hasPendingRequests, hasPendingTasks }: { onPr
             <DropdownMenuGroup>
                 <DropdownMenuLabel className="text-xs text-muted-foreground font-normal">Painéis de controle</DropdownMenuLabel>
                 {permissions.canManageContent && <DropdownMenuItem asChild><Link href="/admin/content" className="cursor-pointer font-body"><Edit className="mr-2 h-4 w-4" /><span>Conteúdo</span></Link></DropdownMenuItem>}
-                {(permissions.canManageTripsBirthdays || permissions.canManageVacation) && (
-                  <DropdownMenuItem asChild>
-                    <Link href="/admin/travel-birthdays" className="cursor-pointer font-body">
-                      <Plane className="mr-2 h-4 w-4" />
-                      <span>Viagens/Férias</span>
-                    </Link>
-                  </DropdownMenuItem>
-                )}
                 {isSuperAdmin && (
                   <>
                      <DropdownMenuItem asChild><Link href="/audit" className="cursor-pointer font-body text-destructive focus:bg-destructive/10 focus:text-destructive"><Fingerprint className="mr-2 h-4 w-4" /><span>Auditoria</span></Link></DropdownMenuItem>

@@ -41,7 +41,5 @@ export const noZoomRoutes = [
   "/admin/crm",
   "/admin/strategic-panel",
   "/bi",
-  "/consulta",
   "/personal-panel",
-  "/area-logada",
 ];

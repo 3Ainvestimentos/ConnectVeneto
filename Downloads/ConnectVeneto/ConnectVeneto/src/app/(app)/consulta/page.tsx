@@ -6,6 +6,7 @@ import { useCollaborators } from '@/contexts/CollaboratorsContext';
 import { findCollaboratorByEmail } from '@/lib/email-utils';
 import { AlertCircle } from 'lucide-react';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
+import { PageHeader } from '@/components/layout/PageHeader';
 import { cn } from '@/lib/utils';
 
 type ConsultaTab = 'mesa' | 'cliente' | 'cx';
@@ -125,42 +126,42 @@ export default function ConsultaPage() {
 
   const activeUrl = activeTab ? consultaLinks![activeTab] : '';
 
-  return (
-    <div className="flex flex-col h-full w-full overflow-hidden">
-      <div className="flex items-center justify-between px-6 py-3 border-b shrink-0">
-        <div>
-          <h1 className="text-lg font-semibold leading-tight">Consulta Pessoal</h1>
-          <p className="text-sm text-muted-foreground">Acesse suas planilhas de consulta.</p>
-        </div>
-        {availableTabs.length > 1 && (
-          <div
-            role="tablist"
-            aria-label="Tipo de consulta"
-            className="inline-flex h-9 shrink-0 items-center rounded-md bg-muted p-1 text-muted-foreground"
-          >
-            {availableTabs.map((tab) => (
-              <button
-                key={tab}
-                type="button"
-                role="tab"
-                aria-selected={activeTab === tab}
-                onClick={() => setActiveTab(tab)}
-                className={cn(
-                  'inline-flex items-center justify-center whitespace-nowrap rounded-sm px-3 py-1.5 text-xs font-medium transition-all',
-                  'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background',
-                  activeTab === tab
-                    ? 'bg-background text-foreground shadow-sm'
-                    : 'bg-transparent text-muted-foreground hover:text-foreground'
-                )}
-              >
-                {TAB_LABELS[tab]}
-              </button>
-            ))}
-          </div>
-        )}
-      </div>
+  const tabActions = availableTabs.length > 1 ? (
+    <div
+      role="tablist"
+      aria-label="Tipo de consulta"
+      className="inline-flex h-9 shrink-0 items-center rounded-md bg-muted p-1 text-muted-foreground"
+    >
+      {availableTabs.map((tab) => (
+        <button
+          key={tab}
+          type="button"
+          role="tab"
+          aria-selected={activeTab === tab}
+          onClick={() => setActiveTab(tab)}
+          className={cn(
+            'inline-flex items-center justify-center whitespace-nowrap rounded-sm px-3 py-1.5 text-xs font-medium transition-all',
+            'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background',
+            activeTab === tab
+              ? 'bg-background text-foreground shadow-sm'
+              : 'bg-transparent text-muted-foreground hover:text-foreground'
+          )}
+        >
+          {TAB_LABELS[tab]}
+        </button>
+      ))}
+    </div>
+  ) : undefined;
 
-      <div className="flex-1 min-h-0">
+  return (
+    <div className="flex h-full min-h-0 w-full flex-col overflow-hidden space-y-6 p-6 md:p-8">
+      <PageHeader
+        title="Consulta Pessoal"
+        description="Acesse suas planilhas de consulta."
+        actions={tabActions}
+      />
+
+      <div className="flex min-h-0 flex-1 flex-col">
         {activeTab && activeUrl && (
           <IframePanel key={activeTab} url={activeUrl} label={TAB_LABELS[activeTab]} />
         )}
