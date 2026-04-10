@@ -108,7 +108,7 @@ export default function DashboardV2Page() {
               <Card className="shadow-sm w-full h-full flex flex-col">
                 <CardHeader>
                   <CardTitle className="font-headline text-foreground text-xl">Contatos</CardTitle>
-                  <CardDescription>Canal Slack dos responsáveis pelas áreas da empresa.</CardDescription>
+                  <CardDescription>Contato dos responsáveis pelas áreas da empresa.</CardDescription>
                 </CardHeader>
                 <CardContent className="flex-grow min-h-0 overflow-y-auto">
                   {contacts.length === 0 ? (
