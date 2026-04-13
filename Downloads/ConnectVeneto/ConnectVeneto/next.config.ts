@@ -34,6 +34,12 @@ const nextConfig: NextConfig = {
     ];
   },
 
+  // Muitos navegadores pedem /favicon.ico antes de aplicar <link rel="icon">;
+  // sem arquivo .ico, acabam usando cache ou ícone genérico.
+  async rewrites() {
+    return [{ source: "/favicon.ico", destination: "/icon.png" }];
+  },
+
   // Headers de segurança
   async headers() {
     const isProd = process.env.NODE_ENV === 'production';

@@ -137,7 +137,7 @@ export function ManageContacts() {
                             {form.formState.errors.manager && <p className="text-sm text-destructive mt-1">{form.formState.errors.manager.message}</p>}
                         </div>
                         <div>
-                            <Label htmlFor="slackUrl">Link do Slack</Label>
+                            <Label htmlFor="slackUrl">Link do contato</Label>
                             <Input id="slackUrl" {...form.register('slackUrl')} placeholder="https://" disabled={isSubmitting}/>
                             {form.formState.errors.slackUrl && <p className="text-sm text-destructive mt-1">{form.formState.errors.slackUrl.message}</p>}
                         </div>

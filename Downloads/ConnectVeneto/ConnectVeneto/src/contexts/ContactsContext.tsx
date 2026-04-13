@@ -9,7 +9,7 @@ import { useFirestoreCollection } from '@/hooks/useFirestoreCollection';
 export const contactSchema = z.object({
   area: z.string().min(1, "A área é obrigatória."),
   manager: z.string().min(1, "O nome do gestor é obrigatório."),
-  slackUrl: z.string().url("A URL do Slack deve ser um link válido."),
+  slackUrl: z.string().url("O link do contato deve ser uma URL válida."),
   order: z.number().default(0),
 });
 

@@ -23,10 +23,6 @@ const fontArchivo = Archivo({
 export const metadata: Metadata = {
   title: 'Vêneto Connect',
   description: 'Plataforma interna Veneto Family Office',
-  icons: {
-    icon: '/icon.png',
-    apple: '/apple-icon.png',
-  },
 };
 
 export default function RootLayout({
