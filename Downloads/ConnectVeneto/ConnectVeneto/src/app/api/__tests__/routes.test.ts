@@ -4,6 +4,9 @@
  * Testam as 4 rotas de API: billing, calendar, holidays, rss
  */
 
+import { verifyCorporateRequest } from '@/lib/api-auth';
+import { getFirestore } from 'firebase-admin/firestore';
+
 // Mock do NextResponse
 jest.mock('next/server', () => ({
   NextResponse: {
@@ -55,14 +58,11 @@ describe('API Routes', () => {
 
   describe('/api/billing', () => {
     it('deve exigir autenticação', async () => {
-      const { verifyCorporateRequest } = require('@/lib/api-auth');
-      
       // Simples teste para garantir que a rota exige autenticação
       expect(verifyCorporateRequest).toBeDefined();
     });
 
     it('deve verificar super admin para acesso', async () => {
-      const { getFirestore } = require('firebase-admin/firestore');
       const mockDb = getFirestore();
       
       // O mock retorna superAdminEmails
@@ -73,8 +73,6 @@ describe('API Routes', () => {
   describe('/api/calendar', () => {
     describe('GET', () => {
       it('deve exigir autenticação', async () => {
-        const { verifyCorporateRequest } = require('@/lib/api-auth');
-        
         expect(verifyCorporateRequest).toBeDefined();
       });
 

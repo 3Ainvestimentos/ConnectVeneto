@@ -86,7 +86,10 @@ describe('email-utils', () => {
     });
 
     it('deve retornar undefined para array null', () => {
-      const result = findCollaboratorByEmail(null as any, 'joao@exemplo.com');
+      const result = findCollaboratorByEmail(
+        null as unknown as MockCollaborator[],
+        'joao@exemplo.com'
+      );
       expect(result).toBeUndefined();
     });
   });
@@ -134,7 +137,10 @@ describe('email-utils', () => {
     });
 
     it('deve retornar array vazio para lista de emails null', () => {
-      const result = filterCollaboratorsByEmails(collaborators, null as any);
+      const result = filterCollaboratorsByEmails(
+        collaborators,
+        null as unknown as string[]
+      );
       expect(result).toEqual([]);
     });
 
@@ -146,7 +152,7 @@ describe('email-utils', () => {
     it('deve ignorar emails null na lista', () => {
       const result = filterCollaboratorsByEmails(collaborators, [
         'joao@exemplo.com',
-        null as any,
+        null as unknown as string,
         'pedro@exemplo.com',
       ]);
       expect(result).toHaveLength(2);

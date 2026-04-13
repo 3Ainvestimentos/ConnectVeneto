@@ -4,8 +4,9 @@
  * Testam as funções auxiliares e lógica de autenticação
  */
 
-import { renderHook, act, waitFor } from '@testing-library/react';
+import { renderHook } from '@testing-library/react';
 import { AuthProvider, useAuth } from '@/contexts/AuthContext';
+import { normalizeEmail } from '@/lib/email-utils';
 import React from 'react';
 
 // Mock do Firebase
@@ -94,11 +95,11 @@ jest.mock('@/lib/email-utils', () => ({
   },
 }));
 
-const createWrapper = () => {
-  return ({ children }: { children: React.ReactNode }) => (
-    <AuthProvider>{children}</AuthProvider>
-  );
-};
+function AuthTestWrapper({ children }: { children: React.ReactNode }) {
+  return <AuthProvider>{children}</AuthProvider>;
+}
+
+const createWrapper = () => AuthTestWrapper;
 
 describe('AuthContext', () => {
   beforeEach(() => {
@@ -136,7 +137,6 @@ describe('AuthContext', () => {
 
   describe('validação de email corporativo', () => {
     it('deve aceitar emails @venetomfo.com.br', () => {
-      const { normalizeEmail } = require('@/lib/email-utils');
       const email = 'usuario@venetomfo.com.br';
       const normalized = normalizeEmail(email);
       
@@ -145,7 +145,6 @@ describe('AuthContext', () => {
     });
 
     it('deve normalizar emails para lowercase', () => {
-      const { normalizeEmail } = require('@/lib/email-utils');
       const email = 'Usuario@Venetomfo.com.br';
       const normalized = normalizeEmail(email);
       
@@ -153,8 +152,6 @@ describe('AuthContext', () => {
     });
 
     it('deve retornar null para emails vazios', () => {
-      const { normalizeEmail } = require('@/lib/email-utils');
-      
       expect(normalizeEmail(null)).toBeNull();
       expect(normalizeEmail(undefined)).toBeNull();
       expect(normalizeEmail('')).toBeNull();

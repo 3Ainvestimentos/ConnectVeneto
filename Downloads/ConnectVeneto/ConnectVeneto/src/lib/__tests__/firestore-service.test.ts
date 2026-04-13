@@ -5,6 +5,17 @@
  */
 
 import {
+  addDoc,
+  collection,
+  deleteDoc,
+  doc,
+  getDoc,
+  getDocs,
+  orderBy,
+  updateDoc,
+  where,
+} from 'firebase/firestore';
+import {
   getCollection,
   getDocument,
   addDocumentToCollection,
@@ -15,6 +26,8 @@ import {
   FirestoreQueryFilter,
   FirestoreOrderBy,
 } from '@/lib/firestore-service';
+
+type MockDocSnap = { id: string; data: () => Record<string, unknown> };
 
 // Mock do Firebase
 jest.mock('firebase/firestore', () => ({
@@ -81,14 +94,13 @@ describe('Firestore Service', () => {
 
   describe('getCollection', () => {
     it('deve retornar todos os documentos da coleção', async () => {
-      const { getDocs, collection } = require('firebase/firestore');
-      const mockDocs = [
+      const mockDocs: MockDocSnap[] = [
         { id: '1', data: () => ({ name: 'Doc 1' }) },
         { id: '2', data: () => ({ name: 'Doc 2' }) },
       ];
       
       getDocs.mockResolvedValue({
-        forEach: (callback: (doc: any) => void) => mockDocs.forEach(callback),
+        forEach: (callback: (d: MockDocSnap) => void) => mockDocs.forEach(callback),
       });
 
       const result = await getCollection('test-collection');
@@ -101,8 +113,6 @@ describe('Firestore Service', () => {
     });
 
     it('deve retornar array vazio se coleção estiver vazia', async () => {
-      const { getDocs } = require('firebase/firestore');
-      
       getDocs.mockResolvedValue({
         forEach: () => {},
       });
@@ -113,8 +123,6 @@ describe('Firestore Service', () => {
     });
 
     it('deve tratar erros ao buscar coleção', async () => {
-      const { getDocs } = require('firebase/firestore');
-      
       getDocs.mockRejectedValue(new Error('Firestore error'));
 
       await expect(getCollection('error-collection')).rejects.toThrow(
@@ -125,8 +133,6 @@ describe('Firestore Service', () => {
 
   describe('getDocument', () => {
     it('deve retornar um documento específico', async () => {
-      const { getDoc, doc } = require('firebase/firestore');
-      
       getDoc.mockResolvedValue({
         exists: () => true,
         id: 'doc-123',
@@ -145,8 +151,6 @@ describe('Firestore Service', () => {
     });
 
     it('deve retornar null se documento não existir', async () => {
-      const { getDoc } = require('firebase/firestore');
-      
       getDoc.mockResolvedValue({
         exists: () => false,
       });
@@ -157,8 +161,6 @@ describe('Firestore Service', () => {
     });
 
     it('deve tratar erros ao buscar documento', async () => {
-      const { getDoc } = require('firebase/firestore');
-      
       getDoc.mockRejectedValue(new Error('Not found'));
 
       await expect(getDocument('test-collection', 'error-doc')).rejects.toThrow(
@@ -169,8 +171,6 @@ describe('Firestore Service', () => {
 
   describe('addDocumentToCollection', () => {
     it('deve adicionar um documento à coleção', async () => {
-      const { addDoc } = require('firebase/firestore');
-      
       addDoc.mockResolvedValue({ id: 'new-doc-id' });
 
       const data = { name: 'New Document', status: 'pending' };
@@ -182,8 +182,6 @@ describe('Firestore Service', () => {
     });
 
     it('deve gerar ID automaticamente se não fornecido', async () => {
-      const { addDoc } = require('firebase/firestore');
-      
       addDoc.mockResolvedValue({ id: 'auto-generated-id' });
 
       const data = { name: 'Auto ID Document' };
@@ -194,8 +192,6 @@ describe('Firestore Service', () => {
     });
 
     it('deve tratar erros ao adicionar documento', async () => {
-      const { addDoc } = require('firebase/firestore');
-      
       addDoc.mockRejectedValue(new Error('Permission denied'));
 
       await expect(
@@ -206,8 +202,6 @@ describe('Firestore Service', () => {
 
   describe('updateDocumentInCollection', () => {
     it('deve atualizar um documento existente', async () => {
-      const { updateDoc, doc } = require('firebase/firestore');
-      
       updateDoc.mockResolvedValue(undefined);
 
       const data = { name: 'Updated Document', status: 'completed' };
@@ -219,8 +213,6 @@ describe('Firestore Service', () => {
     });
 
     it('deve mesclar dados automaticamente', async () => {
-      const { updateDoc } = require('firebase/firestore');
-      
       updateDoc.mockResolvedValue(undefined);
 
       await updateDocumentInCollection('test-collection', 'doc-123', { status: 'updated' });
@@ -232,8 +224,6 @@ describe('Firestore Service', () => {
     });
 
     it('deve tratar erros ao atualizar documento', async () => {
-      const { updateDoc } = require('firebase/firestore');
-      
       updateDoc.mockRejectedValue(new Error('Not found'));
 
       await expect(
@@ -244,8 +234,6 @@ describe('Firestore Service', () => {
 
   describe('deleteDocumentFromCollection', () => {
     it('deve deletar um documento existente', async () => {
-      const { deleteDoc, doc } = require('firebase/firestore');
-      
       deleteDoc.mockResolvedValue(undefined);
 
       await deleteDocumentFromCollection('test-collection', 'doc-123');
@@ -255,8 +243,6 @@ describe('Firestore Service', () => {
     });
 
     it('deve tratar erros ao deletar documento', async () => {
-      const { deleteDoc } = require('firebase/firestore');
-      
       deleteDoc.mockRejectedValue(new Error('Permission denied'));
 
       await expect(
@@ -267,14 +253,12 @@ describe('Firestore Service', () => {
 
   describe('getCollectionWithQuery', () => {
     it('deve retornar documentos com filtro simples', async () => {
-      const { getDocs, query, where, collection } = require('firebase/firestore');
-      
-      const mockDocs = [
+      const mockDocs: MockDocSnap[] = [
         { id: '1', data: () => ({ name: 'Active Doc', status: 'active' }) },
       ];
       
       getDocs.mockResolvedValue({
-        forEach: (callback: (doc: any) => void) => mockDocs.forEach(callback),
+        forEach: (callback: (d: MockDocSnap) => void) => mockDocs.forEach(callback),
       });
 
       const filters: FirestoreQueryFilter[] = [
@@ -290,14 +274,12 @@ describe('Firestore Service', () => {
     });
 
     it('deve retornar documentos com múltiplos filtros', async () => {
-      const { getDocs } = require('firebase/firestore');
-      
-      const mockDocs = [
+      const mockDocs: MockDocSnap[] = [
         { id: '1', data: () => ({ name: 'Doc 1', status: 'active', category: 'A' }) },
       ];
       
       getDocs.mockResolvedValue({
-        forEach: (callback: (doc: any) => void) => mockDocs.forEach(callback),
+        forEach: (callback: (d: MockDocSnap) => void) => mockDocs.forEach(callback),
       });
 
       const filters: FirestoreQueryFilter[] = [
@@ -311,15 +293,13 @@ describe('Firestore Service', () => {
     });
 
     it('deve ordenar resultados quando orderByCriteria é fornecido', async () => {
-      const { getDocs, query, orderBy, collection } = require('firebase/firestore');
-      
-      const mockDocs = [
+      const mockDocs: MockDocSnap[] = [
         { id: '1', data: () => ({ name: 'Doc 1', createdAt: '2024-01-01' }) },
         { id: '2', data: () => ({ name: 'Doc 2', createdAt: '2024-01-02' }) },
       ];
       
       getDocs.mockResolvedValue({
-        forEach: (callback: (doc: any) => void) => mockDocs.forEach(callback),
+        forEach: (callback: (d: MockDocSnap) => void) => mockDocs.forEach(callback),
       });
 
       const orderByCriteria: FirestoreOrderBy[] = [
@@ -333,8 +313,6 @@ describe('Firestore Service', () => {
     });
 
     it('deve retornar array vazio se nenhum documento corresponder', async () => {
-      const { getDocs } = require('firebase/firestore');
-      
       getDocs.mockResolvedValue({
         forEach: () => {},
       });
@@ -349,8 +327,6 @@ describe('Firestore Service', () => {
     });
 
     it('deve tratar erros na query', async () => {
-      const { getDocs } = require('firebase/firestore');
-      
       getDocs.mockRejectedValue(new Error('Invalid query'));
 
       await expect(

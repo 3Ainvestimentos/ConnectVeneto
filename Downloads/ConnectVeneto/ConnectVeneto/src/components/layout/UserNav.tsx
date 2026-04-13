@@ -6,7 +6,6 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useCollaborators } from "@/contexts/CollaboratorsContext";
 import { findCollaboratorByEmail } from "@/lib/email-utils";
-import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
@@ -28,8 +27,6 @@ import {
   UserCircle,
   Sun,
   Moon,
-  Mailbox,
-  ListTodo,
   LogOut,
   Fingerprint,
   Shield,
@@ -42,7 +39,11 @@ type UserNavProps = {
   hasPendingTasks: boolean;
 };
 
-export function UserNav({ onProfileClick, hasPendingRequests, hasPendingTasks }: UserNavProps) {
+export function UserNav({
+  onProfileClick,
+  hasPendingRequests: _hasPendingRequests,
+  hasPendingTasks: _hasPendingTasks,
+}: UserNavProps) {
   const { user, signOut, loading, isSuperAdmin, permissions } = useAuth();
   const { theme, setTheme } = useTheme();
   const { collaborators } = useCollaborators();
@@ -59,7 +60,6 @@ export function UserNav({ onProfileClick, hasPendingRequests, hasPendingTasks }:
   const displayEmail = currentUserCollaborator?.email || user.email;
   const displayPhotoUrl = currentUserCollaborator?.photoURL || user.photoURL || undefined;
 
-  const hasTools = permissions.canManageRequests || permissions.canViewTasks;
   const hasAdminPanels =
     permissions.canManageContent ||
     permissions.canManageWorkflows ||
