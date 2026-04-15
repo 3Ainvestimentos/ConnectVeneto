@@ -41,32 +41,6 @@ export default function RegrasComerciais() {
         description="Framework de reuniões e Mix de Serviços da Vêneto Family Office."
       />
 
-      {/* ── Framework de Reuniões ── */}
-      <section aria-labelledby="framework-heading" className="space-y-8">
-        <h2
-          id="framework-heading"
-          className="text-xl font-headline font-bold text-foreground border-b border-border pb-2"
-        >
-          Framework de Reuniões
-        </h2>
-
-        <div className="space-y-10">
-          {frameworkSections.map((section) => (
-            <div key={section.id} className="space-y-4">
-              <h3 className="text-base font-headline font-semibold text-foreground">
-                {section.title}
-              </h3>
-              <div className="px-6">
-                <VenetoImageCarousel
-                  slides={section.slides}
-                  label={section.title}
-                />
-              </div>
-            </div>
-          ))}
-        </div>
-      </section>
-
       {/* ── Mix de Serviços ── */}
       <section aria-labelledby="mix-heading" className="space-y-6">
         <h2
@@ -104,6 +78,32 @@ export default function RegrasComerciais() {
               label="Mix de Serviços"
             />
           </div>
+        </div>
+      </section>
+
+      {/* ── Framework de Reuniões ── */}
+      <section aria-labelledby="framework-heading" className="space-y-8">
+        <h2
+          id="framework-heading"
+          className="text-xl font-headline font-bold text-foreground border-b border-border pb-2"
+        >
+          Framework de Reuniões
+        </h2>
+
+        <div className="space-y-10">
+          {frameworkSections.map((section) => (
+            <div key={section.id} className="space-y-4">
+              <h3 className="text-base font-headline font-semibold text-foreground">
+                {section.title}
+              </h3>
+              <div className="px-6">
+                <VenetoImageCarousel
+                  slides={section.slides}
+                  label={section.title}
+                />
+              </div>
+            </div>
+          ))}
         </div>
       </section>
     </div>
