@@ -10,7 +10,7 @@ export default function ConsultaLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const { user, loading } = useAuth();
+  const { user, loading, permissions } = useAuth();
   const router = useRouter();
   const [isAuthorized, setIsAuthorized] = useState(false);
 
@@ -18,11 +18,13 @@ export default function ConsultaLayout({
     if (!loading) {
       if (!user) {
         router.replace('/login');
+      } else if (!permissions.canViewConsultaPessoal) {
+        router.replace('/dashboard');
       } else {
         setIsAuthorized(true);
       }
     }
-  }, [user, loading, router]);
+  }, [user, loading, permissions.canViewConsultaPessoal, router]);
 
   if (loading || !isAuthorized) {
     return (

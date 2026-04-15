@@ -2,7 +2,6 @@
 "use client";
 
 import React, { useMemo, useState } from 'react';
-import SuperAdminGuard from '@/components/auth/SuperAdminGuard';
 import { useQuery } from '@tanstack/react-query';
 import { getCollection, WithId } from '@/lib/firestore-service';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/shared/components/ui/card';
@@ -441,7 +440,6 @@ export default function AuditPage() {
     const chartData = loginView === 'total' ? loginsByDayByAxisTotal : loginsByDayByAxisUnique;
 
     return (
-        <SuperAdminGuard>
             <div className="space-y-6">
                 <Card>
                     <CardHeader className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
@@ -645,6 +643,5 @@ export default function AuditPage() {
                     </CardContent>
                 </Card>
             </div>
-        </SuperAdminGuard>
     );
 }

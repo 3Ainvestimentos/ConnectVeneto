@@ -17,10 +17,14 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { FEATURE_FLAGS } from '@/config/features';
 
 const allPermissionLabels: { key: keyof CollaboratorPermissions; label: string; featureFlag?: keyof typeof FEATURE_FLAGS }[] = [
+    { key: 'canManageSystem', label: 'Sistema' },
+    { key: 'canViewAudit', label: 'Auditoria' },
     { key: 'canManageContent', label: 'Conteúdo' },
-    { key: 'canManageRequests', label: 'Solicitações' },
-    { key: 'canManageTripsBirthdays', label: 'Viagens/Aniversários' },
-    { key: 'canManageVacation', label: 'Férias' },
+    { key: 'canManageRequests', label: 'Gestão de Solicitações' },
+    { key: 'canViewConsultaPessoal', label: 'Consulta Pessoal' },
+    { key: 'canViewDocuments', label: 'Documentos' },
+    { key: 'canViewApplications', label: 'Solicitações' },
+    { key: 'canViewRegrasComerciais', label: 'Regras Comerciais', featureFlag: 'regrasComerciais' },
     { key: 'canViewBI', label: 'Painéis', featureFlag: 'businessIntelligence' },
 ];
 

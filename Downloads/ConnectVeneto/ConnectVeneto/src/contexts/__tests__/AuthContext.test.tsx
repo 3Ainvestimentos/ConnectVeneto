@@ -221,7 +221,7 @@ describe('AuthContext', () => {
   });
 
   describe('permissions default', () => {
-    it('deve iniciar com todas as permissões como false', async () => {
+    it('deve iniciar com permissões padrão esperadas', async () => {
       const wrapper = createWrapper();
       
       const { result } = renderHook(() => useAuth(), { wrapper });
@@ -232,6 +232,12 @@ describe('AuthContext', () => {
         canManageContent: false,
         canManageTripsBirthdays: false,
         canManageVacation: false,
+        canViewAudit: false,
+        canManageSystem: false,
+        canViewConsultaPessoal: false,
+        canViewDocuments: true,
+        canViewApplications: true,
+        canViewRegrasComerciais: true,
         canViewTasks: false,
         canViewBI: false,
         canViewCRM: false,

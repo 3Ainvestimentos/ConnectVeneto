@@ -114,6 +114,12 @@ const defaultPermissions: CollaboratorPermissions = {
   canManageContent: false,
   canManageTripsBirthdays: false,
   canManageVacation: false,
+  canViewAudit: false,
+  canManageSystem: false,
+  canViewConsultaPessoal: false,
+  canViewDocuments: true,
+  canViewApplications: true,
+  canViewRegrasComerciais: true,
   canViewTasks: false,
   canViewBI: false,
   canViewCRM: false,
@@ -122,6 +128,23 @@ const defaultPermissions: CollaboratorPermissions = {
   canViewMeetAnalyses: false,
   canViewDirectoria: false,
 };
+
+const adminPermissionKeys: Array<keyof CollaboratorPermissions> = [
+  'canManageWorkflows',
+  'canManageRequests',
+  'canManageContent',
+  'canManageTripsBirthdays',
+  'canManageVacation',
+  'canViewAudit',
+  'canManageSystem',
+  'canViewTasks',
+  'canViewBI',
+  'canViewCRM',
+  'canViewStrategicPanel',
+  'canViewOpportunityMap',
+  'canViewMeetAnalyses',
+  'canViewDirectoria',
+];
 
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
@@ -160,7 +183,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setCurrentUserCollab(collaborator);
       const userPermissions = { ...defaultPermissions, ...(collaborator.permissions || {}) };
       setPermissions(userPermissions);
-      setIsAdmin(Object.values(userPermissions).some(p => p === true));
+      setIsAdmin(adminPermissionKeys.some((key) => userPermissions[key] === true));
     } else {
       setCurrentUserCollab(null);
       setPermissions(defaultPermissions);

@@ -61,6 +61,8 @@ export function UserNav({
   const displayPhotoUrl = currentUserCollaborator?.photoURL || user.photoURL || undefined;
 
   const hasAdminPanels =
+    permissions.canManageSystem ||
+    permissions.canViewAudit ||
     permissions.canManageContent ||
     permissions.canManageWorkflows ||
     isSuperAdmin;
@@ -123,21 +125,21 @@ export function UserNav({
                   </Link>
                 </DropdownMenuItem>
               )}
-              {isSuperAdmin && (
-                <>
-                  <DropdownMenuItem asChild>
-                    <Link href="/audit" className="cursor-pointer font-body text-destructive focus:bg-destructive/10 focus:text-destructive">
-                      <Fingerprint className="mr-2 h-4 w-4" />
-                      <span>Auditoria</span>
-                    </Link>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem asChild>
-                    <Link href="/admin" className="cursor-pointer font-body text-destructive focus:bg-destructive/10 focus:text-destructive">
-                      <Shield className="mr-2 h-4 w-4" />
-                      <span>Sistema</span>
-                    </Link>
-                  </DropdownMenuItem>
-                </>
+              {(isSuperAdmin || permissions.canViewAudit) && (
+                <DropdownMenuItem asChild>
+                  <Link href="/audit" className="cursor-pointer font-body text-destructive focus:bg-destructive/10 focus:text-destructive">
+                    <Fingerprint className="mr-2 h-4 w-4" />
+                    <span>Auditoria</span>
+                  </Link>
+                </DropdownMenuItem>
+              )}
+              {(isSuperAdmin || permissions.canManageSystem) && (
+                <DropdownMenuItem asChild>
+                  <Link href="/admin" className="cursor-pointer font-body text-destructive focus:bg-destructive/10 focus:text-destructive">
+                    <Shield className="mr-2 h-4 w-4" />
+                    <span>Sistema</span>
+                  </Link>
+                </DropdownMenuItem>
               )}
             </DropdownMenuGroup>
           </>

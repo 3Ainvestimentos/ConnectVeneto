@@ -72,6 +72,8 @@ function UserNav({ onProfileClick, hasPendingRequests, hasPendingTasks }: { onPr
 
   const hasTools = permissions.canManageRequests || permissions.canViewTasks;
   const hasAdminPanels =
+    permissions.canManageSystem ||
+    permissions.canViewAudit ||
     permissions.canManageContent ||
     permissions.canManageWorkflows ||
     isSuperAdmin;
@@ -164,11 +166,11 @@ function UserNav({ onProfileClick, hasPendingRequests, hasPendingTasks }: { onPr
             <DropdownMenuGroup>
                 <DropdownMenuLabel className="text-xs text-muted-foreground font-normal">Painéis de controle</DropdownMenuLabel>
                 {permissions.canManageContent && <DropdownMenuItem asChild><Link href="/admin/content" className="cursor-pointer font-body"><Edit className="mr-2 h-4 w-4" /><span>Conteúdo</span></Link></DropdownMenuItem>}
-                {isSuperAdmin && (
-                  <>
-                     <DropdownMenuItem asChild><Link href="/audit" className="cursor-pointer font-body text-destructive focus:bg-destructive/10 focus:text-destructive"><Fingerprint className="mr-2 h-4 w-4" /><span>Auditoria</span></Link></DropdownMenuItem>
-                     <DropdownMenuItem asChild><Link href="/admin" className="cursor-pointer font-body text-destructive focus:bg-destructive/10 focus:text-destructive"><Shield className="mr-2 h-4 w-4" /><span>Sistema</span></Link></DropdownMenuItem>
-                  </>
+                {(isSuperAdmin || permissions.canViewAudit) && (
+                  <DropdownMenuItem asChild><Link href="/audit" className="cursor-pointer font-body text-destructive focus:bg-destructive/10 focus:text-destructive"><Fingerprint className="mr-2 h-4 w-4" /><span>Auditoria</span></Link></DropdownMenuItem>
+                )}
+                {(isSuperAdmin || permissions.canManageSystem) && (
+                  <DropdownMenuItem asChild><Link href="/admin" className="cursor-pointer font-body text-destructive focus:bg-destructive/10 focus:text-destructive"><Shield className="mr-2 h-4 w-4" /><span>Sistema</span></Link></DropdownMenuItem>
                 )}
             </DropdownMenuGroup>
           </>

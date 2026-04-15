@@ -2,7 +2,6 @@
 "use client";
 
 import React, { useMemo } from 'react';
-import SuperAdminGuard from '@/components/auth/SuperAdminGuard';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/shared/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/shared/components/ui/table';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
@@ -142,7 +141,6 @@ export default function ContentInteractionPage() {
     );
 
     return (
-        <SuperAdminGuard>
             <div className="space-y-6">
                 <Card>
                     <CardHeader className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
@@ -284,6 +282,5 @@ export default function ContentInteractionPage() {
                     </Card>
                 </div>
             </div>
-        </SuperAdminGuard>
     );
 }
