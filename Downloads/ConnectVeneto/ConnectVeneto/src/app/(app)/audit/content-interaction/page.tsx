@@ -1,7 +1,7 @@
 
 "use client";
 
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/shared/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/shared/components/ui/table';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
@@ -13,6 +13,9 @@ import { Button } from '@/shared/components/ui/button';
 import Papa from 'papaparse';
 import { format, parseISO, startOfDay, isWithinInterval, endOfDay } from 'date-fns';
 import { useAudit } from '@/contexts/AuditContext';
+import { Switch } from '@/shared/components/ui/switch';
+import { Label } from '@/shared/components/ui/label';
+import { isKnownAppPagePath } from '@/config/app-page-routes';
 
 type AuditLogEvent = WithId<{
     eventType: 'document_download' | 'login' | 'page_view' | 'content_view';
@@ -33,6 +36,7 @@ type AuditLogEvent = WithId<{
 export default function ContentInteractionPage() {
     const queryClient = useQueryClient();
     const { dateRange } = useAudit();
+    const [onlyActiveRoutes, setOnlyActiveRoutes] = useState(true);
 
     React.useEffect(() => {
         const unsubscribe = listenToCollection<AuditLogEvent>(
@@ -98,9 +102,13 @@ export default function ContentInteractionPage() {
                 return acc;
             }, {} as Record<string, number>);
 
-        const pageAccessCounts = Object.entries(pageAccess)
+        let pageAccessCounts = Object.entries(pageAccess)
             .map(([path, count]) => ({ path, count }))
             .sort((a, b) => b.count - a.count);
+
+        if (onlyActiveRoutes) {
+            pageAccessCounts = pageAccessCounts.filter((row) => isKnownAppPagePath(row.path));
+        }
 
         const contentStats = Object.entries(stats)
           .map(([id, s]) => ({ id, ...s, uniqueViews: s.uniqueViewers.size }))
@@ -111,7 +119,7 @@ export default function ContentInteractionPage() {
 
         return { contentStats, top5Contents, pageAccessCounts };
 
-    }, [events, isLoading]);
+    }, [events, isLoading, onlyActiveRoutes]);
 
     const handleExport = () => {
         const dataForCsv = contentStats.map(item => ({
@@ -252,32 +260,61 @@ export default function ContentInteractionPage() {
                     </Card>
                     
                     <Card>
-                        <CardHeader>
-                            <CardTitle className="text-lg">Tabela Sintética de Páginas</CardTitle>
-                            <CardDescription>Contagem total de acessos para cada página da intranet.</CardDescription>
+                        <CardHeader className="space-y-3">
+                            <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                                <div>
+                                    <CardTitle className="text-lg">Tabela Sintética de Páginas</CardTitle>
+                                    <CardDescription>
+                                        Contagem total de acessos por rota. Por padrão, oculta rotas que não existem mais na aplicação.
+                                    </CardDescription>
+                                </div>
+                                <div className="flex items-center gap-2 shrink-0">
+                                    <Switch
+                                        id="only-active-routes"
+                                        checked={onlyActiveRoutes}
+                                        onCheckedChange={setOnlyActiveRoutes}
+                                    />
+                                    <Label htmlFor="only-active-routes" className="text-sm font-normal cursor-pointer whitespace-nowrap">
+                                        Somente rotas ativas
+                                    </Label>
+                                </div>
+                            </div>
                         </CardHeader>
                         <CardContent>
-                            <div className="border rounded-lg overflow-hidden">
-                                <Table>
-                                    <TableHeader>
-                                        <TableRow>
-                                            <TableHead>Página</TableHead>
-                                            <TableHead className="text-right">Acessos</TableHead>
-                                        </TableRow>
-                                    </TableHeader>
-                                    <TableBody>
-                                        {pageAccessCounts.map((page) => (
-                                            <TableRow key={page.path}>
-                                                <TableCell className="font-medium flex items-center gap-2">
-                                                    <Route className="h-4 w-4 text-muted-foreground" />
-                                                    {page.path}
-                                                </TableCell>
-                                                <TableCell className="text-right font-mono font-bold">{page.count}</TableCell>
+                            {isLoading ? (
+                                renderSkeleton()
+                            ) : pageAccessCounts.length === 0 ? (
+                                <div className="text-center py-8 px-4 border-2 border-dashed rounded-lg">
+                                    <Route className="mx-auto h-10 w-10 text-muted-foreground" />
+                                    <p className="mt-3 text-sm text-muted-foreground">
+                                        {onlyActiveRoutes
+                                            ? "Nenhum acesso a rotas ativas no período, ou os acessos foram só em rotas removidas. Desligue o filtro acima para ver o histórico completo."
+                                            : "Nenhum acesso a página registrado no período."}
+                                    </p>
+                                </div>
+                            ) : (
+                                <div className="border rounded-lg overflow-hidden">
+                                    <Table>
+                                        <TableHeader>
+                                            <TableRow>
+                                                <TableHead>Página</TableHead>
+                                                <TableHead className="text-right">Acessos</TableHead>
                                             </TableRow>
-                                        ))}
-                                    </TableBody>
-                                </Table>
-                            </div>
+                                        </TableHeader>
+                                        <TableBody>
+                                            {pageAccessCounts.map((page) => (
+                                                <TableRow key={page.path}>
+                                                    <TableCell className="font-medium flex items-center gap-2">
+                                                        <Route className="h-4 w-4 text-muted-foreground" />
+                                                        {page.path}
+                                                    </TableCell>
+                                                    <TableCell className="text-right font-mono font-bold">{page.count}</TableCell>
+                                                </TableRow>
+                                            ))}
+                                        </TableBody>
+                                    </Table>
+                                </div>
+                            )}
                         </CardContent>
                     </Card>
                 </div>

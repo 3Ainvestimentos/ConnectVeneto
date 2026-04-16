@@ -49,14 +49,6 @@ const allModules: Omit<AppModule, "enabled">[] = [
     permissions: [],
   },
   {
-    id: "area-logada",
-    name: "Área Logada",
-    description: "Relatório virtual, terminal de consulta e área do cliente",
-    featureFlag: "areaLogada",
-    routes: ["/area-logada"],
-    permissions: [],
-  },
-  {
     id: "bi",
     name: "Painéis",
     description: "Painéis e relatórios embutidos para assessores",

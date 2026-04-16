@@ -1,5 +1,4 @@
 export const FEATURE_FLAGS = {
-  areaLogada: true,
   businessIntelligence: false,
   venetoStore: true,
   regrasComerciais: true,

@@ -52,11 +52,6 @@ const faqItems = [
       "Os documentos ficam no Repositório de Documentos: use o item 'Documentos' no menu lateral para abrir essa página. Lá há materiais fixos da Vêneto e demais documentos cadastrados; use a pesquisa e os filtros por categoria e tipo para localizar o que precisa.",
   },
   {
-    question: "O que encontro na Área Logada?",
-    answer:
-      "Na Área Logada há acesso ao Relatório Virtual, ao Terminal de consulta e à Área do Cliente. Os links abrem em nova aba.",
-  },
-  {
     question: "O que encontro na seção 'Regras Comerciais'?",
     answer:
       "A seção 'Regras Comerciais' reúne o Framework de Reuniões (R1, R1 Offshore, R2 e R3) e a apresentação de Mix de Serviços da Vêneto, incluindo a política comercial vigente.",

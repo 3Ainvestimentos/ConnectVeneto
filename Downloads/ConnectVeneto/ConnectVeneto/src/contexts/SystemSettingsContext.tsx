@@ -1,10 +1,12 @@
 
 "use client";
 
-import React, { createContext, useContext, ReactNode, useMemo } from 'react';
+import React, { createContext, useContext, ReactNode, useMemo, useEffect, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { getDocument, setDocumentInCollection } from '@/lib/firestore-service';
 import { normalizeEmail } from '@/lib/email-utils';
+import { getFirebaseApp } from '@/lib/firebase';
+import { getAuth, onAuthStateChanged } from 'firebase/auth';
 
 export interface SystemSettings {
   maintenanceMode: boolean;
@@ -32,7 +34,9 @@ interface SystemSettingsContextType {
 const SystemSettingsContext = createContext<SystemSettingsContextType | undefined>(undefined);
 
 const COLLECTION_NAME = 'systemSettings';
-const DOC_ID = 'config'; // Use a single document for all settings
+const PRIVATE_DOC_ID = 'config';
+const PUBLIC_DOC_ID = 'public_config';
+const SETTINGS_QUERY_SCOPE = 'resolved';
 
 const defaultSettings: SystemSettings = {
     maintenanceMode: false,
@@ -50,24 +54,109 @@ const defaultSettings: SystemSettings = {
     loginFrequencyGoal: 12, // Meta padrão: 12 logins/mês por usuário
 };
 
+type PublicSystemSettings = Pick<SystemSettings, 'maintenanceMode' | 'maintenanceMessage'>;
+
+const normalizeBoolean = (value: unknown, fallback: boolean): boolean =>
+  typeof value === 'boolean' ? value : fallback;
+
+const normalizeString = (value: unknown, fallback: string): string =>
+  typeof value === 'string' ? value : fallback;
+
+const normalizeNumber = (value: unknown, fallback: number): number =>
+  typeof value === 'number' && Number.isFinite(value) ? value : fallback;
+
+const normalizeStringList = (value: unknown): string[] =>
+  Array.isArray(value) ? value.filter((item): item is string => typeof item === 'string') : [];
+
+const normalizeEmailList = (value: unknown): string[] =>
+  normalizeStringList(value)
+    .map((email) => normalizeEmail(email))
+    .filter((email): email is string => email !== null);
+
+const stripDocumentId = (
+  doc: ({ id: string } & Partial<SystemSettings>) | null,
+): Partial<SystemSettings> | null => {
+  if (!doc) return null;
+  const { id: _id, ...rest } = doc;
+  return rest;
+};
+
+const normalizePublicSettings = (source: Partial<SystemSettings> | null): PublicSystemSettings => ({
+  maintenanceMode: normalizeBoolean(source?.maintenanceMode, defaultSettings.maintenanceMode),
+  maintenanceMessage: normalizeString(source?.maintenanceMessage, defaultSettings.maintenanceMessage),
+});
+
+const normalizePrivateSettings = (source: Partial<SystemSettings> | null): SystemSettings => {
+  const merged = { ...defaultSettings, ...(source ?? {}) };
+  const superNorm = normalizeEmailList(merged.superAdminEmails);
+  return {
+    ...defaultSettings,
+    ...merged,
+    maintenanceMode: normalizeBoolean(merged.maintenanceMode, defaultSettings.maintenanceMode),
+    maintenanceMessage: normalizeString(merged.maintenanceMessage, defaultSettings.maintenanceMessage),
+    allowedUserIds: normalizeStringList(merged.allowedUserIds),
+    termsUrl: normalizeString(merged.termsUrl, defaultSettings.termsUrl),
+    termsVersion: normalizeNumber(merged.termsVersion, defaultSettings.termsVersion),
+    privacyPolicyUrl: normalizeString(merged.privacyPolicyUrl, defaultSettings.privacyPolicyUrl),
+    privacyPolicyVersion: normalizeNumber(merged.privacyPolicyVersion, defaultSettings.privacyPolicyVersion),
+    superAdminEmails: superNorm.length ? superNorm : defaultSettings.superAdminEmails,
+    collaboratorAdminEmails: normalizeEmailList(merged.collaboratorAdminEmails),
+    collaboratorTableVersion: normalizeNumber(merged.collaboratorTableVersion, defaultSettings.collaboratorTableVersion),
+    isRssNewsletterActive: normalizeBoolean(merged.isRssNewsletterActive, defaultSettings.isRssNewsletterActive ?? false),
+    rssNewsletterUrl: normalizeString(merged.rssNewsletterUrl, defaultSettings.rssNewsletterUrl ?? ''),
+    loginFrequencyGoal: normalizeNumber(merged.loginFrequencyGoal, defaultSettings.loginFrequencyGoal ?? 12),
+  };
+};
+
+const getSettingsQueryKey = (authUid: string | null) =>
+  [COLLECTION_NAME, SETTINGS_QUERY_SCOPE, authUid ?? 'anonymous'] as const;
+
+const fetchPublicSystemSettings = async (): Promise<SystemSettings> => {
+  const rawDoc = await getDocument<Partial<SystemSettings>>(COLLECTION_NAME, PUBLIC_DOC_ID);
+  const publicData = normalizePublicSettings(stripDocumentId(rawDoc));
+  return {
+    ...defaultSettings,
+    ...publicData,
+  };
+};
+
+export const fetchPrivateSystemSettings = async (): Promise<SystemSettings> => {
+  const rawDoc = await getDocument<Partial<SystemSettings>>(COLLECTION_NAME, PRIVATE_DOC_ID);
+  return normalizePrivateSettings(stripDocumentId(rawDoc));
+};
+
+const extractPublicPatch = (patch: Partial<SystemSettings>): Partial<PublicSystemSettings> => {
+  const publicPatch: Partial<PublicSystemSettings> = {};
+  if (typeof patch.maintenanceMode === 'boolean') {
+    publicPatch.maintenanceMode = patch.maintenanceMode;
+  }
+  if (typeof patch.maintenanceMessage === 'string') {
+    publicPatch.maintenanceMessage = patch.maintenanceMessage;
+  }
+  return publicPatch;
+};
+
 export const SystemSettingsProvider = ({ children }: { children: ReactNode }) => {
   const queryClient = useQueryClient();
+  const [authUid, setAuthUid] = useState<string | null>(null);
+  const [authResolved, setAuthResolved] = useState(false);
+
+  useEffect(() => {
+    const auth = getAuth(getFirebaseApp());
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      setAuthUid(user?.uid ?? null);
+      setAuthResolved(true);
+    });
+    return () => unsubscribe();
+  }, []);
+
+  const currentSettingsKey = getSettingsQueryKey(authUid);
 
   const { data: settings = defaultSettings, isFetching } = useQuery<SystemSettings>({
-    queryKey: [COLLECTION_NAME, DOC_ID],
+    queryKey: currentSettingsKey,
+    enabled: authResolved,
     queryFn: async () => {
-      const doc = await getDocument<SystemSettings>(COLLECTION_NAME, DOC_ID);
-      const merged = doc ? { ...defaultSettings, ...doc } : defaultSettings;
-      const normList = (emails: string[] | undefined) =>
-        (emails ?? [])
-          .map((e) => normalizeEmail(e))
-          .filter((e): e is string => e !== null);
-      const superNorm = normList(merged.superAdminEmails);
-      return {
-        ...merged,
-        superAdminEmails: superNorm.length ? superNorm : defaultSettings.superAdminEmails,
-        collaboratorAdminEmails: normList(merged.collaboratorAdminEmails),
-      };
+      return authUid ? fetchPrivateSystemSettings() : fetchPublicSystemSettings();
     },
     staleTime: 5 * 60 * 1000,
   });
@@ -85,24 +174,45 @@ export const SystemSettingsProvider = ({ children }: { children: ReactNode }) =>
           .map((e) => normalizeEmail(e))
           .filter((e): e is string => e !== null);
       }
-      await setDocumentInCollection(COLLECTION_NAME, DOC_ID, patch);
+      await setDocumentInCollection(COLLECTION_NAME, PRIVATE_DOC_ID, patch);
+      const publicPatch = extractPublicPatch(patch);
+      if (Object.keys(publicPatch).length > 0) {
+        await setDocumentInCollection(COLLECTION_NAME, PUBLIC_DOC_ID, publicPatch);
+      }
       return patch;
     },
     onSuccess: (appliedPatch) => {
-      queryClient.setQueryData([COLLECTION_NAME, DOC_ID], (old: SystemSettings | undefined) => ({
-        ...(old || defaultSettings),
-        ...appliedPatch,
-      }));
+      queryClient.setQueryData(currentSettingsKey, (old: SystemSettings | undefined) =>
+        normalizePrivateSettings({
+          ...(old || defaultSettings),
+          ...appliedPatch,
+        }),
+      );
+
+      const publicPatch = extractPublicPatch(appliedPatch);
+      if (Object.keys(publicPatch).length > 0) {
+        queryClient.setQueryData(getSettingsQueryKey(null), (old: SystemSettings | undefined) => {
+          const anonymousBase = old || defaultSettings;
+          const nextPublic = normalizePublicSettings({
+            ...anonymousBase,
+            ...publicPatch,
+          });
+          return {
+            ...anonymousBase,
+            ...nextPublic,
+          };
+        });
+      }
     },
   });
 
   const value = useMemo(() => ({
     settings,
-    loading: isFetching,
+    loading: !authResolved || isFetching,
     updateSystemSettings: async (newSettings: Partial<SystemSettings>) => {
       await updateSettingsMutation.mutateAsync(newSettings);
     },
-  }), [settings, isFetching, updateSettingsMutation]);
+  }), [settings, authResolved, isFetching, updateSettingsMutation]);
 
   return (
     <SystemSettingsContext.Provider value={value}>

@@ -14,7 +14,6 @@ import TradingViewWidget from '@/components/dashboard-v2/TradingViewWidget';
 import NewsHighlights from '@/components/dashboard-v2/NewsHighlights';
 import { useContacts } from '@/contexts/ContactsContext';
 import { findCollaboratorByEmail } from '@/lib/email-utils';
-import { venetoAreaLogadaCards } from '@/config/veneto-area-logada';
 import { WidgetErrorBoundary } from '@/components/error/WidgetErrorBoundary';
 import { bootstrapTrace } from '@/lib/bootstrap-trace';
 import { VenetoMarketingFooter } from '@/components/layout/VenetoMarketingFooter';
@@ -108,32 +107,43 @@ export default function DashboardV2Page() {
             <div className="md:col-span-3 min-w-0 flex">
               <Card className="shadow-sm w-full h-full flex flex-col">
                 <CardHeader>
-                  <CardTitle className="font-headline text-foreground text-xl">Área Logada</CardTitle>
-                  <CardDescription>Acesse os serviços exclusivos.</CardDescription>
+                  <CardTitle className="font-headline text-foreground text-xl">Contatos</CardTitle>
+                  <CardDescription>Contato dos responsáveis da empresa.</CardDescription>
                 </CardHeader>
-                <CardContent className="flex-grow min-h-0 overflow-y-auto">
-                  <div className="flex flex-col gap-3">
-                    {venetoAreaLogadaCards.map((link) => (
-                      <a
-                        href={link.href}
-                        key={link.id}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="flex items-center gap-3 p-3 rounded-lg border border-border/50 hover:bg-muted transition-colors bg-card dark:bg-white w-full group relative overflow-hidden h-16"
-                        title={link.title}
-                      >
-                        <div className="relative w-12 h-full shrink-0 flex items-center justify-center">
-                          <Image
-                            src="/logo-veneto-azul.png"
-                            alt="Logo Veneto"
-                            fill
-                            className="object-contain p-1 transition-transform group-hover:scale-105"
-                          />
-                        </div>
-                        <span className="text-sm font-medium leading-tight text-foreground flex-1 break-words line-clamp-2">{link.title}</span>
-                      </a>
-                    ))}
-                  </div>
+                <CardContent className="flex-grow min-h-0 overflow-y-auto pt-0">
+                  {contacts.length === 0 ? (
+                    <p className="text-sm text-muted-foreground p-4">Nenhum contato encontrado.</p>
+                  ) : (
+                    <div className="flex flex-col gap-3">
+                      {contacts.map((contact) => (
+                        <a
+                          href={contact.slackUrl}
+                          key={contact.id}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center gap-3 p-3 rounded-lg border border-border/50 hover:bg-muted transition-colors bg-card dark:bg-white w-full group relative overflow-hidden h-16"
+                          title={contact.area}
+                        >
+                          <div className="relative w-20 h-full shrink-0 flex items-center justify-center">
+                            <Image
+                              src="https://firebasestorage.googleapis.com/v0/b/veneto-connect.firebasestorage.app/o/Logos%20e%20imagens%20institucionais%2FGoogle_Chat_icon_(2023).svg.png?alt=media&token=817ca5a7-e327-47cc-8391-e02f215c0dce"
+                              alt="Google Chat Icon"
+                              fill
+                              className="object-contain p-1 transition-transform group-hover:scale-105"
+                            />
+                          </div>
+                          <div className="flex flex-1 min-w-0 items-center">
+                            <div className="flex min-w-0 flex-col justify-center leading-tight">
+                              <span className="truncate text-sm font-medium text-foreground">{contact.area}</span>
+                              {contact.manager ? (
+                                <span className="truncate text-xs text-muted-foreground">{contact.manager}</span>
+                              ) : null}
+                            </div>
+                          </div>
+                        </a>
+                      ))}
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             </div>
@@ -180,3 +190,4 @@ export default function DashboardV2Page() {
     </>
   );
 }
+

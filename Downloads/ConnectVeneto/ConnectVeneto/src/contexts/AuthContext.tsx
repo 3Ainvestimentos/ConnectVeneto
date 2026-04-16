@@ -9,7 +9,7 @@ import { useRouter } from 'next/navigation';
 import { toast } from '@/hooks/use-toast';
 import { Collaborator, CollaboratorPermissions, getCollaboratorUserId } from './CollaboratorsContext';
 import { addDocumentToCollection, getCollection, updateDocumentInCollection as updateFirestoreDoc } from '@/lib/firestore-service';
-import { useSystemSettings } from './SystemSettingsContext';
+import { fetchPrivateSystemSettings, useSystemSettings } from './SystemSettingsContext';
 import { useCollaboratorSync } from '@/hooks/useCollaboratorSync';
 import type { FirebaseError } from 'firebase/app';
 import { normalizeEmail } from '@/lib/email-utils';
@@ -166,6 +166,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     systemSettingsRef.current = systemSettings;
   }, [systemSettings]);
 
+  const ensurePrivateSettings = useCallback(async () => {
+    const privateSettings = await fetchPrivateSystemSettings();
+    systemSettingsRef.current = privateSettings;
+    return privateSettings;
+  }, []);
+
   useEffect(() => {
     resetBootstrapTrace();
     bootstrapTrace('auth_provider_mount', { hasCachedUser: !!_auth.currentUser });
@@ -235,7 +241,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
               return;
             }
 
-            const { maintenanceMode, maintenanceMessage, allowedUserIds, superAdminEmails } = systemSettingsRef.current;
+            const { maintenanceMode, maintenanceMessage, allowedUserIds, superAdminEmails } = await ensurePrivateSettings();
             const normalizedEmail = normalizeEmail(firebaseUser.email);
             // Normaliza também os emails da lista para comparar corretamente
             const normalizedAdminEmails = superAdminEmails.map(email => normalizeEmail(email)).filter((email): email is string => email !== null);
@@ -323,7 +329,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setLoading(false); 
     });
     return () => unsubscribe();
-  }, [auth, fetchAndSetCollaborator]);
+  }, [auth, fetchAndSetCollaborator, ensurePrivateSettings]);
 
   // Guard rail: avoid infinite spinner if auth bootstrap stalls.
   useEffect(() => {
@@ -342,8 +348,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const signInWithGoogle = useCallback(async () => {
     setLoading(true);
     try {
-      const { maintenanceMode, maintenanceMessage, allowedUserIds, superAdminEmails } = systemSettings;
-      
       const result = await signInWithPopup(auth, googleProvider);
       const firebaseUser = result.user;
 
@@ -358,6 +362,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         setLoading(false);
         return;
       }
+
+      const { maintenanceMode, maintenanceMessage, allowedUserIds, superAdminEmails } = await ensurePrivateSettings();
       
       const collaborator = await fetchAndSetCollaborator(firebaseUser);
       const normalizedEmail = normalizeEmail(firebaseUser.email);
@@ -429,7 +435,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     } finally {
         setLoading(false);
     }
-  }, [systemSettings, auth, fetchAndSetCollaborator, router]);
+  }, [auth, ensurePrivateSettings, fetchAndSetCollaborator, router]);
 
   const signOut = useCallback(async () => {
     try {

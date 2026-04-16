@@ -1,4 +1,3 @@
-
 "use client";
 
 import React, { useEffect, useState, useCallback, useMemo } from 'react';
@@ -8,7 +7,6 @@ import { AlertCircle } from 'lucide-react';
 import { format, startOfMonth, endOfMonth, isSameDay, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Calendar } from '../ui/calendar';
-import { ScrollArea } from '../ui/scroll-area';
 import { GoogleEventDetailsModal } from './GoogleEventDetailsModal';
 import { cn } from '@/lib/utils';
 import { Button } from '../ui/button';
@@ -32,10 +30,6 @@ export interface CalendarEvent {
   location?: string;
 }
 
-/**
- * Normalizes a date string from Google Calendar API into a correct Date object,
- * handling the "all-day" event timezone issue by setting the time to midday.
- */
 const normalizeDate = (dateStr: string): Date => {
   if (dateStr && !dateStr.includes('T')) {
     return parseISO(`${dateStr}T12:00:00`);
@@ -125,72 +119,86 @@ export default function GoogleCalendar() {
     setCurrentMonth(month);
   };
 
-  const eventDates = useMemo(() => events.map((e) => normalizeDate(e.start.dateTime || e.start.date)), [events]);
+  const eventDates = useMemo(
+    () => events.map((event) => normalizeDate(event.start.dateTime || event.start.date)),
+    [events]
+  );
 
   const eventsForSelectedDay = useMemo(() => {
     if (!selectedDate) return [];
-    return events.filter((e) =>
-      isSameDay(normalizeDate(e.start.dateTime || e.start.date), selectedDate)
+    return events.filter((event) =>
+      isSameDay(normalizeDate(event.start.dateTime || event.start.date), selectedDate)
     );
   }, [events, selectedDate]);
 
-  const renderEvents = () => {
-    if (eventsForSelectedDay.length > 0) {
-      return (
-        <ul className="space-y-2 pr-4">
-          {eventsForSelectedDay.map((event) => {
-            const startDate = normalizeDate(event.start.dateTime || event.start.date);
-            const endDate = normalizeDate(event.end.dateTime || event.end.date);
-            const isAllDay = !event.start.dateTime;
+  /** Eventos do mês carregado que não caem no dia selecionado (para a seção "Eventos do Mês"). */
+  const eventsInMonthNotOnSelectedDay = useMemo(() => {
+    if (!selectedDate) return [];
+    return events.filter(
+      (event) =>
+        !isSameDay(normalizeDate(event.start.dateTime || event.start.date), selectedDate)
+    );
+  }, [events, selectedDate]);
 
-            const timeFormat = isAllDay
-              ? 'Dia todo'
-              : `${format(startDate, 'HH:mm')} - ${format(endDate, 'HH:mm')}`;
-
-            return (
-              <li
-                key={event.id}
-                className="flex items-center gap-3 text-sm p-2 rounded-md hover:bg-muted cursor-pointer"
-                onClick={() => setSelectedEvent(event)}
-              >
-                <div
-                  className={cn(
-                    'font-semibold text-foreground w-24 flex-shrink-0 text-center',
-                    isAllDay && 'text-muted-foreground'
-                  )}
-                >
-                  {timeFormat}
-                </div>
-                <div className="flex-grow border-l-2 border-border pl-3 truncate">
-                  <p className="font-semibold truncate">{event.summary}</p>
-                </div>
-              </li>
-            );
-          })}
-        </ul>
-      );
+  const renderEventList = (items: CalendarEvent[], emptyMessage: string) => {
+    if (items.length === 0) {
+      return <p className="py-4 text-sm text-muted-foreground">{emptyMessage}</p>;
     }
 
     return (
-      <p className="text-center text-muted-foreground text-sm py-4">
-        Nenhum evento para este dia.
-      </p>
+      <ul className="space-y-2 pr-4">
+        {items.map((event) => {
+          const startDate = normalizeDate(event.start.dateTime || event.start.date);
+          const endDate = normalizeDate(event.end.dateTime || event.end.date);
+          const isAllDay = !event.start.dateTime;
+          const showDate = !selectedDate || !isSameDay(startDate, selectedDate);
+
+          const timeFormat = isAllDay
+            ? 'Dia todo'
+            : `${format(startDate, 'HH:mm')} - ${format(endDate, 'HH:mm')}`;
+
+          return (
+            <li
+              key={event.id}
+              className="flex cursor-pointer items-center gap-3 rounded-md p-2 text-sm transition-colors hover:bg-muted"
+              onClick={() => setSelectedEvent(event)}
+            >
+              <div
+                className={cn(
+                  'w-24 flex-shrink-0 text-center font-semibold text-foreground',
+                  isAllDay && 'text-muted-foreground'
+                )}
+              >
+                {timeFormat}
+              </div>
+              <div className="min-w-0 flex-grow border-l-2 border-border pl-3">
+                <p className="truncate font-semibold">{event.summary}</p>
+                {showDate ? (
+                  <p className="truncate text-xs text-muted-foreground">
+                    {format(startDate, "dd 'de' MMMM", { locale: ptBR })}
+                  </p>
+                ) : null}
+              </div>
+            </li>
+          );
+        })}
+      </ul>
     );
   };
 
   return (
     <>
-      <Card className="shadow-sm flex flex-col h-full">
+      <Card className="flex h-full flex-col shadow-sm">
         <CardHeader>
           <CardTitle className="font-headline text-foreground text-xl">Agenda</CardTitle>
           <CardDescription>
             Compromissos e eventos da agenda institucional (calendário público).
           </CardDescription>
         </CardHeader>
-        <CardContent className="flex-grow flex flex-col gap-4 overflow-hidden">
+        <CardContent className="flex flex-grow flex-col gap-4 overflow-hidden">
           {error ? (
-            <div className="flex flex-col items-center justify-center text-center text-destructive p-4 h-full">
-              <AlertCircle className="h-8 w-8 mb-2" />
+            <div className="flex h-full flex-col items-center justify-center p-4 text-center text-destructive">
+              <AlertCircle className="mb-2 h-8 w-8" />
               <p className="font-semibold">Falha ao carregar</p>
               <p className="text-sm">{error}</p>
               <Button
@@ -203,41 +211,67 @@ export default function GoogleCalendar() {
               </Button>
             </div>
           ) : (
-            <>
-              <div className="flex justify-center">
-                <Calendar
-                  mode="single"
-                  selected={selectedDate}
-                  onSelect={handleDayClick}
-                  month={currentMonth}
-                  onMonthChange={handleMonthChange}
-                  className="rounded-md border"
-                  modifiers={{ event: eventDates }}
-                  modifiersClassNames={{
-                    event: 'bg-muted rounded-full',
-                    today: 'bg-muted-foreground/40 text-foreground font-bold',
-                  }}
-                  locale={ptBR}
-                  disabled={loading}
-                />
-              </div>
-              <div className="flex-grow flex flex-col min-h-0">
-                <h3 className="text-sm font-semibold mb-2 flex-shrink-0">
-                  Eventos de {selectedDate ? format(selectedDate, 'dd/MM/yyyy') : 'hoje'}
-                </h3>
-                <div className="flex-grow relative">
-                  <ScrollArea className="absolute inset-0">
-                    {loading ? (
-                      <p className="text-center text-muted-foreground text-sm py-4">
-                        Carregando eventos…
-                      </p>
-                    ) : (
-                      renderEvents()
-                    )}
-                  </ScrollArea>
+            <div className="grid min-h-[280px] flex-grow gap-6 lg:grid-cols-[auto_minmax(0,1fr)] lg:items-stretch">
+              <div className="flex justify-center self-start lg:justify-start">
+                <div className="w-fit max-w-full shrink-0">
+                  <Calendar
+                    mode="single"
+                    selected={selectedDate}
+                    onSelect={handleDayClick}
+                    month={currentMonth}
+                    onMonthChange={handleMonthChange}
+                    className="rounded-md border"
+                    modifiers={{ event: eventDates }}
+                    modifiersClassNames={{
+                      event: 'bg-muted rounded-full',
+                      today: 'bg-muted-foreground/40 text-foreground font-bold',
+                    }}
+                    locale={ptBR}
+                    disabled={loading}
+                  />
                 </div>
               </div>
-            </>
+              <div className="flex h-full min-h-[240px] flex-col rounded-lg border border-border/60 bg-background p-4">
+                <div className="mb-3 flex-shrink-0">
+                  <h3 className="text-sm font-semibold text-foreground">
+                    Eventos de {selectedDate ? format(selectedDate, 'dd/MM/yyyy') : 'hoje'}
+                  </h3>
+                  {eventsForSelectedDay.length > 0 ? (
+                    <p className="text-xs text-muted-foreground">
+                      {eventsForSelectedDay.length} compromisso(s) no dia selecionado.
+                    </p>
+                  ) : null}
+                </div>
+                <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain pr-1 [scrollbar-gutter:stable]">
+                  {loading ? (
+                    <p className="py-4 text-sm text-muted-foreground">
+                      Carregando eventos...
+                    </p>
+                  ) : eventsForSelectedDay.length > 0 ? (
+                    renderEventList(eventsForSelectedDay, 'Nenhum evento para este dia.')
+                  ) : (
+                    <div>
+                      <p className="text-sm text-muted-foreground">
+                        Nenhum evento para este dia.
+                      </p>
+                      {eventsInMonthNotOnSelectedDay.length > 0 ? (
+                        <>
+                          <div
+                            className="my-4 border-t border-border"
+                            role="separator"
+                            aria-hidden="true"
+                          />
+                          <h4 className="mb-2 text-sm font-semibold text-foreground">
+                            Eventos do Mês
+                          </h4>
+                          {renderEventList(eventsInMonthNotOnSelectedDay, '')}
+                        </>
+                      ) : null}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
           )}
         </CardContent>
       </Card>

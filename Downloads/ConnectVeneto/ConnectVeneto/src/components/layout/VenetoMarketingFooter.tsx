@@ -38,11 +38,11 @@ export function VenetoMarketingFooter({
   return (
     <footer className={positionClass}>
       {legalSlot != null ? (
-        <div className="bg-[#0d1d2c]/95 px-4 py-1.5 text-center text-[10px] leading-snug text-white/55">
+        <div className="bg-header/95 px-4 py-1.5 text-center text-[10px] leading-snug text-header-foreground/55">
           {legalSlot}
         </div>
       ) : null}
-      <div className="flex h-[var(--header-height)] w-full items-center justify-center border-t border-white/10 bg-[#0d1d2c] px-4 md:px-6">
+      <div className="flex h-[var(--header-height)] w-full items-center justify-center border-t border-header-foreground/10 bg-header px-4 md:px-6">
         <div className="flex max-w-full flex-wrap items-center justify-center gap-3 sm:gap-4">
           <Image
             src={logoVenetoLight}
@@ -52,7 +52,7 @@ export function VenetoMarketingFooter({
             className="h-7 w-auto shrink-0 object-contain md:h-[41px]"
           />
           <div
-            className="h-7 w-px shrink-0 bg-white/70 md:h-10"
+            className="h-7 w-px shrink-0 bg-header-foreground/70 md:h-10"
             aria-hidden
           />
           <nav
@@ -66,7 +66,7 @@ export function VenetoMarketingFooter({
                 target="_blank"
                 rel="noopener noreferrer"
                 aria-label={label}
-                className="flex h-9 w-9 items-center justify-center rounded-full border border-white/90 text-white transition-colors hover:bg-white/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white md:h-10 md:w-10"
+                className="flex h-9 w-9 items-center justify-center rounded-full border border-header-foreground/90 text-header-foreground transition-colors hover:bg-header-foreground/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-header-foreground md:h-10 md:w-10"
               >
                 <Icon className="h-[18px] w-[18px] md:h-5 md:w-5" strokeWidth={1.75} />
               </a>

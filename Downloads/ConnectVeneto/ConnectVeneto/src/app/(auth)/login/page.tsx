@@ -4,16 +4,12 @@
 import React, { useEffect, useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
-import { Loader2, Construction, Maximize2, PanelLeft } from "lucide-react";
+import { Loader2, Construction } from "lucide-react";
 import Image from "next/image";
 import { useSystemSettings } from "@/contexts/SystemSettingsContext";
 import { useTheme } from "@/contexts/ThemeContext";
 import logoVenetoDark from "../../../../docs/PNG/logotipo_vênetoPrancheta 1.png";
 import logoVenetoLight from "../../../../docs/PNG/logotipo_vênetoPrancheta_3_upscaled.png";
-
-const LOGIN_LAYOUT_KEY = "veneto-login-layout";
-
-type LoginLayout = "immersive" | "split";
 
 const GoogleIcon = (props: React.SVGProps<SVGSVGElement>) => (
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="20px" height="20px" {...props}>
@@ -72,7 +68,6 @@ export default function LoginPage() {
   const logoImmersive = theme === "dark" ? logoVenetoLight : logoVenetoDark;
 
   const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
-  const [loginLayout, setLoginLayout] = useState<LoginLayout>("immersive");
 
   useEffect(() => {
     const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
@@ -82,40 +77,13 @@ export default function LoginPage() {
     return () => mq.removeEventListener("change", update);
   }, []);
 
-  useEffect(() => {
-    try {
-      const stored = sessionStorage.getItem(LOGIN_LAYOUT_KEY);
-      if (stored === "split" || stored === "immersive") {
-        setLoginLayout(stored);
-      }
-    } catch {
-      /* ignore */
-    }
-  }, []);
-
-  const toggleLayout = () => {
-    setLoginLayout((prev) => {
-      const next: LoginLayout = prev === "immersive" ? "split" : "immersive";
-      try {
-        sessionStorage.setItem(LOGIN_LAYOUT_KEY, next);
-      } catch {
-        /* ignore */
-      }
-      return next;
-    });
-  };
-
   const googleButton = (
     <Button
       onClick={signInWithGoogle}
       disabled={loading || maintenanceMode}
       size="lg"
       variant="outline"
-      className={
-        loginLayout === "split"
-          ? "w-full max-w-xs rounded-full border-[#0d1d2c]/25 bg-white font-body font-semibold text-[#0d1d2c] hover:bg-[#0d1d2c]/5 hover:text-[#0d1d2c]"
-          : "w-full max-w-xs rounded-full font-body font-semibold text-foreground/80 hover:bg-card hover:text-foreground/80"
-      }
+      className="w-full max-w-xs rounded-full font-body font-semibold text-foreground/80 hover:bg-card hover:text-foreground/80"
     >
       {loading ? (
         <Loader2 className="mr-2 h-5 w-5 animate-spin" />
@@ -128,89 +96,15 @@ export default function LoginPage() {
 
   const maintenanceBlock =
     maintenanceMode ? (
-      <div
-        className={
-          loginLayout === "split"
-            ? "mb-4 w-full rounded-md border border-amber-500/40 bg-amber-500/10 p-4 text-center text-amber-900"
-            : "mb-4 w-full rounded-md border border-amber-500/50 bg-amber-500/10 p-4 text-center text-amber-700"
-        }
-      >
+      <div className="mb-4 w-full rounded-md border border-amber-500/50 bg-amber-500/10 p-4 text-center text-amber-700">
         <Construction className="mx-auto mb-2 h-6 w-6 text-amber-600" />
         <p className="text-sm font-semibold">Plataforma em Manutenção</p>
         <p className="text-xs">{settings.maintenanceMessage}</p>
       </div>
     ) : null;
 
-  const layoutToggle = (
-    <button
-      type="button"
-      onClick={toggleLayout}
-      className="fixed bottom-6 right-24 z-[60] flex h-11 w-11 items-center justify-center rounded-full border border-white/35 bg-black/45 text-white shadow-lg backdrop-blur-sm transition-colors hover:bg-black/55 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#e1ca5f]"
-      aria-label={
-        loginLayout === "immersive"
-          ? "Alternar para layout com painel à esquerda"
-          : "Alternar para layout em tela cheia"
-      }
-      title={
-        loginLayout === "immersive"
-          ? "Layout em painéis (1/3 + vídeo)"
-          : "Layout em tela cheia"
-      }
-    >
-      {loginLayout === "immersive" ? (
-        <PanelLeft className="h-5 w-5" strokeWidth={2} />
-      ) : (
-        <Maximize2 className="h-5 w-5" strokeWidth={2} />
-      )}
-    </button>
-  );
-
-  if (loginLayout === "split") {
-    return (
-      <main className="relative flex min-h-screen w-screen flex-col overflow-hidden bg-white lg:min-h-0 lg:h-screen lg:flex-row">
-        {layoutToggle}
-
-        <section className="flex min-h-[50vh] w-full flex-col bg-white lg:h-screen lg:w-1/3">
-          <div className="flex flex-1 flex-col items-center justify-center px-8 py-12 lg:py-8">
-            <div className="flex w-full max-w-sm flex-col items-center">
-              <Image
-                src={logoVenetoDark}
-                alt="Logo Veneto Family Office"
-                width={220}
-                height={52}
-                priority
-                className="mb-10"
-              />
-              {maintenanceBlock}
-              {googleButton}
-            </div>
-          </div>
-          <footer className="mt-auto px-6 pb-8 pt-4 text-center text-[10px] leading-snug text-[#0d1d2c]/50 sm:px-8 sm:text-[11px]">
-            <p className="text-pretty">
-              Sujeito aos Termos de Uso e à Política de Privacidade da Vêneto Family
-              {"\u00A0"}
-              Office.
-            </p>
-            <p className="mt-1.5">Todos os direitos reservados.</p>
-          </footer>
-        </section>
-
-        <section className="relative min-h-[42vh] flex-1 bg-[#0d1d2c] lg:min-h-0 lg:w-2/3">
-          <LoginVideo
-            src="/videos/connect-veneto-v1.mp4"
-            prefersReducedMotion={prefersReducedMotion}
-            className="pointer-events-none absolute inset-0 z-0 h-full w-full object-cover"
-          />
-          <div className="absolute inset-0 z-10 bg-gradient-to-l from-black/20 via-transparent to-black/15" />
-        </section>
-      </main>
-    );
-  }
-
   return (
     <main className="relative flex h-screen w-screen items-center justify-center overflow-hidden bg-[#0d1d2c]">
-      {layoutToggle}
-
       <LoginVideo
         src="/videos/connect-veneto-v2.mp4"
         prefersReducedMotion={prefersReducedMotion}
