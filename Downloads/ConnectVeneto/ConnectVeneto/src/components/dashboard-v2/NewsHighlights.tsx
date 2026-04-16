@@ -78,7 +78,20 @@ export default function NewsHighlights() {
       role="button"
       aria-label={`Ver notícia: ${item.title}`}
     >
-      <Image src={item.imageUrl} alt={item.title} fill style={{ objectFit: 'cover' }} className="transition-transform duration-300 group-hover:scale-105" />
+      {item.videoUrl ? (
+        <video
+          src={item.videoUrl}
+          autoPlay
+          loop
+          muted
+          playsInline
+          className="absolute inset-0 h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+        >
+          Seu navegador não suporta vídeo HTML5.
+        </video>
+      ) : (
+        <Image src={item.imageUrl} alt={item.title} fill style={{ objectFit: 'cover' }} className="transition-transform duration-300 group-hover:scale-105" />
+      )}
       <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent p-5 pb-6 flex flex-col justify-end">
         <h3 className="text-xl font-headline font-bold text-white tracking-tight">{item.title}</h3>
         <p className="text-sm text-gray-200 font-body font-light line-clamp-2">{item.snippet}</p>
@@ -168,13 +181,22 @@ export default function NewsHighlights() {
           {selectedNews && (
             <>
               <DialogHeader>
-                <div className="relative w-full h-64 rounded-lg overflow-hidden mb-4">
-                  <Image
-                    src={selectedNews.imageUrl}
-                    alt={selectedNews.title}
-                    fill
-                    style={{ objectFit: 'cover' }}
-                  />
+                <div className="relative w-full h-64 rounded-lg overflow-hidden mb-4 bg-black">
+                  {selectedNews.videoUrl ? (
+                    <video
+                      src={selectedNews.videoUrl}
+                      controls
+                      autoPlay
+                      className="h-full w-full object-contain"
+                    />
+                  ) : (
+                    <Image
+                      src={selectedNews.imageUrl}
+                      alt={selectedNews.title}
+                      fill
+                      style={{ objectFit: 'cover' }}
+                    />
+                  )}
                 </div>
                 <DialogTitle className="font-headline text-2xl text-left">{selectedNews.title}</DialogTitle>
                 <div className="text-left !mt-2">
