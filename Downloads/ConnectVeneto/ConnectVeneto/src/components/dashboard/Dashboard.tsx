@@ -100,23 +100,27 @@ export default function DashboardPage() {
                         <CardTitle className="font-headline text-foreground text-xl">Links Rápidos</CardTitle>
                     </CardHeader>
                     <CardContent className="flex justify-center">
-                        <div className="flex justify-center flex-wrap gap-3">
+                        <div className="flex flex-col gap-3 w-full">
                           {quickLinks.map(link => (
                               <a 
                                  href={link.link} 
                                  key={link.id} 
                                  target="_blank" 
                                  rel="noopener noreferrer" 
-                                 className="block relative overflow-hidden rounded-lg transition-opacity hover:opacity-80 bg-card dark:bg-white aspect-video w-32"
+                                 className="flex items-center gap-3 p-3 rounded-lg border border-border/50 hover:bg-muted transition-colors bg-card dark:bg-white w-full group relative overflow-hidden h-16"
                                  title={link.name || 'Link Rápido'}
                                >
-                                  <Image
-                                      src={link.imageUrl}
-                                      alt={link.name || 'Quick Link'}
-                                      layout="fill"
-                                      objectFit="contain"
-                                      className="p-2"
-                                  />
+                                  <div className="relative w-20 h-full shrink-0 flex items-center justify-center">
+                                    <Image
+                                        src={link.imageUrl}
+                                        alt={link.name || 'Quick Link'}
+                                        fill
+                                        className="object-contain p-1 transition-transform group-hover:scale-105"
+                                    />
+                                  </div>
+                                  {link.name ? (
+                                    <span className="text-sm font-medium truncate text-foreground flex-1">{link.name}</span>
+                                  ) : null}
                               </a>
                           ))}
                         </div>

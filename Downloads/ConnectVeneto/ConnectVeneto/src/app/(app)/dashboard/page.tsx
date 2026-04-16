@@ -14,6 +14,7 @@ import TradingViewWidget from '@/components/dashboard-v2/TradingViewWidget';
 import NewsHighlights from '@/components/dashboard-v2/NewsHighlights';
 import { useContacts } from '@/contexts/ContactsContext';
 import { findCollaboratorByEmail } from '@/lib/email-utils';
+import { venetoAreaLogadaCards } from '@/config/veneto-area-logada';
 import { WidgetErrorBoundary } from '@/components/error/WidgetErrorBoundary';
 import { bootstrapTrace } from '@/lib/bootstrap-trace';
 import { VenetoMarketingFooter } from '@/components/layout/VenetoMarketingFooter';
@@ -107,36 +108,32 @@ export default function DashboardV2Page() {
             <div className="md:col-span-3 min-w-0 flex">
               <Card className="shadow-sm w-full h-full flex flex-col">
                 <CardHeader>
-                  <CardTitle className="font-headline text-foreground text-xl">Contatos</CardTitle>
-                  <CardDescription>Contato dos responsáveis pelas áreas da empresa.</CardDescription>
+                  <CardTitle className="font-headline text-foreground text-xl">Área Logada</CardTitle>
+                  <CardDescription>Acesse os serviços exclusivos.</CardDescription>
                 </CardHeader>
                 <CardContent className="flex-grow min-h-0 overflow-y-auto">
-                  {contacts.length === 0 ? (
-                    <p className="text-sm text-muted-foreground p-4">Nenhum contato encontrado.</p>
-                  ) : (
-                    <div className="space-y-2">
-                      {contacts.map((contact) => (
-                        <a
-                          href={contact.slackUrl}
-                          key={contact.id}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="flex items-center gap-3 text-sm p-2 rounded-md hover:bg-muted"
-                        >
+                  <div className="flex flex-col gap-3">
+                    {venetoAreaLogadaCards.map((link) => (
+                      <a
+                        href={link.href}
+                        key={link.id}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-3 p-3 rounded-lg border border-border/50 hover:bg-muted transition-colors bg-card dark:bg-white w-full group relative overflow-hidden h-16"
+                        title={link.title}
+                      >
+                        <div className="relative w-12 h-full shrink-0 flex items-center justify-center">
                           <Image
-                            src="https://firebasestorage.googleapis.com/v0/b/a-riva-hub.firebasestorage.app/o/Imagens%20institucionais%20(logos%20e%20etc)%2Ficons8-slack-new-48.png?alt=media&token=7a2d489c-3501-4b01-a206-32673c8a8a99"
-                            alt="Slack icon"
-                            width={16}
-                            height={16}
+                            src="/logo-veneto-azul.png"
+                            alt="Logo Veneto"
+                            fill
+                            className="object-contain p-1 transition-transform group-hover:scale-105"
                           />
-                          <div className="truncate min-w-0">
-                            <p className="font-semibold truncate">{contact.area}</p>
-                            <p className="text-xs text-muted-foreground truncate">{contact.manager}</p>
-                          </div>
-                        </a>
-                      ))}
-                    </div>
-                  )}
+                        </div>
+                        <span className="text-sm font-medium leading-tight text-foreground flex-1 break-words line-clamp-2">{link.title}</span>
+                      </a>
+                    ))}
+                  </div>
                 </CardContent>
               </Card>
             </div>
@@ -148,27 +145,26 @@ export default function DashboardV2Page() {
                 </CardHeader>
                 <CardContent className="flex-grow min-h-0 overflow-y-auto">
                   {quickLinks.length > 0 ? (
-                    <div className="flex flex-col gap-2">
+                    <div className="flex flex-col gap-3">
                       {quickLinks.map((link) => (
                         <a
                           href={link.link}
                           key={link.id}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="flex items-center gap-3 p-2 rounded-md hover:bg-muted transition-colors min-w-0"
+                          className="flex items-center gap-3 p-3 rounded-lg border border-border/50 hover:bg-muted transition-colors bg-card dark:bg-white w-full group relative overflow-hidden h-16"
                           title={link.name || 'Link rápido'}
                         >
-                          <span className="shrink-0 w-10 h-10 flex items-center justify-center bg-card dark:bg-white rounded overflow-hidden border border-border/60">
+                          <div className="relative w-20 h-full shrink-0 flex items-center justify-center">
                             <Image
                               src={link.imageUrl}
                               alt={link.name || 'Link rápido'}
-                              width={36}
-                              height={36}
-                              className="object-contain p-0.5"
+                              fill
+                              className="object-contain p-1 transition-transform group-hover:scale-105"
                             />
-                          </span>
+                          </div>
                           {link.name ? (
-                            <span className="text-sm font-medium truncate min-w-0">{link.name}</span>
+                            <span className="text-sm font-medium truncate text-foreground flex-1">{link.name}</span>
                           ) : null}
                         </a>
                       ))}
