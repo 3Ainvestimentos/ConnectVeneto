@@ -1,5 +1,15 @@
 import { NextResponse } from "next/server";
-import { verifyCorporateRequest } from "@/lib/api-auth";
+import { z } from "zod";
+import {
+  OutboundHttpError,
+  RequestValidationError,
+  internalErrorResponse,
+  logSecurityEvent,
+  requireCorporateUser,
+  safeFetch,
+  securityErrorResponse,
+  validateSearchParams,
+} from "@/lib/security";
 
 interface BrasilApiHoliday {
   date: string;
@@ -7,63 +17,69 @@ interface BrasilApiHoliday {
   type: string;
 }
 
+const holidayQuerySchema = z.object({
+  year: z.coerce.number().int().min(1900).max(2100),
+});
+
 function normalizeToISO(date: string): string {
-  // A BrasilAPI já devolve YYYY-MM-DD
   return date;
 }
 
 export async function GET(request: Request) {
   try {
-    const authorizationHeader = request.headers.get("Authorization");
-    // Valida o domínio (venetomfo.com.br)
-    await verifyCorporateRequest(authorizationHeader);
+    await requireCorporateUser(request.headers.get("Authorization"));
 
-    const { searchParams } = new URL(request.url);
-    const year = Number(searchParams.get("year"));
+    const { year } = validateSearchParams(request.url, holidayQuerySchema);
 
-    if (!Number.isInteger(year) || year < 1900 || year > 2100) {
-      return NextResponse.json({ error: "Parametro year invalido." }, { status: 400 });
-    }
-
-    // Usar a BrasilAPI (pública e gratuita, sem necessidade de KEY)
-    const response = await fetch(`https://brasilapi.com.br/api/feriados/v1/${year}`, {
-      method: "GET",
+    const response = await safeFetch(`https://brasilapi.com.br/api/feriados/v1/${year}`, {
+      allowedHosts: ["brasilapi.com.br"],
       headers: {
         "Content-Type": "application/json",
       },
-      // cache: "force-cache" é ideal aqui pois feriados de um ano não mudam
-      cache: "force-cache", 
+      cache: "force-cache",
+      timeoutMs: 4000,
     });
 
     if (!response.ok) {
       if (response.status === 404) {
-         // BrasilAPI pode retornar 404 se o ano for muito fora do padrão, tratamos como lista vazia
-         return NextResponse.json({ holidays: [] });
+        return NextResponse.json({ holidays: [] });
       }
-      throw new Error(`Falha na API de feriados (${response.status}).`);
+
+      throw new OutboundHttpError(`Falha na API de feriados (${response.status}).`);
     }
 
     const json = (await response.json()) as BrasilApiHoliday[];
-    
-    // Normalizar a resposta para o formato que a Intranet espera
     const normalized = json.map((holiday) => ({
       dateISO: normalizeToISO(holiday.date),
       name: holiday.name,
-      type: holiday.type || "nacional", // BrasilAPI retorna feriados nacionais por padrão aqui
+      type: holiday.type || "nacional",
     }));
 
     return NextResponse.json({ holidays: normalized });
   } catch (error) {
-    console.error("Erro ao carregar feriados:", error);
-
-    if ((error as Error)?.message === "UNAUTHORIZED_MISSING_TOKEN" || (error as Error)?.message === "UNAUTHORIZED_INVALID_TOKEN") {
-      return NextResponse.json({ error: "Nao autorizado: token nao fornecido." }, { status: 401 });
+    const knownSecurityError = securityErrorResponse(error);
+    if (knownSecurityError) {
+      logSecurityEvent("[api/holidays] security error", {
+        error: error instanceof Error ? error.message : "unknown",
+      });
+      return knownSecurityError;
     }
 
-    if ((error as Error)?.message === "FORBIDDEN_NON_CORPORATE_EMAIL") {
-      return NextResponse.json({ error: "Acesso negado: apenas contas corporativas podem acessar." }, { status: 403 });
+    if (error instanceof RequestValidationError) {
+      return NextResponse.json({ error: "Parametro year invalido." }, { status: error.status });
     }
 
-    return NextResponse.json({ error: "Nao foi possivel carregar os feriados." }, { status: 500 });
+    if (error instanceof OutboundHttpError) {
+      logSecurityEvent("[api/holidays] outbound error", {
+        error: error.message,
+        status: error.status,
+      });
+      return internalErrorResponse("Nao foi possivel carregar os feriados.");
+    }
+
+    logSecurityEvent("[api/holidays] unexpected error", {
+      error: error instanceof Error ? error.message : "unknown",
+    });
+    return internalErrorResponse("Nao foi possivel carregar os feriados.");
   }
 }

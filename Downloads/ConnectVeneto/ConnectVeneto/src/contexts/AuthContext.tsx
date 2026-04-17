@@ -14,6 +14,7 @@ import { useCollaboratorSync } from '@/hooks/useCollaboratorSync';
 import type { FirebaseError } from 'firebase/app';
 import { normalizeEmail } from '@/lib/email-utils';
 import { bootstrapTrace, resetBootstrapTrace } from '@/lib/bootstrap-trace';
+import { fetchClientSessionInfo, type ClientSessionInfo } from '@/lib/session-client';
 
 /** Drive ainda usa OAuth no widget de arquivos; calendário passou a API pública via /api/calendar. */
 const scopes = ['https://www.googleapis.com/auth/drive.readonly'];
@@ -241,11 +242,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
               return;
             }
 
+            // Preferencia: /api/me/session (server-side, seguro contra exposicao de superAdminEmails).
+            // Fallback: leitura client direta do config (comportamento historico).
+            const serverSession: ClientSessionInfo | null = await fetchClientSessionInfo(firebaseUser);
             const { maintenanceMode, maintenanceMessage, allowedUserIds, superAdminEmails } = await ensurePrivateSettings();
             const normalizedEmail = normalizeEmail(firebaseUser.email);
-            // Normaliza também os emails da lista para comparar corretamente
             const normalizedAdminEmails = superAdminEmails.map(email => normalizeEmail(email)).filter((email): email is string => email !== null);
-            const isSuper = !!normalizedEmail && (normalizedAdminEmails.includes(normalizedEmail) || superAdminEmails.includes(normalizedEmail));
+            const isSuper = serverSession
+              ? serverSession.isSuperAdmin
+              : !!normalizedEmail && (normalizedAdminEmails.includes(normalizedEmail) || superAdminEmails.includes(normalizedEmail));
 
             let collaborator: Collaborator | null = null;
             let collaboratorLookupTimedOut = false;
@@ -363,13 +368,16 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         return;
       }
 
+      // Preferencia: /api/me/session. Fallback: leitura direta do config.
+      const serverSession: ClientSessionInfo | null = await fetchClientSessionInfo(firebaseUser);
       const { maintenanceMode, maintenanceMessage, allowedUserIds, superAdminEmails } = await ensurePrivateSettings();
-      
+
       const collaborator = await fetchAndSetCollaborator(firebaseUser);
       const normalizedEmail = normalizeEmail(firebaseUser.email);
-      // Normaliza também os emails da lista para comparar corretamente
       const normalizedAdminEmails = superAdminEmails.map(email => normalizeEmail(email)).filter((email): email is string => email !== null);
-      const isSuper = !!normalizedEmail && (normalizedAdminEmails.includes(normalizedEmail) || superAdminEmails.includes(normalizedEmail));
+      const isSuper = serverSession
+        ? serverSession.isSuperAdmin
+        : !!normalizedEmail && (normalizedAdminEmails.includes(normalizedEmail) || superAdminEmails.includes(normalizedEmail));
 
       if (maintenanceMode) {
           const collaboratorUserId = getCollaboratorUserId(collaborator);

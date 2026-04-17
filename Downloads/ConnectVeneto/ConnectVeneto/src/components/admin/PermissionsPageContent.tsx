@@ -20,7 +20,6 @@ const allPermissionLabels: { key: keyof CollaboratorPermissions; label: string; 
     { key: 'canManageSystem', label: 'Sistema' },
     { key: 'canViewAudit', label: 'Auditoria' },
     { key: 'canManageContent', label: 'Conteúdo' },
-    { key: 'canManageRequests', label: 'Gestão de Solicitações' },
     { key: 'canViewConsultaPessoal', label: 'Consulta Pessoal' },
     { key: 'canViewDocuments', label: 'Documentos' },
     { key: 'canViewApplications', label: 'Solicitações' },

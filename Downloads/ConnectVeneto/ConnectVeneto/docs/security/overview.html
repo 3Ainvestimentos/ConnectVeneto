@@ -1,0 +1,114 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8" />
+<title>Connect Veneto - Security Overview</title>
+<style>
+  :root {
+    --navy: #0d1d2c;
+    --navy-2: #162a3f;
+    --blue: #2d58a5;
+    --gold: #e1ca5f;
+    --gray: #a9a9a8;
+    --bg: #f5f7fa;
+    --ok: #1d8c4a;
+    --warn: #b07b00;
+    --crit: #a12321;
+  }
+  body { font-family: 'Segoe UI', Arial, sans-serif; background: var(--bg); color: #1a1a1a; margin: 0; }
+  header { background: var(--navy); color: #fff; padding: 24px 32px; }
+  header h1 { margin: 0; font-size: 22px; }
+  header .sub { color: var(--gold); font-size: 13px; margin-top: 4px; }
+  nav { background: var(--navy-2); color: #fff; padding: 10px 32px; display: flex; gap: 16px; font-size: 14px; }
+  nav a { color: #fff; text-decoration: none; padding: 4px 8px; border-radius: 4px; }
+  nav a:hover { background: var(--blue); }
+  main { padding: 32px; max-width: 1100px; margin: 0 auto; }
+  h2 { color: var(--navy); border-bottom: 2px solid var(--gold); padding-bottom: 6px; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px; }
+  .card { background: #fff; border: 1px solid #e1e5ea; border-radius: 8px; padding: 18px; }
+  .card h3 { margin: 0 0 8px; color: var(--navy); font-size: 15px; }
+  .kpi { font-size: 26px; font-weight: 700; color: var(--navy); }
+  .kpi small { font-size: 12px; font-weight: 400; color: var(--gray); margin-left: 6px; }
+  .sev-crit { color: var(--crit); font-weight: 700; }
+  .sev-high { color: var(--crit); }
+  .sev-med { color: var(--warn); }
+  .sev-low { color: var(--ok); }
+  .badge { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 11px; font-weight: 600; }
+  .badge-ok { background: #e1f4e8; color: var(--ok); }
+  .badge-warn { background: #fdf2d8; color: var(--warn); }
+  .badge-crit { background: #f8dbd9; color: var(--crit); }
+  table { width: 100%; border-collapse: collapse; font-size: 14px; margin-top: 8px; }
+  th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid #e1e5ea; }
+  th { background: #fafbfc; color: var(--navy); }
+  footer { text-align: center; font-size: 12px; color: var(--gray); padding: 20px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Connect Veneto - Security Overview</h1>
+  <div class="sub">Gerado como parte do pacote de governanca em docs/security/</div>
+</header>
+<nav>
+  <a href="overview.html">Overview</a>
+  <a href="trust-boundaries.html">Trust Boundaries</a>
+  <a href="apis.html">APIs</a>
+  <a href="findings.html">Findings</a>
+  <a href="supply-chain.html">Supply Chain</a>
+</nav>
+<main>
+  <h2>Panorama</h2>
+  <div class="grid">
+    <div class="card">
+      <h3>Advisories totais</h3>
+      <div class="kpi">21 <small>pacotes (era 39)</small></div>
+      <div><span class="sev-crit">0 critical</span> - <span class="sev-high">1 high</span> (xlsx residual) - <span class="sev-low">20 low</span></div>
+      <div style="font-size:11px; color:var(--gray); margin-top:4px;">historico em <a href="supply-chain.html">supply-chain</a></div>
+    </div>
+    <div class="card">
+      <h3>Mitigacoes aplicadas</h3>
+      <div class="kpi">5 <small>blocos</small></div>
+      <div>Governanca, XLSX, Logging, RSS, Auditoria Firebase</div>
+    </div>
+    <div class="card">
+      <h3>Testes automatizados</h3>
+      <div class="kpi">116 <small>passaram</small></div>
+      <div>10 suites, sem regressao</div>
+    </div>
+    <div class="card">
+      <h3>Residuais aceitos</h3>
+      <div class="kpi">1</div>
+      <div><span class="badge badge-warn">xlsx high</span></div>
+    </div>
+  </div>
+
+  <h2>Controles vigentes</h2>
+  <table>
+    <thead>
+      <tr><th>Controle</th><th>Modulo</th><th>Status</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>AuthN server-side</td><td>src/lib/api-auth.ts</td><td><span class="badge badge-ok">Ativo</span></td></tr>
+      <tr><td>AuthZ super admin</td><td>src/lib/security/auth.ts</td><td><span class="badge badge-ok">Ativo</span></td></tr>
+      <tr><td>Validacao de input (Zod)</td><td>src/lib/security/validation.ts</td><td><span class="badge badge-ok">Ativo</span></td></tr>
+      <tr><td>IO externo seguro</td><td>src/lib/security/http.ts</td><td><span class="badge badge-ok">Ativo</span></td></tr>
+      <tr><td>Logs redigidos</td><td>src/lib/security/logging.ts</td><td><span class="badge badge-ok">Ativo</span></td></tr>
+      <tr><td>Limites upload</td><td>src/components/admin/ManageCollaborators.tsx</td><td><span class="badge badge-ok">Ativo</span></td></tr>
+      <tr><td>Middleware cookie</td><td>middleware.ts</td><td><span class="badge badge-ok">Ativo</span></td></tr>
+      <tr><td>Threat model documentado</td><td>docs/security/THREAT_MODEL.md</td><td><span class="badge badge-ok">Ativo</span></td></tr>
+    </tbody>
+  </table>
+
+  <h2>Referencias</h2>
+  <ul>
+    <li><a href="SECURITY_ENGINEERING_STANDARD.md">SECURITY_ENGINEERING_STANDARD.md</a></li>
+    <li><a href="THREAT_MODEL.md">THREAT_MODEL.md</a></li>
+    <li><a href="SYSTEM_SETTINGS_EXPOSURE.md">SYSTEM_SETTINGS_EXPOSURE.md</a></li>
+    <li><a href="FIREBASE_LOCAL_AUDIT.md">FIREBASE_LOCAL_AUDIT.md</a></li>
+    <li><a href="XLSX_RISK_REMOVAL_PLAN.md">XLSX_RISK_REMOVAL_PLAN.md</a></li>
+    <li><a href="RSS_SSRF_HARDENING.md">RSS_SSRF_HARDENING.md</a></li>
+    <li><a href="NPM_AUDIT_SNAPSHOT.md">NPM_AUDIT_SNAPSHOT.md</a></li>
+  </ul>
+</main>
+<footer>Connect Veneto - security snapshot</footer>
+</body>
+</html>

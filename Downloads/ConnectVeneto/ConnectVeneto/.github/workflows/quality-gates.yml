@@ -35,3 +35,7 @@ jobs:
       - name: Build
         run: npm run build
 
+      - name: Dependency audit (high+critical; nao bloqueia enquanto residuais aceitos existirem)
+        run: npm audit --audit-level=high --omit=dev
+        continue-on-error: true
+

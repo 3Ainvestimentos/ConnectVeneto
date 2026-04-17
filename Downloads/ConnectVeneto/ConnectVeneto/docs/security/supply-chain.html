@@ -1,0 +1,201 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8" />
+<title>Connect Veneto - Supply Chain</title>
+<style>
+  :root { --navy: #0d1d2c; --navy-2: #162a3f; --blue: #2d58a5; --gold: #e1ca5f; --gray: #a9a9a8; --bg: #f5f7fa; --ok: #1d8c4a; --warn: #b07b00; --crit: #a12321; }
+  body { font-family: 'Segoe UI', Arial, sans-serif; background: var(--bg); margin: 0; color: #1a1a1a; line-height: 1.55; }
+  header { background: var(--navy); color: #fff; padding: 24px 32px; }
+  header h1 { margin: 0; font-size: 22px; }
+  header .sub { color: var(--gold); font-size: 13px; margin-top: 4px; }
+  nav { background: var(--navy-2); color: #fff; padding: 10px 32px; display: flex; gap: 16px; font-size: 14px; }
+  nav a { color: #fff; text-decoration: none; padding: 4px 8px; border-radius: 4px; }
+  nav a:hover { background: var(--blue); }
+  main { padding: 32px; max-width: 1100px; margin: 0 auto; }
+  h2 { color: var(--navy); border-bottom: 2px solid var(--gold); padding-bottom: 6px; margin-top: 36px; }
+  h3 { color: var(--navy); margin-top: 22px; font-size: 16px; }
+  .hero { background: #fff; border-left: 6px solid var(--ok); padding: 16px 20px; border-radius: 8px; display: flex; gap: 20px; align-items: center; flex-wrap: wrap; }
+  .hero .num { font-size: 34px; font-weight: 700; color: var(--navy); }
+  .hero .small { color: var(--gray); font-size: 12px; text-transform: uppercase; letter-spacing: .5px; }
+  .delta { background: #e1f4e8; color: var(--ok); padding: 4px 10px; border-radius: 14px; font-weight: 700; font-size: 13px; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; margin-top: 10px; background: #fff; }
+  th, td { text-align: left; padding: 9px 10px; border-bottom: 1px solid #e1e5ea; vertical-align: top; }
+  th { background: var(--navy); color: #fff; }
+  .sev { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 11px; font-weight: 700; color: #fff; }
+  .sev-crit { background: var(--crit); }
+  .sev-high { background: #c0392b; }
+  .sev-med { background: var(--warn); }
+  .sev-low { background: var(--ok); }
+  .bar { display: flex; height: 18px; border-radius: 9px; overflow: hidden; margin: 10px 0; box-shadow: inset 0 0 0 1px #ccc; }
+  .bar > span { display: block; text-align: center; font-size: 11px; color: #fff; line-height: 18px; font-weight: 600; }
+  .timeline { position: relative; margin: 18px 0; padding-left: 28px; border-left: 3px solid var(--navy); }
+  .entry { background: #fff; border: 1px solid #e1e5ea; border-radius: 8px; padding: 14px 18px; margin-bottom: 14px; position: relative; }
+  .entry::before { content: ""; position: absolute; left: -37px; top: 18px; width: 14px; height: 14px; border-radius: 50%; background: var(--navy); border: 3px solid var(--bg); }
+  .entry.current::before { background: var(--ok); }
+  .entry.old::before { background: var(--gray); }
+  .entry h4 { margin: 0 0 6px; color: var(--navy); font-size: 15px; display: flex; align-items: center; gap: 10px; }
+  .entry .date { font-family: 'Consolas', monospace; font-size: 12px; color: var(--gray); font-weight: 500; background: #f2f4f7; padding: 2px 6px; border-radius: 4px; }
+  .entry.current h4::after { content: "ATUAL"; background: var(--ok); color: #fff; padding: 2px 8px; border-radius: 10px; font-size: 10px; }
+  code { background: #f2f4f7; padding: 1px 4px; border-radius: 3px; font-size: 12.5px; }
+  ul.compact { margin: 4px 0; padding-left: 18px; }
+  ul.compact li { margin-bottom: 2px; }
+  footer { text-align: center; font-size: 12px; color: var(--gray); padding: 20px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Supply Chain - Connect Veneto</h1>
+  <div class="sub">Estado atual + historico de correcoes de dependencias</div>
+</header>
+<nav>
+  <a href="overview.html">Overview</a>
+  <a href="trust-boundaries.html">Trust Boundaries</a>
+  <a href="apis.html">APIs</a>
+  <a href="findings.html">Findings</a>
+  <a href="supply-chain.html">Supply Chain</a>
+</nav>
+<main>
+
+  <h2>Estado atual</h2>
+
+  <div class="hero">
+    <div>
+      <div class="small">Total</div>
+      <div class="num">21</div>
+      <div style="color:var(--gray); font-size:12px;">advisories</div>
+    </div>
+    <div>
+      <div class="small">Alta/Critica</div>
+      <div class="num" style="color: var(--warn);">1</div>
+      <div style="color:var(--gray); font-size:12px;">(xlsx residual)</div>
+    </div>
+    <div>
+      <div class="small">Baixa</div>
+      <div class="num" style="color: var(--ok);">20</div>
+      <div style="color:var(--gray); font-size:12px;">transitivas</div>
+    </div>
+    <div>
+      <span class="delta">-18 desde a ultima auditoria</span>
+    </div>
+  </div>
+
+  <div class="bar" title="Distribuicao atual">
+    <span style="flex: 0; background: var(--crit);"></span>
+    <span style="flex: 1; background: #c0392b;">1 high (xlsx)</span>
+    <span style="flex: 0; background: var(--warn);"></span>
+    <span style="flex: 20; background: var(--ok);">20 low</span>
+  </div>
+
+  <h3>Residual ativo</h3>
+  <table>
+    <thead>
+      <tr><th>Pacote</th><th>Sev</th><th>Fix upstream</th><th>Tratamento</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><code>xlsx</code></td>
+        <td><span class="sev sev-high">HIGH</span></td>
+        <td>Nao ha</td>
+        <td>Residual aceito. Mitigado por limites em <code>ManageCollaborators.tsx</code>. Ver <a href="XLSX_RISK_REMOVAL_PLAN.md">XLSX_RISK_REMOVAL_PLAN.md</a></td>
+      </tr>
+      <tr>
+        <td>transitivas de <code>genkit-cli</code> (20 low)</td>
+        <td><span class="sev sev-low">LOW</span></td>
+        <td>Requer <code>--force</code> (breaking em <code>firebase-admin</code>)</td>
+        <td>Nao aplicado. Reavaliar em bloco coordenado.</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h2>Historico de correcoes</h2>
+
+  <p>Toda execucao de <code>npm audit fix</code> ou troca significativa de dependencia deve adicionar uma entrada aqui, <strong>sem remover as anteriores</strong>. A trilha serve como evidencia de auditoria.</p>
+
+  <div class="timeline">
+
+    <div class="entry current">
+      <h4>
+        <span class="date">2026-04-17</span>
+        npm audit fix (sem --force)
+      </h4>
+      <p><strong>Total:</strong> 39 -> 21 advisories (-18).</p>
+      <p><strong>Severidade:</strong> 3 critical + 11 high + 4 moderate + 21 low -> 1 high + 20 low.</p>
+      <p><strong>Pacotes corrigidos (principais):</strong></p>
+      <ul class="compact">
+        <li><code>protobufjs</code> - CRITICAL (arbitrary code execution)</li>
+        <li><code>@hono/node-server</code> - HIGH (auth bypass static paths)</li>
+        <li><code>@modelcontextprotocol/sdk</code> - HIGH (cross-client data leak)</li>
+        <li><code>node-forge</code> - HIGH (DoS + signature forgery)</li>
+        <li><code>path-to-regexp</code> - HIGH (ReDoS)</li>
+        <li><code>picomatch</code> - HIGH (method injection + ReDoS)</li>
+        <li><code>qs</code> - HIGH (arrayLimit bypass DoS)</li>
+        <li><code>yaml</code> - MODERATE (stack overflow)</li>
+        <li>+ 10 outros low/moderate fechados por cascata</li>
+      </ul>
+      <p><strong>Metodo:</strong> <code>npm audit fix</code> sem <code>--force</code>, para nao quebrar stack.</p>
+      <p><strong>Deps congeladas (nao tocadas):</strong> <code>genkit</code>, <code>genkit-cli</code>, <code>@genkit-ai/googleai</code>, <code>@genkit-ai/next</code>.</p>
+      <p><strong>Validacoes:</strong> typecheck OK, 116/116 testes passando, dev server compilou e /api/me/session respondeu 200.</p>
+    </div>
+
+    <div class="entry old">
+      <h4>
+        <span class="date">2026-04-17 (snapshot inicial)</span>
+        Primeira auditoria formalizada
+      </h4>
+      <p><strong>Total:</strong> 39 advisories.</p>
+      <div class="bar" style="margin: 8px 0;">
+        <span style="flex: 3; background: var(--crit);">3 crit</span>
+        <span style="flex: 11; background: #c0392b;">11 high</span>
+        <span style="flex: 4; background: var(--warn);">4 med</span>
+        <span style="flex: 21; background: var(--ok);">21 low</span>
+      </div>
+      <p><strong>Contexto:</strong> primeiro snapshot formal apos upgrade de <code>next</code> para 15.5.15. Registrado em <a href="NPM_AUDIT_SNAPSHOT.md">NPM_AUDIT_SNAPSHOT.md</a>.</p>
+      <p><strong>Principais advisories high/critical identificados:</strong></p>
+      <ul class="compact">
+        <li><code>xlsx</code> HIGH - sem fix upstream (Prototype Pollution + ReDoS)</li>
+        <li><code>protobufjs</code> CRITICAL</li>
+        <li><code>node-forge</code> HIGH</li>
+        <li><code>path-to-regexp</code> HIGH</li>
+        <li><code>picomatch</code> HIGH</li>
+        <li><code>qs</code> HIGH</li>
+        <li><code>@hono/node-server</code> HIGH</li>
+        <li><code>@modelcontextprotocol/sdk</code> HIGH</li>
+      </ul>
+      <p><strong>Decisao registrada:</strong> aceitar <code>xlsx</code> como residual formal; demais aguardando autorizacao para <code>npm audit fix</code>.</p>
+    </div>
+
+  </div>
+
+  <h2>Dependencias congeladas (politica)</h2>
+  <ul>
+    <li><code>genkit</code></li>
+    <li><code>genkit-cli</code></li>
+    <li><code>@genkit-ai/googleai</code></li>
+    <li><code>@genkit-ai/next</code></li>
+  </ul>
+  <p>Motivo: subir major destes pacotes pode quebrar fluxos de IA. Mudar apenas em bloco coordenado.</p>
+
+  <h2>Automacao</h2>
+  <ul>
+    <li>CI roda <code>npm audit --audit-level=high --omit=dev</code> no <code>.github/workflows/quality-gates.yml</code>. Hoje como warning (<code>continue-on-error: true</code>).</li>
+    <li>Quando o unico residual high for <code>xlsx</code> e tiver decisao formal, considerar remover <code>continue-on-error</code> para bloquear PRs com novos highs.</li>
+  </ul>
+
+  <h2>Padrao para entradas futuras</h2>
+
+  <p>Regra de atualizacao desta pagina: <strong>toda vez que rodar <code>npm audit fix</code> ou alterar dependencias com impacto de seguranca</strong>, adicionar uma entrada nova no topo do "Historico de correcoes", marcada com a classe <code>current</code>, e remover o <code>current</code> da entrada anterior (passando para <code>old</code>). Nunca remover entradas anteriores.</p>
+
+  <p>Campos obrigatorios por entrada:</p>
+  <ul>
+    <li>Data (ISO).</li>
+    <li>Titulo curto da acao.</li>
+    <li>Totais antes -> depois.</li>
+    <li>Pacotes corrigidos relevantes.</li>
+    <li>Metodo (com ou sem <code>--force</code>).</li>
+    <li>Validacoes executadas.</li>
+  </ul>
+</main>
+<footer>Connect Veneto - supply chain log</footer>
+</body>
+</html>

@@ -1,0 +1,52 @@
+---
+description: Padrao de review tecnico com foco em risco real, evidencia objetiva e rejeicao de falso positivo.
+alwaysApply: true
+---
+
+# Security Review Gate
+
+## Como apresentar findings
+
+Toda review produzida pelo agente deve agrupar por severidade:
+
+- Critico
+- Alto
+- Medio
+- Baixo
+
+Para cada finding, incluir obrigatoriamente:
+
+1. Hipotese de exploracao (como um atacante tentaria explorar)
+2. Pre-condicoes necessarias
+3. Impacto real no negocio
+4. Evidencia em arquivo e simbolo (path + linha ou nome de funcao)
+5. Justificativa de nao ser falso positivo
+6. Patch minimo sugerido
+7. Patch robusto sugerido
+8. Testes recomendados para provar a correcao
+
+## Quando nao houver finding relevante
+
+- Declarar explicitamente `sem achados relevantes`.
+- Listar lacunas de teste existentes.
+- Registrar risco residual conhecido.
+
+## Validacao obrigatoria antes de dar uma mudanca como concluida
+
+Executar e registrar resultado de:
+
+- `npm run lint`
+- `npm run typecheck:gate`
+- `npm run test:ci`
+- `npm run build` (quando mudanca afeta build/config)
+- `npm audit` (quando mudanca afeta dependencias)
+
+## Padrao do relatorio final
+
+Ao concluir tarefas de seguranca, o agente deve produzir um relatorio com:
+
+- Concluido
+- Parcial encontrado
+- Parcial concluido (com justificativa)
+- Risco residual
+- Proximos passos sugeridos

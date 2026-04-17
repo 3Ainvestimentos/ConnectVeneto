@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8" />
+<title>Connect Veneto - APIs</title>
+<style>
+  :root { --navy: #0d1d2c; --navy-2: #162a3f; --blue: #2d58a5; --gold: #e1ca5f; --gray: #a9a9a8; --bg: #f5f7fa; --ok: #1d8c4a; --warn: #b07b00; --crit: #a12321; }
+  body { font-family: 'Segoe UI', Arial, sans-serif; background: var(--bg); margin: 0; color: #1a1a1a; }
+  header { background: var(--navy); color: #fff; padding: 24px 32px; }
+  nav { background: var(--navy-2); color: #fff; padding: 10px 32px; display: flex; gap: 16px; font-size: 14px; }
+  nav a { color: #fff; text-decoration: none; padding: 4px 8px; border-radius: 4px; }
+  nav a:hover { background: var(--blue); }
+  main { padding: 32px; max-width: 1100px; margin: 0 auto; }
+  h2 { color: var(--navy); border-bottom: 2px solid var(--gold); padding-bottom: 6px; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; margin-top: 8px; background: #fff; }
+  th, td { text-align: left; padding: 10px; border-bottom: 1px solid #e1e5ea; vertical-align: top; }
+  th { background: var(--navy); color: #fff; }
+  .badge { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 11px; font-weight: 600; }
+  .badge-ok { background: #e1f4e8; color: var(--ok); }
+  .badge-warn { background: #fdf2d8; color: var(--warn); }
+  .badge-crit { background: #f8dbd9; color: var(--crit); }
+</style>
+</head>
+<body>
+<header><h1>APIs - Connect Veneto</h1></header>
+<nav>
+  <a href="overview.html">Overview</a>
+  <a href="trust-boundaries.html">Trust Boundaries</a>
+  <a href="apis.html">APIs</a>
+  <a href="findings.html">Findings</a>
+  <a href="supply-chain.html">Supply Chain</a>
+</nav>
+<main>
+  <h2>Endpoints `/api/*`</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>Rota</th><th>AuthZ</th><th>Input</th><th>IO Externo</th><th>Limites</th><th>Logs</th><th>Status</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>/api/billing</td>
+        <td>requireSuperAdmin</td>
+        <td>sem params</td>
+        <td>nenhum</td>
+        <td>n/a</td>
+        <td>logSecurityEvent</td>
+        <td><span class="badge badge-ok">OK</span></td>
+      </tr>
+      <tr>
+        <td>/api/calendar</td>
+        <td>requireCorporateUser</td>
+        <td>Zod (timeMin, timeMax)</td>
+        <td>safeFetch www.googleapis.com</td>
+        <td>timeout 5s, maxResults 250</td>
+        <td>logSecurityEvent + hint redacted</td>
+        <td><span class="badge badge-ok">OK</span></td>
+      </tr>
+      <tr>
+        <td>/api/holidays</td>
+        <td>requireCorporateUser</td>
+        <td>Zod (year)</td>
+        <td>safeFetch brasilapi.com.br</td>
+        <td>timeout 4s</td>
+        <td>logSecurityEvent</td>
+        <td><span class="badge badge-ok">OK</span></td>
+      </tr>
+      <tr>
+        <td>/api/rss</td>
+        <td>requireCorporateUser</td>
+        <td>Zod (urls, max 5)</td>
+        <td>safeFetch www.infomoney.com.br</td>
+        <td>timeout 6s, body 2MB, content-type</td>
+        <td>logSecurityEvent</td>
+        <td><span class="badge badge-ok">OK (Bloco 5)</span></td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h2>Cobertura de testes automatizados</h2>
+  <p>Suite `src/app/api/__tests__/routes.test.ts` com 19 casos:</p>
+  <ul>
+    <li>/api/billing - 3 casos (401, 403, 200 super admin)</li>
+    <li>/api/calendar - 5 casos (401, 400, 503, 200, 502)</li>
+    <li>/api/holidays - 5 casos (401, 400, 200, 200 vazio, 500)</li>
+    <li>/api/rss - 6 casos (400 sem URL, 400 excede limite, 403 host, 200 feliz, 502 upstream, 502 body grande)</li>
+  </ul>
+
+  <h2>Gaps</h2>
+  <ul>
+    <li>Nao ha teste especifico de rate-limit (nao existe rate-limiter hoje).</li>
+    <li>Nao ha teste de CSRF (mitigado indiretamente por token Bearer).</li>
+  </ul>
+</main>
+</body>
+</html>

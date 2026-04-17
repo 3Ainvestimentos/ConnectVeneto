@@ -120,9 +120,73 @@ const fetchPublicSystemSettings = async (): Promise<SystemSettings> => {
   };
 };
 
+/**
+ * Bloco 7 Phase B: client nao le `systemSettings/config` direto do Firestore.
+ * Em vez disso, busca via `/api/me/session` (com `requireCorporateUser` no server),
+ * que nunca retorna `superAdminEmails` nem `collaboratorAdminEmails`.
+ *
+ * Super admins, adicionalmente, buscam `/api/admin/settings` para os campos
+ * sensiveis, protegidos por `requireSuperAdmin`.
+ *
+ * Assim, o browser de um usuario comum nunca recebe a lista de super admins.
+ */
+async function fetchSessionOrNull(): Promise<
+  (Partial<SystemSettings> & { isSuperAdmin?: boolean }) | null
+> {
+  if (typeof window === 'undefined') return null;
+  const user = getAuth(getFirebaseApp()).currentUser;
+  if (!user) return null;
+
+  try {
+    const token = await user.getIdToken();
+    const res = await fetch('/api/me/session', {
+      method: 'GET',
+      headers: { Authorization: `Bearer ${token}` },
+      cache: 'no-store',
+    });
+    if (!res.ok) return null;
+    return (await res.json()) as Partial<SystemSettings> & { isSuperAdmin?: boolean };
+  } catch {
+    return null;
+  }
+}
+
+async function fetchAdminSettingsOrNull(): Promise<Partial<SystemSettings> | null> {
+  if (typeof window === 'undefined') return null;
+  const user = getAuth(getFirebaseApp()).currentUser;
+  if (!user) return null;
+
+  try {
+    const token = await user.getIdToken();
+    const res = await fetch('/api/admin/settings', {
+      method: 'GET',
+      headers: { Authorization: `Bearer ${token}` },
+      cache: 'no-store',
+    });
+    if (!res.ok) return null;
+    return (await res.json()) as Partial<SystemSettings>;
+  } catch {
+    return null;
+  }
+}
+
 export const fetchPrivateSystemSettings = async (): Promise<SystemSettings> => {
-  const rawDoc = await getDocument<Partial<SystemSettings>>(COLLECTION_NAME, PRIVATE_DOC_ID);
-  return normalizePrivateSettings(stripDocumentId(rawDoc));
+  const session = await fetchSessionOrNull();
+  if (!session) {
+    // Usuario nao autenticado, token indisponivel ou endpoint fora do ar.
+    // Retorna defaults (nao expoe nada sensivel).
+    return defaultSettings;
+  }
+
+  let adminFields: Partial<SystemSettings> | null = null;
+  if (session.isSuperAdmin) {
+    adminFields = await fetchAdminSettingsOrNull();
+  }
+
+  return normalizePrivateSettings({
+    ...session,
+    ...(adminFields ?? {}),
+  } as Partial<SystemSettings>);
 };
 
 const extractPublicPatch = (patch: Partial<SystemSettings>): Partial<PublicSystemSettings> => {

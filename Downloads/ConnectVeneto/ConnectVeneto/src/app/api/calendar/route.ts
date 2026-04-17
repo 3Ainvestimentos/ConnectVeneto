@@ -1,20 +1,35 @@
 import { NextResponse } from 'next/server';
-import { verifyCorporateRequest } from '@/lib/api-auth';
+import { z } from 'zod';
+import {
+  OutboundHttpError,
+  RequestValidationError,
+  logSecurityEvent,
+  requireCorporateUser,
+  safeFetch,
+  securityErrorResponse,
+  validateSearchParams,
+} from '@/lib/security';
 
 const CALENDAR_API_BASE = 'https://www.googleapis.com/calendar/v3';
 
-/** Remove aspas, espaços e extrai o ID se colarem URL de incorporação do Google Calendar. */
+const calendarQuerySchema = z.object({
+  timeMin: z.string().min(1, 'Parâmetros timeMin e timeMax são obrigatórios (ISO 8601).'),
+  timeMax: z.string().min(1, 'Parâmetros timeMin e timeMax são obrigatórios (ISO 8601).'),
+});
+
 function normalizeCalendarId(raw: string): string {
-  let s = raw.trim();
+  let value = raw.trim();
   if (
-    (s.startsWith('"') && s.endsWith('"')) ||
-    (s.startsWith("'") && s.endsWith("'"))
+    (value.startsWith('"') && value.endsWith('"')) ||
+    (value.startsWith("'") && value.endsWith("'"))
   ) {
-    s = s.slice(1, -1).trim();
+    value = value.slice(1, -1).trim();
   }
-  const embed = s.match(
+
+  const embed = value.match(
     /calendar\.google\.com\/calendar\/(?:u\/\d+\/)?embed\?src=([^&\s#]+)/i
   );
+
   if (embed?.[1]) {
     try {
       return decodeURIComponent(embed[1].replace(/\+/g, ' '));
@@ -22,13 +37,36 @@ function normalizeCalendarId(raw: string): string {
       return embed[1];
     }
   }
-  return s;
+
+  return value;
+}
+
+function buildCalendarHint(status: number, googleMessage: string): string | undefined {
+  if (status !== 403 && status !== 404) {
+    return googleMessage ? `Google: ${googleMessage}` : undefined;
+  }
+
+  const lower = googleMessage.toLowerCase();
+  const referrerBlocked =
+    lower.includes('referer') ||
+    lower.includes('referrer') ||
+    lower.includes('not allowed for use') ||
+    lower.includes('ip address');
+
+  if (status === 404 && !referrerBlocked) {
+    return '404 Not Found: o Google não encontrou este calendário com a chave de API. Confira o CALENDAR_PUBLIC_ID, visibilidade pública do calendário e a configuração da chave.';
+  }
+
+  if (referrerBlocked) {
+    return 'A chave da Google Calendar API está bloqueada para esta chamada. Verifique restrições de uso e habilitação da API.';
+  }
+
+  return 'Confirme se o calendário está público, se o CALENDAR_PUBLIC_ID está correto e se a Google Calendar API está habilitada.';
 }
 
 export async function GET(request: Request) {
   try {
-    const authorizationHeader = request.headers.get('Authorization');
-    await verifyCorporateRequest(authorizationHeader);
+    await requireCorporateUser(request.headers.get('Authorization'));
 
     const calendarId = normalizeCalendarId(process.env.CALENDAR_PUBLIC_ID ?? '');
     const apiKey =
@@ -41,6 +79,7 @@ export async function GET(request: Request) {
         { status: 503 }
       );
     }
+
     if (!apiKey) {
       return NextResponse.json(
         { error: 'GOOGLE_CALENDAR_API_KEY ou NEXT_PUBLIC_FIREBASE_API_KEY não configurada.' },
@@ -48,16 +87,7 @@ export async function GET(request: Request) {
       );
     }
 
-    const { searchParams } = new URL(request.url);
-    const timeMin = searchParams.get('timeMin');
-    const timeMax = searchParams.get('timeMax');
-
-    if (!timeMin || !timeMax) {
-      return NextResponse.json(
-        { error: 'Parâmetros timeMin e timeMax são obrigatórios (ISO 8601).' },
-        { status: 400 }
-      );
-    }
+    const { timeMin, timeMax } = validateSearchParams(request.url, calendarQuerySchema);
 
     const url = new URL(
       `${CALENDAR_API_BASE}/calendars/${encodeURIComponent(calendarId)}/events`
@@ -69,14 +99,15 @@ export async function GET(request: Request) {
     url.searchParams.set('orderBy', 'startTime');
     url.searchParams.set('maxResults', '250');
 
-    const gRes = await fetch(url.toString(), {
-      next: { revalidate: 300 },
+    const response = await safeFetch(url.toString(), {
+      allowedHosts: ['www.googleapis.com'],
       headers: { Accept: 'application/json' },
+      timeoutMs: 5000,
+      next: { revalidate: 300 },
     });
 
-    if (!gRes.ok) {
-      const body = await gRes.text();
-      console.error('[api/calendar] Google Calendar API', gRes.status, body.slice(0, 500));
+    if (!response.ok) {
+      const body = await response.text();
 
       let googleMessage = '';
       try {
@@ -86,35 +117,14 @@ export async function GET(request: Request) {
         googleMessage =
           (errJson.error?.errors?.[0]?.message || errJson.error?.message || '').trim();
       } catch {
-        /* ignore */
+        googleMessage = '';
       }
 
-      let hint: string | undefined;
-      if (gRes.status === 403 || gRes.status === 404) {
-        const lower = googleMessage.toLowerCase();
-        const referrerBlocked =
-          lower.includes('referer') ||
-          lower.includes('referrer') ||
-          lower.includes('not allowed for use') ||
-          lower.includes('ip address');
-
-        if (gRes.status === 404 && !referrerBlocked) {
-          hint =
-            '404 Not Found: o Google não encontrou este calendário com a chave de API. No Google Calendar, abra o calendário → Configurações e compartilhamento → copie o "ID do calendário" em Integrar calendário e use em CALENDAR_PUBLIC_ID. Em "Permissões de acesso aos eventos", ative "Disponibilizar para público" (senão a API com chave não enxerga o calendário).';
-        } else {
-          hint = referrerBlocked
-            ? 'A chave usada no servidor está bloqueada para esta chamada (restrição de sites/IP). Crie no Google Cloud uma chave só para a Google Calendar API, sem restrição de sites HTTP, defina GOOGLE_CALENDAR_API_KEY no .env e na Vercel, e habilite a API no mesmo projeto.'
-            : 'Confirme que o calendário está público, o CALENDAR_PUBLIC_ID está correto e a Google Calendar API está habilitada no projeto da chave.';
-        }
-
-        if (googleMessage && !referrerBlocked && gRes.status !== 404) {
-          hint = `${hint} (Google: ${googleMessage})`;
-        } else if (googleMessage && gRes.status === 404 && referrerBlocked) {
-          hint = `${hint} (Google: ${googleMessage})`;
-        }
-      } else if (googleMessage) {
-        hint = `Google: ${googleMessage}`;
-      }
+      const hint = buildCalendarHint(response.status, googleMessage);
+      logSecurityEvent('[api/calendar] upstream error', {
+        status: response.status,
+        hint,
+      });
 
       return NextResponse.json(
         {
@@ -125,24 +135,35 @@ export async function GET(request: Request) {
       );
     }
 
-    const data = (await gRes.json()) as { items?: unknown[] };
+    const data = (await response.json()) as { items?: unknown[] };
     return NextResponse.json({ items: data.items ?? [] });
   } catch (error) {
-    if (
-      (error as Error)?.message === 'UNAUTHORIZED_MISSING_TOKEN' ||
-      (error as Error)?.message === 'UNAUTHORIZED_INVALID_TOKEN'
-    ) {
-      return NextResponse.json({ error: 'Nao autorizado: token nao fornecido.' }, { status: 401 });
+    const knownSecurityError = securityErrorResponse(error);
+    if (knownSecurityError) {
+      logSecurityEvent('[api/calendar] security error', {
+        error: error instanceof Error ? error.message : 'unknown',
+      });
+      return knownSecurityError;
     }
 
-    if ((error as Error)?.message === 'FORBIDDEN_NON_CORPORATE_EMAIL') {
+    if (error instanceof RequestValidationError) {
       return NextResponse.json(
-        { error: 'Acesso negado: apenas contas corporativas podem acessar.' },
-        { status: 403 }
+        { error: 'Parâmetros timeMin e timeMax são obrigatórios (ISO 8601).' },
+        { status: error.status }
       );
     }
 
-    console.error('Error in /api/calendar:', error);
+    if (error instanceof OutboundHttpError) {
+      logSecurityEvent('[api/calendar] outbound error', {
+        error: error.message,
+        status: error.status,
+      });
+      return NextResponse.json({ error: 'Não foi possível carregar a agenda.' }, { status: 502 });
+    }
+
+    logSecurityEvent('[api/calendar] unexpected error', {
+      error: error instanceof Error ? error.message : 'unknown',
+    });
     return NextResponse.json({ error: 'Não foi possível carregar a agenda.' }, { status: 500 });
   }
 }

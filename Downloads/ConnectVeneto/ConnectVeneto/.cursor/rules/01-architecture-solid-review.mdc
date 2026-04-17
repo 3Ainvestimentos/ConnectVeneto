@@ -1,0 +1,41 @@
+---
+description: Padrao de arquitetura, SOLID light e desenho de mudancas para o Connect Veneto.
+alwaysApply: true
+---
+
+# Architecture and SOLID Baseline
+
+## Princ\u00edpio geral
+
+- Fazer sempre o menor patch seguro (MVP).
+- Separar regra de negocio de IO (rede, banco, UI).
+- Funcoes curtas, nomes explicitos, early-return.
+- Nao acoplar contexto de auth a contexto de configuracao privada.
+- Reaproveitar utilitarios existentes em `@/lib/security` e `@/lib/firestore-service`.
+
+## SOLID light obrigatorio
+
+- SRP: cada modulo/arquivo com uma responsabilidade clara.
+- OCP: extender por composicao, nao por cascata de `if`.
+- DIP: depender de contratos utilitarios (ex: `safeFetch`) e nao de detalhes concretos (ex: `fetch` cru ou `rss-parser` direto) quando houver camada segura equivalente.
+
+## Contratos e erros
+
+- Mensagens de erro para usuario devem ser neutras; detalhes tecnicos so em logs redigidos.
+- Nao alterar API publica sem indicar impacto antes.
+- Toda alteracao invasiva deve apresentar:
+  - patch minimo
+  - patch robusto
+  - trade-off explicito
+
+## Padrao de componentes (Next.js / React)
+
+- Respeitar layout existente (`PageHeader`, `Card`, `Dialog`, `Button`, padrao ShadCN).
+- Rotas protegidas: manter `middleware.ts` como guarda de cookie, mas **nunca** confiar apenas no cliente para autorizacao.
+- Contextos nao devem bloquear UI enquanto configuracao privada carrega; exibir estado seguro por padrao.
+
+## Testes proporcionais ao risco
+
+- Critico/alto: unit + integracao + caso malicioso.
+- Medio: unit + caso feliz + 1 caso limite.
+- Baixo: unit feliz, se aplicavel.

@@ -1,0 +1,265 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // =========================
+    // Helpers
+    // =========================
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    /** superAdminEmails / collaboratorAdminEmails: guarde cada e-mail em minúsculas (igual à app). */
+    function isSuperAdmin() {
+      let settingsPath = /databases/$(database)/documents/systemSettings/config;
+      let cfg = get(settingsPath).data;
+      return isAuthenticated()
+        && request.auth.token.email is string
+        && exists(settingsPath)
+        && cfg.superAdminEmails is list
+        && request.auth.token.email.lower() in cfg.superAdminEmails;
+    }
+
+    /** RH / admin que pode criar colaboradores em lote (importação CSV), sem ser Super Admin. */
+    function isCollaboratorImporter() {
+      let settingsPath = /databases/$(database)/documents/systemSettings/config;
+      let cfg = get(settingsPath).data;
+      return isAuthenticated()
+        && request.auth.token.email is string
+        && exists(settingsPath)
+        && 'collaboratorAdminEmails' in cfg
+        && cfg.collaboratorAdminEmails is list
+        && request.auth.token.email.lower() in cfg.collaboratorAdminEmails;
+    }
+
+    function isOwnerByUid(uidField) {
+      return isAuthenticated()
+        && resource.data[uidField] is string
+        && resource.data[uidField] == request.auth.uid;
+    }
+
+    function isCreatorByUid(uidField) {
+      return isAuthenticated()
+        && request.resource.data[uidField] is string
+        && request.resource.data[uidField] == request.auth.uid;
+    }
+
+    /**
+     * Repositório /documents:
+     * - Itens externos: downloadUrl HTTPS; sem internalPath.
+     * - Página interna (ex.: glossário): type interno, downloadUrl vazio, internalPath na allowlist.
+     */
+    function repositoryDocumentExternalOk() {
+      return !('internalPath' in request.resource.data)
+        && request.resource.data.downloadUrl is string
+        && request.resource.data.downloadUrl.matches('^https://[^\\s]+$');
+    }
+
+    function repositoryDocumentInternalOk() {
+      return 'internalPath' in request.resource.data
+        && request.resource.data.internalPath is string
+        && request.resource.data.internalPath == '/documents/glossario'
+        && request.resource.data.downloadUrl is string
+        && request.resource.data.downloadUrl.size() == 0
+        && request.resource.data.type == 'interno';
+    }
+
+    function repositoryDocumentDownloadUrlOk() {
+      return repositoryDocumentExternalOk() || repositoryDocumentInternalOk();
+    }
+
+    function repositoryDocumentCreateOk() {
+      return repositoryDocumentDownloadUrlOk()
+        && request.resource.data.name is string
+        && request.resource.data.name.size() > 0
+        && request.resource.data.category is string
+        && request.resource.data.category.size() > 0
+        && request.resource.data.type is string
+        && request.resource.data.type.size() > 0
+        && request.resource.data.size is string
+        && request.resource.data.lastModified is string
+        && (!('dataAiHint' in request.resource.data) || request.resource.data.dataAiHint is string);
+    }
+
+    // =========================
+    // systemSettings (Bloco 7 Phase B aplicado)
+    // MUDANCA:
+    // - public_config: leitura publica (mensagem de manutencao antes do login).
+    // - config: leitura apenas super admin. Client comum nao precisa ler: usa `/api/me/session` (server-side via Admin SDK).
+    // - admin_config, keys: leitura apenas super admin.
+    // - write: continua apenas super admin em todos.
+    //
+    // Efeito: `superAdminEmails` e `collaboratorAdminEmails` deixam de vazar para
+    // o browser de qualquer autenticado. Finding F-01 fechado.
+    // =========================
+    match /systemSettings/{docId} {
+      allow read: if docId == 'public_config';
+      allow read: if isSuperAdmin() && docId in ['config', 'admin_config', 'keys'];
+      allow write: if isSuperAdmin() && docId in ['public_config', 'config', 'admin_config', 'keys'];
+    }
+
+    // =========================
+    // collaborators
+    // (sem mudanca; Finding F-03 aceito como residual no curto prazo)
+    // =========================
+    match /collaborators/{userId} {
+      allow read: if isAuthenticated();
+
+      allow create: if isSuperAdmin()
+                    || isCollaboratorImporter()
+                    || (
+                      isAuthenticated()
+                      && request.resource.data.authUid is string
+                      && request.resource.data.authUid == request.auth.uid
+                    );
+
+      allow update: if isSuperAdmin()
+                    || (
+                      isAuthenticated()
+                      && (
+                        (resource.data.authUid is string && resource.data.authUid == request.auth.uid)
+                        || (
+                          resource.data.email is string
+                          && request.auth.token.email is string
+                          && resource.data.email == request.auth.token.email
+                        )
+                      )
+                    );
+
+      allow delete: if isSuperAdmin();
+    }
+
+    // =========================
+    // collaborator_logs
+    // =========================
+    match /collaborator_logs/{logId} {
+      allow create: if isAuthenticated();
+      allow read, update, delete: if isSuperAdmin();
+    }
+
+    // =========================
+    // Conteúdo principal
+    // =========================
+    match /documents/{docId} {
+      allow read: if isAuthenticated();
+      allow create: if isSuperAdmin() && repositoryDocumentCreateOk();
+      allow update: if isSuperAdmin() && repositoryDocumentDownloadUrlOk();
+      allow delete: if isSuperAdmin();
+    }
+
+    match /quickLinks/{docId} {
+      allow read: if isAuthenticated();
+      allow write: if isSuperAdmin();
+    }
+
+    match /contacts/{docId} {
+      allow read: if isAuthenticated();
+      allow write: if isSuperAdmin();
+    }
+
+    match /newsItems/{docId} {
+      allow read: if isAuthenticated();
+      allow write: if isSuperAdmin();
+    }
+
+    // =========================
+    // Viagens (modo simples)
+    // usuário cria/edita/exclui as próprias
+    // super admin gerencia tudo
+    // MUDANCA: update agora valida shape (mesmos campos do create).
+    // =========================
+    match /leaderTrips/{tripId} {
+      allow read: if isAuthenticated();
+
+      allow create: if isSuperAdmin()
+                    || (
+                      isCreatorByUid('responsavelUid')
+                      && request.resource.data.leaderName is string
+                      && request.resource.data.destinationBranch is string
+                      && request.resource.data.startDate is string
+                      && request.resource.data.endDate is string
+                    );
+
+      allow update: if isSuperAdmin()
+                    || (
+                      isOwnerByUid('responsavelUid')
+                      && request.resource.data.leaderName is string
+                      && request.resource.data.destinationBranch is string
+                      && request.resource.data.startDate is string
+                      && request.resource.data.endDate is string
+                    );
+
+      allow delete: if isSuperAdmin()
+                    || isOwnerByUid('responsavelUid');
+    }
+
+    // =========================
+    // Férias (modo simples)
+    // usuário cria as próprias
+    // admin edita/exclui
+    // =========================
+    match /vacations/{vacationId} {
+      allow read: if isSuperAdmin()
+                  || isOwnerByUid('collaboratorUid');
+
+      allow create: if isSuperAdmin()
+                    || (
+                      isCreatorByUid('collaboratorUid')
+                      && request.resource.data.collaboratorName is string
+                      && request.resource.data.startDate is string
+                      && request.resource.data.endDate is string
+                      && request.resource.data.businessDays is int
+                      && request.resource.data.businessDays > 0
+                      && request.resource.data.createdAt is string
+                      && request.resource.data.updatedAt is string
+                    );
+
+      allow update, delete: if isSuperAdmin();
+    }
+
+    // =========================
+    // Auditoria
+    // =========================
+    match /audit_logs/{logId} {
+      allow create: if isAuthenticated();
+      allow read, update, delete: if isSuperAdmin();
+    }
+
+    // =========================
+    // Regras mínimas temporárias (MVP)
+    // Mantém operação básica das coleções já usadas no app
+    // enquanto a matriz granular de permissões é refatorada.
+    // =========================
+    function isMvpOpenCollection(collectionId) {
+      return collectionId in [
+        'workflowAreas',
+        'workflowDefinitions',
+        'workflows',
+        'messages',
+        'fabMessages',
+        'idleFabMessages',
+        'polls',
+        'meeting_analyses',
+        'vacation_requests',
+        'vacation_approvers',
+        'birthdays',
+        'counters'
+      ];
+    }
+
+    match /{collectionId}/{docId} {
+      allow read, write: if isAuthenticated() && isMvpOpenCollection(collectionId);
+    }
+
+    match /polls/{pollId}/responses/{responseId} {
+      allow read, write: if isAuthenticated();
+    }
+
+    // =========================
+    // Bloqueio padrão
+    // =========================
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

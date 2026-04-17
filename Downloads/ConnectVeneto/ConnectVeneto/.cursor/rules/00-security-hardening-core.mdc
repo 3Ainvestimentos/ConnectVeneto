@@ -1,0 +1,72 @@
+---
+description: Baseline obrigatoria de hardening e seguranca para qualquer alteracao no Connect Veneto.
+alwaysApply: true
+---
+
+# Security Hardening Core
+
+Toda alteracao feita no repositorio deve seguir esta baseline. Em caso de conflito com outras regras, prevalece esta.
+
+## Ordem de prioridade
+
+1. Seguranca
+2. Corretude
+3. Clareza e simplicidade
+4. Performance (apenas quando comprovada necessidade)
+5. Manutenibilidade
+
+## Regras obrigatorias
+
+- Nunca expor segredos em codigo, logs, testes, documentacao ou mensagens do agente.
+- Toda entrada externa (query, body, arquivo, headers) deve ser validada com schema (Zod) e limites (tamanho, formato, whitelist).
+- Toda autorizacao deve ser validada no servidor. Cliente nao e fonte de verdade para permissoes.
+- Integracoes externas obrigatoriamente via camada segura:
+  - allowlist de hosts
+  - timeout explicito
+  - limite de payload
+  - tratamento de erro sem vazar stack
+- Logs sempre com redacao de PII/segredos. Usar `logSecurityEvent` / `redactForLogs` do modulo `@/lib/security`.
+- Dependencias:
+  - preferir patch/minor
+  - nao subir major sem aprovacao humana explicita
+  - auditar vulnerabilidades antes de mesclar mudanca em `package.json`
+  - **toda execucao de `npm audit fix` ou troca significativa de dependencia deve atualizar `docs/security/supply-chain.html` com uma nova entrada no Historico, sem remover entradas anteriores**
+  - tambem regerar `docs/security/NPM_AUDIT_SNAPSHOT.md` com o novo resultado
+- Mudancas com impacto de seguranca devem incluir:
+  - teste de caso feliz
+  - teste de caso malicioso simples (payload invalido, tamanho excessivo, host fora da allowlist)
+- Diante de ambiguidade de seguranca, pausar e perguntar antes de alterar contrato, regras ou permissoes.
+
+## Bloqueadores de merge
+
+- Ausencia de validacao de input em endpoint novo ou modificado.
+- Ausencia de autorizacao server-side em rota sensivel.
+- Dados sensiveis carregados no cliente sem justificativa documentada.
+- Endpoint novo sem teste minimo.
+- Alteracao em `firestore.rules` sem checklist de impacto publicado.
+- Commit contendo `.env`, chaves, tokens, service accounts.
+
+## Camadas reusaveis ja existentes
+
+Usar sempre que aplicavel em vez de reimplementar:
+
+- `@/lib/security/auth` - `requireCorporateUser`, `requireSuperAdmin`
+- `@/lib/security/http` - `safeFetch` com allowlist e timeout
+- `@/lib/security/validation` - `validateSearchParams`
+- `@/lib/security/logging` - `logSecurityEvent`, `redactForLogs`, `setSecurityLogLevel`
+- `@/lib/security/errors` - `securityErrorResponse`, `internalErrorResponse`
+
+## Padrao de limites (DoS local e upstream)
+
+Cada rota/handler que aceita arquivo, texto grande, lista de URLs ou body deve expor constantes
+e validar antes de tocar parser/IO:
+
+- Exemplo canonico: `COLLABORATORS_IMPORT_MAX_BYTES`, `COLLABORATORS_IMPORT_MAX_ROWS`
+  em `src/components/admin/ManageCollaborators.tsx`.
+- Novos limites devem seguir o mesmo padrao: const exportada + classe de erro dedicada +
+  mensagem clara para usuario.
+
+## Variaveis de ambiente reservadas
+
+- `SECURITY_LOG_LEVEL`: `silent | error | debug`. Padrao `error`, `silent` em testes.
+- `CALENDAR_PUBLIC_ID`, `GOOGLE_CALENDAR_API_KEY`, `FIREBASE_ADMIN_*`: ver `.env.example`.

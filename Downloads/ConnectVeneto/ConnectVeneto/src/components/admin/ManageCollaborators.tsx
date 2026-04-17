@@ -25,6 +25,31 @@ import { CollaboratorAuditLogModal } from './CollaboratorAuditLogModal';
 /** Quando a planilha não traz eixo/segmento. */
 const DEFAULT_AXIS_SEGMENT_IMPORT = '—';
 
+/**
+ * Limites de hardening para uploads administrativos.
+ * Coerente com `ManageTripsBirthdays` (5 MB) e adiciona teto de linhas
+ * para mitigar DoS local da dependência `xlsx` (advisories ReDoS/Prototype Pollution).
+ */
+export const COLLABORATORS_IMPORT_MAX_BYTES = 5 * 1024 * 1024;
+export const COLLABORATORS_IMPORT_MAX_ROWS = 5000;
+
+export class CollaboratorsImportError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'CollaboratorsImportError';
+  }
+}
+
+export function validateImportFileSize(file: File): void {
+  if (file.size > COLLABORATORS_IMPORT_MAX_BYTES) {
+    throw new CollaboratorsImportError(
+      `Arquivo muito grande. O limite é ${Math.round(
+        COLLABORATORS_IMPORT_MAX_BYTES / (1024 * 1024)
+      )} MB por planilha.`
+    );
+  }
+}
+
 function normCsvHeader(raw: string): string {
   return raw
     .trim()
@@ -206,26 +231,53 @@ type SortKey = keyof Collaborator | '';
 type SortDirection = 'asc' | 'desc';
 
 function parseCsvFile(file: File): Promise<{ rows: CsvRow[]; headers: string[] | undefined }> {
+  validateImportFileSize(file);
   return new Promise((resolve, reject) => {
     Papa.parse<CsvRow>(file, {
       header: true,
       skipEmptyLines: true,
       // Alguns conversores online adicionam "sep=;" na primeira linha.
       beforeFirstChunk: (chunk) => chunk.replace(/^\uFEFF?sep=.+\r?\n/i, ''),
-      complete: (results) => resolve({ rows: results.data, headers: results.meta.fields }),
+      complete: (results) => {
+        if (results.data.length > COLLABORATORS_IMPORT_MAX_ROWS) {
+          reject(
+            new CollaboratorsImportError(
+              `O arquivo possui ${results.data.length} linhas. O limite é ${COLLABORATORS_IMPORT_MAX_ROWS} linhas por importação.`
+            )
+          );
+          return;
+        }
+        resolve({ rows: results.data, headers: results.meta.fields });
+      },
       error: (error) => reject(error),
     });
   });
 }
 
 async function parseXlsxFile(file: File): Promise<{ rows: CsvRow[]; headers: string[] | undefined }> {
+  validateImportFileSize(file);
+
   const XLSX = await import('xlsx');
   const buffer = await file.arrayBuffer();
   const workbook = XLSX.read(buffer, { type: 'array' });
   const firstSheetName = workbook.SheetNames[0];
-  if (!firstSheetName) return { rows: [], headers: undefined };
+  if (!firstSheetName) {
+    throw new CollaboratorsImportError(
+      'Planilha inválida: nenhuma aba encontrada. Salve novamente no formato XLSX padrão.'
+    );
+  }
   const sheet = workbook.Sheets[firstSheetName];
+  if (!sheet) {
+    throw new CollaboratorsImportError(
+      'Planilha inválida: primeira aba vazia ou corrompida.'
+    );
+  }
   const rows = XLSX.utils.sheet_to_json<CsvRow>(sheet, { defval: '' });
+  if (rows.length > COLLABORATORS_IMPORT_MAX_ROWS) {
+    throw new CollaboratorsImportError(
+      `A planilha possui ${rows.length} linhas. O limite é ${COLLABORATORS_IMPORT_MAX_ROWS} linhas por importação.`
+    );
+  }
   const headers = rows.length > 0 ? Object.keys(rows[0]) : undefined;
   return { rows, headers };
 }
@@ -466,10 +518,14 @@ export function ManageCollaborators() {
               });
             }
           } catch (error) {
+            const isImportLimit = error instanceof CollaboratorsImportError;
             toast({
-              title: "Erro ao processar arquivo",
-              description: error instanceof Error ? error.message : "Não foi possível ler o arquivo enviado.",
-              variant: "destructive",
+              title: isImportLimit ? 'Importação bloqueada' : 'Erro ao processar arquivo',
+              description:
+                error instanceof Error
+                  ? error.message
+                  : 'Não foi possível ler o arquivo enviado.',
+              variant: 'destructive',
             });
           } finally {
             setIsImporting(false);
