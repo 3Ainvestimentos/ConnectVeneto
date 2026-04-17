@@ -6,7 +6,7 @@ export type ClientSessionInfo = {
   isSuperAdmin: boolean;
   maintenanceMode: boolean;
   maintenanceMessage: string;
-  allowedUserIds: string[];
+  isAllowedDuringMaintenance: boolean;
 };
 
 /**

@@ -47,7 +47,7 @@
     <div class="kpi"><div class="n">0</div><div class="l">Criticos abertos</div></div>
     <div class="kpi"><div class="n">1</div><div class="l">High abertos</div></div>
     <div class="kpi"><div class="n">2</div><div class="l">Medio abertos</div></div>
-    <div class="kpi"><div class="n">5</div><div class="l">Mitigados nesta rodada</div></div>
+    <div class="kpi"><div class="n">6</div><div class="l">Mitigados nesta rodada</div></div>
   </div>
 
   <h2>Abertos</h2>
@@ -55,7 +55,7 @@
   <div class="finding closed">
     <h3><span class="sev sev-closed">FECHADO EM CODIGO</span> F-01: superAdminEmails legivel por qualquer autenticado</h3>
     <div class="meta">Evidencia: SystemSettingsContext.tsx Bloco 7 Phase B | Docs: SYSTEM_SETTINGS_EXPOSURE.md, FIRESTORE_RULES_DIFF.md</div>
-    Client nao le mais `systemSettings/config` via SDK. Usa `/api/me/session` (server-side, nunca retorna `superAdminEmails`). Super admin complementa com `/api/admin/settings`.
+    Client nao le mais `systemSettings/config` via SDK, defaults sensiveis no client sao vazios e `/api/me/session` nunca retorna `superAdminEmails`. Super admin complementa com `/api/admin/settings`.
     Pendente apenas a publicacao manual de <code>firestore.rules.proposed</code> para restringir a leitura de `config` no Firestore a super admin.
   </div>
 
@@ -88,7 +88,13 @@
   <div class="finding closed">
     <h3><span class="sev sev-closed">FECHADO</span> F-06: DoS via xlsx em ManageCollaborators</h3>
     <div class="meta">Evidencia: ManageCollaborators.tsx Bloco 3</div>
-    Limite 5MB, 5000 linhas, rejeicao de aba invalida, mensagens claras, 6 testes unitarios.
+    Limite 5MB, 5000 linhas, rejeicao de aba invalida, mensagens claras, 9 testes unitarios cobrindo CSV/XLSX.
+  </div>
+
+  <div class="finding closed">
+    <h3><span class="sev sev-closed">FECHADO</span> F-09: fail-open de manutencao/privilégio no fallback de sessao</h3>
+    <div class="meta">Evidencia: AuthContext.tsx e /api/me/session</div>
+    Decisao de manutencao e super admin agora e somente server-side. Se `/api/me/session` falha, o login fecha em fail-closed com mensagem de retry.
   </div>
 
   <div class="finding closed">

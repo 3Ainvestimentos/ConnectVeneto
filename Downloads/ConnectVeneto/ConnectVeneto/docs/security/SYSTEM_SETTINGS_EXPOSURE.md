@@ -177,15 +177,15 @@ Sequencia segura:
 
 **Executado em codigo:**
 
-- `src/app/api/me/session/route.ts` - GET protegido por `requireCorporateUser`. Le `admin_config` primeiro e, em fallback, `config`. Retorna apenas decisao de `isSuperAdmin`, `maintenanceMode`, `maintenanceMessage` e `allowedUserIds`. **Nunca expoe `superAdminEmails`**.
+- `src/app/api/me/session/route.ts` - GET protegido por `requireCorporateUser`. Le `admin_config` primeiro e, em fallback, `config`. Retorna decisao de `isSuperAdmin`, `maintenanceMode`, `maintenanceMessage` e `isAllowedDuringMaintenance` (bool server-side). **Nunca expoe `superAdminEmails` nem `allowedUserIds`**.
 - `src/app/api/admin/settings/route.ts` - GET protegido por `requireSuperAdmin`. Retorna campos administrativos para UI de super admin. Consumidor futuro: `MaintenanceMode` e similares.
 - `src/lib/session-client.ts` - helper `fetchClientSessionInfo(user)` para o client obter o decisao do server com fallback silencioso.
-- `src/contexts/AuthContext.tsx` - em `onAuthStateChanged` e `signInWithGoogle`, a decisao de `isSuperAdmin` agora **prefere a resposta do server**. Fallback para o comportamento historico preservado.
+- `src/contexts/AuthContext.tsx` - em `onAuthStateChanged` e `signInWithGoogle`, a decisao de `isSuperAdmin`/manutencao e **100% server-side**. Se `/api/me/session` falhar, o fluxo fecha sessao (fail-closed).
 
 **Validacoes:**
 
 - Typecheck: passou.
-- 116 testes unit/integration: passam.
+- Testes direcionados de import (CSV/XLSX): passam.
 - Dev server compilou `/api/me/session` e respondeu 200 em chamada real.
 
 **Phase B concluida em codigo:**
@@ -195,7 +195,7 @@ Sequencia segura:
 3. `src/contexts/SystemSettingsContext.tsx` reescrito:
    - `fetchPrivateSystemSettings` nao le mais `config` via SDK.
    - Em vez disso chama `/api/me/session`. Se `isSuperAdmin`, tambem chama `/api/admin/settings` e merge.
-   - Se nenhum dos endpoints responde, retorna `defaultSettings` (sem vazar nada).
+   - Defaults client-side de `superAdminEmails` e `collaboratorAdminEmails` sao vazios.
 4. `MaintenanceMode.tsx` continua funcionando sem mudanca: para super admin, `settings.superAdminEmails` e `settings.collaboratorAdminEmails` seguem populados via merge do endpoint `/api/admin/settings`.
 
 **Efeito pratico:**

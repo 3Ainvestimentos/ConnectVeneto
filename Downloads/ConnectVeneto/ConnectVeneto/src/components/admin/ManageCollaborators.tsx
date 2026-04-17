@@ -230,7 +230,7 @@ type CsvRow = { [key: string]: string };
 type SortKey = keyof Collaborator | '';
 type SortDirection = 'asc' | 'desc';
 
-function parseCsvFile(file: File): Promise<{ rows: CsvRow[]; headers: string[] | undefined }> {
+export function parseCsvFile(file: File): Promise<{ rows: CsvRow[]; headers: string[] | undefined }> {
   validateImportFileSize(file);
   return new Promise((resolve, reject) => {
     Papa.parse<CsvRow>(file, {
@@ -254,7 +254,7 @@ function parseCsvFile(file: File): Promise<{ rows: CsvRow[]; headers: string[] |
   });
 }
 
-async function parseXlsxFile(file: File): Promise<{ rows: CsvRow[]; headers: string[] | undefined }> {
+export async function parseXlsxFile(file: File): Promise<{ rows: CsvRow[]; headers: string[] | undefined }> {
   validateImportFileSize(file);
 
   const XLSX = await import('xlsx');

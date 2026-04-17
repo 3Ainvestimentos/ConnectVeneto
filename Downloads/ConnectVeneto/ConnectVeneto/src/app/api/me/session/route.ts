@@ -16,7 +16,7 @@ type SessionResponse = {
   // IMPORTANTE: `superAdminEmails` e `collaboratorAdminEmails` NUNCA entram aqui.
   maintenanceMode: boolean;
   maintenanceMessage: string;
-  allowedUserIds: string[];
+  isAllowedDuringMaintenance: boolean;
   termsUrl: string;
   termsVersion: number;
   privacyPolicyUrl: string;
@@ -94,6 +94,44 @@ async function readSystemSettingsServerSide(): Promise<RawSettings> {
   };
 }
 
+async function resolveMaintenanceAccess(
+  uid: string,
+  normalizedEmail: string | null,
+  allowedUserIds: string[],
+): Promise<boolean> {
+  if (allowedUserIds.length === 0) return false;
+
+  const app = getFirebaseAdminApp();
+  const db = getFirestore(app);
+
+  try {
+    const byAuthUid = await db
+      .collection('collaborators')
+      .where('authUid', '==', uid)
+      .limit(1)
+      .get();
+    if (!byAuthUid.empty) {
+      const idVeneto = byAuthUid.docs[0]?.data()?.idVeneto;
+      return typeof idVeneto === 'string' && allowedUserIds.includes(idVeneto);
+    }
+
+    if (!normalizedEmail) return false;
+
+    const byEmail = await db
+      .collection('collaborators')
+      .where('email', '==', normalizedEmail)
+      .limit(1)
+      .get();
+    if (byEmail.empty) return false;
+
+    const idVeneto = byEmail.docs[0]?.data()?.idVeneto;
+    return typeof idVeneto === 'string' && allowedUserIds.includes(idVeneto);
+  } catch {
+    // Fail closed: erro de lookup nunca libera bypass de manutencao.
+    return false;
+  }
+}
+
 export async function GET(request: Request) {
   try {
     const context = await requireCorporateUser(request.headers.get('Authorization'));
@@ -106,6 +144,11 @@ export async function GET(request: Request) {
 
     const isSuperAdmin =
       !!normalizedEmail && normalizedAdminEmails.includes(normalizedEmail);
+    const isAllowedDuringMaintenance = await resolveMaintenanceAccess(
+      context.uid,
+      normalizedEmail,
+      settings.allowedUserIds,
+    );
 
     // `superAdminEmails` NAO e incluido na resposta. Esse e o ponto central do
     // fechamento do Finding F-01: o browser de um usuario comum nunca recebe
@@ -116,7 +159,7 @@ export async function GET(request: Request) {
       isSuperAdmin,
       maintenanceMode: settings.maintenanceMode,
       maintenanceMessage: settings.maintenanceMessage,
-      allowedUserIds: settings.allowedUserIds,
+      isAllowedDuringMaintenance,
       termsUrl: settings.termsUrl,
       termsVersion: settings.termsVersion,
       privacyPolicyUrl: settings.privacyPolicyUrl,

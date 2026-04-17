@@ -24,11 +24,11 @@ Cobre todas as mudancas feitas de seguranca, arquitetura e governanca nesta roda
 | Logging | `SECURITY_LOG_LEVEL` + silent em test + redaction intacta | Concluido (4 novos testes) |
 | /api/rss | `safeFetch` + `parseString` + limite de body + content-type + testes | Concluido (2 novos testes) |
 | Auditoria Firebase local | Doc consolidado | Concluido |
-| systemSettings Phase A | `/api/me/session` + AuthContext com fallback | Concluido |
+| systemSettings Phase A | `/api/me/session` + AuthContext fail-closed para sessoes indisponiveis | Concluido |
 | Threat model + HTMLs | 5 paginas HTML + threat model md | Concluido |
 | firestore.rules | Diff textual pronto (sem aplicar) | Diff pronto |
 | Decisao xlsx | Opcao C aceita formalmente | Documentado |
-| systemSettings Phase B | `/api/me/session` extendido + SystemSettingsContext usando endpoints | Concluido (fecha F-01) |
+| systemSettings Phase B | `/api/me/session` reduz superficie + SystemSettingsContext sem defaults sensiveis | Concluido (fecha F-01 em codigo) |
 
 Testes totais: **110 -> 116** (0 regressao).
 Typecheck limpo. Lint limpo.
@@ -64,7 +64,6 @@ Typecheck limpo. Lint limpo.
 - `THREAT_MODEL.md`
 - `FIRESTORE_RULES_DIFF.md`
 - `firestore.rules.proposed` (versao definitiva minimalista)
-- `firestore.rules.proposed-extended` (versao com shape validation em leaderTrips; futuro)
 - `FULL_AUDIT_REPORT.md` (este arquivo)
 
 ### HTMLs visuais
@@ -88,7 +87,7 @@ Typecheck limpo. Lint limpo.
 - `src/app/api/rss/route.ts` - `safeFetch` + `parseString` + limite 2MB + content-type.
 - `src/app/api/__tests__/routes.test.ts` - mock `parseString` + 2 novos casos.
 - `src/contexts/SystemSettingsContext.tsx` - `fetchPrivateSystemSettings` usa endpoints.
-- `src/contexts/AuthContext.tsx` - `isSuperAdmin` via `/api/me/session`, fallback preservado.
+- `src/contexts/AuthContext.tsx` - decisoes de `isSuperAdmin`/manutencao 100% server-side (`/api/me/session`) com fail-closed.
 
 ---
 
@@ -104,7 +103,7 @@ Typecheck limpo. Lint limpo.
 - Rejeicao de planilha sem aba valida.
 - Erro dedicado `CollaboratorsImportError` com mensagem clara.
 - Validacao aplicada tambem em CSV (Papa Parse).
-- 6 testes unitarios.
+- 9 testes unitarios.
 
 **Por que nao removemos `xlsx`:** decisao formal (Opcao C em `XLSX_RISK_REMOVAL_PLAN.md`). Risco real mitigado pelos limites; advisory permanece no audit com gatilhos de reabertura documentados.
 
@@ -143,7 +142,8 @@ Relatorio documentou 3 achados locais:
 
 **Depois:**
 - `/api/me/session` server-side decide `isSuperAdmin` sem retornar a lista.
-- `AuthContext` PREFERE resposta do server, com fallback para leitura direta (compat).
+- `AuthContext` depende da sessao server-side para decisoes de privilegio/manutencao.
+- Se `/api/me/session` falhar, o fluxo fecha sessao (fail-closed) e pede retry.
 
 ### 5.6. Threat model + HTMLs (Bloco 8)
 
@@ -151,23 +151,24 @@ Relatorio documentou 3 achados locais:
 - 5 HTMLs navegaveis. `trust-boundaries.html` reescrito com narrativa passo a passo + callout explicando `safeFetch`.
 - `supply-chain.html` com timeline de historico de correcoes.
 
-### 5.7. systemSettings exposure - Phase B (fechou F-01)
+### 5.7. systemSettings exposure - Phase B (fechou F-01 em codigo)
 
 Objetivo: superAdminEmails nao chegar no browser de ninguem.
 
 **Mudanca principal:**
 - `/api/me/session` estendido: retorna todos os campos SEGUROS (maintenance, terms, privacy, rssNewsletter, etc). **NUNCA** retorna `superAdminEmails` ou `collaboratorAdminEmails`.
+- `/api/me/session` nao retorna mais `allowedUserIds`; retorna apenas `isAllowedDuringMaintenance` (bool calculado no server).
 - `/api/admin/settings` retorna os sensiveis; acessivel apenas via `requireSuperAdmin`.
 - `SystemSettingsContext.fetchPrivateSystemSettings` reescrito:
   - Removeu `getDocument('systemSettings', 'config')` (SDK read).
   - Chama `/api/me/session`.
   - Se `isSuperAdmin`, ALSO chama `/api/admin/settings` e faz merge.
-  - Fallback seguro para `defaultSettings` se nada responde.
+  - Defaults client-side para `superAdminEmails`/`collaboratorAdminEmails` sao vazios.
 - `MaintenanceMode.tsx` inalterado (funciona pelo merge para super admin).
 
 **Prova:**
 - Dev real: `/api/me/session 200`, `/api/admin/settings 200` (quando super admin), `/api/calendar`, `/api/rss`, `/dashboard` todos 200.
-- Typecheck + 116/116 testes.
+- Typecheck + lint OK.
 - Browser de usuario comum nao recebe mais `superAdminEmails` na response, porque a aplicacao nao pede.
 
 **Fechamento completo de F-01:** depende de aplicar o diff em `firestore.rules.proposed` (restringir read de `config` a super admin). Enquanto nao aplicar, um atacante ainda pode abrir DevTools e chamar `getDoc` manual - mas o codigo de producao nao leva superAdminEmails ate o navegador.
@@ -291,17 +292,17 @@ Mitigacao: rodar query no Firestore Console antes de aplicar para auditar trips 
 
 ---
 
-## 10. Pontos para revisao externa (o que quero que Codex questione)
+## 10. Pontos para revisao externa (revalidacao)
 
 Perguntas em aberto para um segundo revisor olhar:
 
 1. **`isSuperAdmin()` rule faz `get()` em `config`.** Se `config` ficar restrito a super admin, a rule ainda funciona (trusted get bypass), mas vale confirmar: existem edge cases do Firestore Rules que poderiam quebrar isso em alguma regiao?
 
-2. **`AuthContext` fallback.** Mantemos `fetchPrivateSystemSettings` como fallback caso `/api/me/session` falhe. Depois do deploy da rule, o fallback vai falhar silenciosamente (permission-denied no client). Isso e aceitavel? Deveriamos remover o fallback?
+2. **Fail-closed de sessao.** O fluxo atual encerra login quando `/api/me/session` falha. Confirmar se UX de retry esta adequada para indisponibilidades curtas.
 
 3. **`/api/me/session` sem rate-limit.** Qualquer usuario autenticado pode bater quantas vezes quiser. Faz sentido adicionar rate-limit (ex: 10 req/min por UID)?
 
-4. **`allowedUserIds` ainda trafega no browser.** Hoje `/api/me/session` retorna a lista completa. Alternativa: server computa `isAllowedDuringMaintenance: boolean` baseado no colaborador do usuario, e so retorna esse bool. Vale o esforco?
+4. **`allowedUserIds` no browser.** Resolvido no codigo: `/api/me/session` retorna apenas `isAllowedDuringMaintenance`.
 
 5. **`collaborators` colecao aberta para qualquer autenticado.** Aceito como residual hoje (F-03). Estrategia sugerida: criar `/api/collaborators` server-side com paginacao e restringir colecao no Firestore. Prioridade?
 

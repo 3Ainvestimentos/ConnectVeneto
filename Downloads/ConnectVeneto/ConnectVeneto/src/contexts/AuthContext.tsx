@@ -9,7 +9,6 @@ import { useRouter } from 'next/navigation';
 import { toast } from '@/hooks/use-toast';
 import { Collaborator, CollaboratorPermissions, getCollaboratorUserId } from './CollaboratorsContext';
 import { addDocumentToCollection, getCollection, updateDocumentInCollection as updateFirestoreDoc } from '@/lib/firestore-service';
-import { fetchPrivateSystemSettings, useSystemSettings } from './SystemSettingsContext';
 import { useCollaboratorSync } from '@/hooks/useCollaboratorSync';
 import type { FirebaseError } from 'firebase/app';
 import { normalizeEmail } from '@/lib/email-utils';
@@ -157,21 +156,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [isSuperAdmin, setIsSuperAdmin] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
   const router = useRouter();
-  const { settings: systemSettings } = useSystemSettings();
   
   const auth = _auth;
   const authBootstrapCompletedRef = useRef(false);
-
-  const systemSettingsRef = useRef(systemSettings);
-  useEffect(() => {
-    systemSettingsRef.current = systemSettings;
-  }, [systemSettings]);
-
-  const ensurePrivateSettings = useCallback(async () => {
-    const privateSettings = await fetchPrivateSystemSettings();
-    systemSettingsRef.current = privateSettings;
-    return privateSettings;
-  }, []);
 
   useEffect(() => {
     resetBootstrapTrace();
@@ -242,15 +229,26 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
               return;
             }
 
-            // Preferencia: /api/me/session (server-side, seguro contra exposicao de superAdminEmails).
-            // Fallback: leitura client direta do config (comportamento historico).
+            // Decisoes de privilegio/manutencao sao sempre server-side.
+            // Falha de /api/me/session deve ser fail-closed.
             const serverSession: ClientSessionInfo | null = await fetchClientSessionInfo(firebaseUser);
-            const { maintenanceMode, maintenanceMessage, allowedUserIds, superAdminEmails } = await ensurePrivateSettings();
-            const normalizedEmail = normalizeEmail(firebaseUser.email);
-            const normalizedAdminEmails = superAdminEmails.map(email => normalizeEmail(email)).filter((email): email is string => email !== null);
-            const isSuper = serverSession
-              ? serverSession.isSuperAdmin
-              : !!normalizedEmail && (normalizedAdminEmails.includes(normalizedEmail) || superAdminEmails.includes(normalizedEmail));
+            if (!serverSession) {
+              await firebaseSignOut(auth);
+              clearAuthSessionCookie();
+              setUser(null);
+              setCurrentUserCollab(null);
+              setIsSuperAdmin(false);
+              setIsAdmin(false);
+              toast({
+                title: "Sessão indisponível",
+                description: "Não foi possível validar sua sessão agora. Tente novamente em instantes.",
+                variant: "destructive",
+              });
+              setLoading(false);
+              return;
+            }
+            const { maintenanceMode, maintenanceMessage, isAllowedDuringMaintenance } = serverSession;
+            const isSuper = serverSession.isSuperAdmin;
 
             let collaborator: Collaborator | null = null;
             let collaboratorLookupTimedOut = false;
@@ -269,9 +267,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                 throw lookupError;
               }
             }
-
-            const collaboratorUserId = getCollaboratorUserId(collaborator);
-            const isAllowedDuringMaintenance = collaboratorUserId ? allowedUserIds.includes(collaboratorUserId) : false;
 
             if (maintenanceMode && !isSuper && !isAllowedDuringMaintenance && !collaboratorLookupTimedOut) {
                 await firebaseSignOut(auth);
@@ -334,7 +329,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setLoading(false); 
     });
     return () => unsubscribe();
-  }, [auth, fetchAndSetCollaborator, ensurePrivateSettings]);
+  }, [auth, fetchAndSetCollaborator]);
 
   // Guard rail: avoid infinite spinner if auth bootstrap stalls.
   useEffect(() => {
@@ -368,20 +363,25 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         return;
       }
 
-      // Preferencia: /api/me/session. Fallback: leitura direta do config.
+      // Decisao de privilegio/manutencao e sempre server-side.
       const serverSession: ClientSessionInfo | null = await fetchClientSessionInfo(firebaseUser);
-      const { maintenanceMode, maintenanceMessage, allowedUserIds, superAdminEmails } = await ensurePrivateSettings();
+      if (!serverSession) {
+        await firebaseSignOut(auth);
+        clearAuthSessionCookie();
+        toast({
+          title: "Sessão indisponível",
+          description: "Não foi possível validar sua sessão agora. Tente novamente em instantes.",
+          variant: "destructive",
+        });
+        setLoading(false);
+        return;
+      }
+      const { maintenanceMode, maintenanceMessage, isAllowedDuringMaintenance } = serverSession;
 
       const collaborator = await fetchAndSetCollaborator(firebaseUser);
-      const normalizedEmail = normalizeEmail(firebaseUser.email);
-      const normalizedAdminEmails = superAdminEmails.map(email => normalizeEmail(email)).filter((email): email is string => email !== null);
-      const isSuper = serverSession
-        ? serverSession.isSuperAdmin
-        : !!normalizedEmail && (normalizedAdminEmails.includes(normalizedEmail) || superAdminEmails.includes(normalizedEmail));
+      const isSuper = serverSession.isSuperAdmin;
 
       if (maintenanceMode) {
-          const collaboratorUserId = getCollaboratorUserId(collaborator);
-          const isAllowedDuringMaintenance = !!collaboratorUserId && (allowedUserIds || []).includes(collaboratorUserId);
           if (!isSuper && !isAllowedDuringMaintenance) {
               await firebaseSignOut(auth);
               toast({ title: "Manutenção em Andamento", description: maintenanceMessage, duration: 9000 });
@@ -443,7 +443,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     } finally {
         setLoading(false);
     }
-  }, [auth, ensurePrivateSettings, fetchAndSetCollaborator, router]);
+  }, [auth, fetchAndSetCollaborator, router]);
 
   const signOut = useCallback(async () => {
     try {
