@@ -245,6 +245,7 @@ describe('AuthContext', () => {
         canViewOpportunityMap: false,
         canViewMeetAnalyses: false,
         canViewDirectoria: false,
+        canViewPortalRepasse: false,
       });
     });
   });

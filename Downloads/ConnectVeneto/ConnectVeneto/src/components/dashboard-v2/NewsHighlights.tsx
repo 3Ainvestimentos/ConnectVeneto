@@ -13,7 +13,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogC
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 
-export default function NewsHighlights() {
+export default function NewsHighlights({ compact = false }: { compact?: boolean }) {
   const [selectedNews, setSelectedNews] = useState<NewsItemType | null>(null);
   const { newsItems } = useNews();
   const { user } = useAuth();
@@ -167,6 +167,72 @@ export default function NewsHighlights() {
         );
     }
   };
+
+  if (compact) {
+    return (
+      <>
+        <div className="flex flex-col gap-2">
+          {activeHighlights.map((item) => (
+            <div
+              key={item.id}
+              className="relative rounded-lg overflow-hidden cursor-pointer group h-24"
+              onClick={() => handleViewNews(item)}
+              onKeyDown={(e) => e.key === 'Enter' && handleViewNews(item)}
+              tabIndex={0}
+              role="button"
+              aria-label={`Ver notícia: ${item.title}`}
+            >
+              {item.videoUrl ? (
+                <video src={item.videoUrl} autoPlay loop muted playsInline className="absolute inset-0 h-full w-full object-cover" />
+              ) : (
+                <Image src={item.imageUrl} alt={item.title} fill style={{ objectFit: 'cover' }} className="transition-transform duration-300 group-hover:scale-105" />
+              )}
+              <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent p-3 flex flex-col justify-end">
+                <p className="text-xs font-headline font-semibold text-white leading-tight line-clamp-2">{item.title}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        <Dialog open={!!selectedNews} onOpenChange={(isOpen) => !isOpen && setSelectedNews(null)}>
+          <DialogContent className="max-w-2xl">
+            {selectedNews && (
+              <>
+                <DialogHeader>
+                  <div className="relative w-full h-64 rounded-lg overflow-hidden mb-4 bg-black">
+                    {selectedNews.videoUrl ? (
+                      <video src={selectedNews.videoUrl} controls autoPlay className="h-full w-full object-contain" />
+                    ) : (
+                      <Image src={selectedNews.imageUrl} alt={selectedNews.title} fill style={{ objectFit: 'cover' }} />
+                    )}
+                  </div>
+                  <DialogTitle className="font-headline text-2xl text-left">{selectedNews.title}</DialogTitle>
+                  <div className="text-left !mt-2">
+                    <Badge variant="outline" className="font-body text-foreground">{selectedNews.category}</Badge>
+                    <span className="text-xs text-muted-foreground font-body ml-2">
+                      {new Date(selectedNews.date).toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' })}
+                    </span>
+                  </div>
+                </DialogHeader>
+                <ScrollArea className="max-h-[40vh] pr-4">
+                  <div className="py-4 text-sm text-foreground space-y-4">
+                    {selectedNews.content && selectedNews.content.split('\n').map((paragraph, index) => (
+                      <p key={index}>{paragraph}</p>
+                    ))}
+                  </div>
+                </ScrollArea>
+                <DialogFooter>
+                  <DialogClose asChild>
+                    <Button type="button" variant="outline" className="hover:bg-muted">Fechar</Button>
+                  </DialogClose>
+                </DialogFooter>
+              </>
+            )}
+          </DialogContent>
+        </Dialog>
+      </>
+    );
+  }
 
   return (
     <>

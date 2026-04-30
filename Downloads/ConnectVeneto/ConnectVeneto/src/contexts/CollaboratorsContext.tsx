@@ -26,6 +26,7 @@ export interface CollaboratorPermissions {
   canViewOpportunityMap: boolean;
   canViewMeetAnalyses: boolean;
   canViewDirectoria: boolean;
+  canViewPortalRepasse: boolean;
 }
 
 export interface ConsultaLinks {
@@ -53,6 +54,7 @@ export interface Collaborator {
   acceptedTermsVersion?: number; // Versão dos termos aceitos pelo usuário
   createdAt?: string; // ISO String for creation timestamp
   authUid?: string; // Firebase Auth UID
+  modulePermissions?: Record<string, string[]>; // ex: { 'portal-repasse': ['portal-repasse:view', 'portal-repasse:tickets:view'] }
 }
 
 export const getCollaboratorUserId = (collaborator: Partial<Collaborator> | null | undefined): string | null => {
@@ -67,6 +69,7 @@ interface CollaboratorsContextType {
   addMultipleCollaborators: (collaborators: Omit<Collaborator, 'id'>[]) => Promise<void>;
   updateCollaborator: (currentData: Collaborator, newData: Omit<Collaborator, 'id'>) => Promise<void>;
   updateCollaboratorPermissions: (id: string, permissions: CollaboratorPermissions) => Promise<void>;
+  updateModulePermissions: (id: string, moduleId: string, modulePerms: string[]) => Promise<void>;
   deleteCollaboratorMutation: UseMutationResult<void, Error, string, unknown>;
 }
 
@@ -93,6 +96,7 @@ const defaultPermissions: CollaboratorPermissions = {
   canViewOpportunityMap: false,
   canViewMeetAnalyses: false,
   canViewDirectoria: false,
+  canViewPortalRepasse: false,
 };
 
 export const CollaboratorsProvider = ({ children }: { children: ReactNode }) => {
@@ -212,6 +216,19 @@ export const CollaboratorsProvider = ({ children }: { children: ReactNode }) => 
     },
   });
 
+  const updateModulePermissionsMutation = useMutation<void, Error, { id: string; moduleId: string; modulePerms: string[] }>({
+    mutationFn: async ({ id, moduleId, modulePerms }) => {
+      const collab = collaborators.find(c => c.id === id);
+      const current = collab?.modulePermissions ?? {};
+      await updateDocumentInCollection(COLLECTION_NAME, id, {
+        modulePermissions: { ...current, [moduleId]: modulePerms },
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [COLLECTION_NAME] });
+    },
+  });
+
   const deleteCollaboratorMutation = useMutation<void, Error, string>({
     mutationFn: async (id: string) => {
         await deleteDocumentFromCollection(COLLECTION_NAME, id);
@@ -230,6 +247,7 @@ export const CollaboratorsProvider = ({ children }: { children: ReactNode }) => 
     addMultipleCollaborators: (collaborators: Omit<Collaborator, 'id'>[]) => addMultipleCollaboratorsMutation.mutateAsync(collaborators),
     updateCollaborator: (currentData: Collaborator, newData: Omit<Collaborator, 'id'>) => updateCollaboratorMutation.mutateAsync({ currentData, newData }),
     updateCollaboratorPermissions: (id: string, permissions: CollaboratorPermissions) => updateCollaboratorPermissionsMutation.mutateAsync({ id, permissions }),
+    updateModulePermissions: (id: string, moduleId: string, modulePerms: string[]) => updateModulePermissionsMutation.mutateAsync({ id, moduleId, modulePerms }),
     deleteCollaboratorMutation,
   }), [collaborators, isFetching, addCollaboratorMutation, addMultipleCollaboratorsMutation, updateCollaboratorMutation, updateCollaboratorPermissionsMutation, deleteCollaboratorMutation]);
 
