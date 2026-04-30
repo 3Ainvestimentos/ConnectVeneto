@@ -53,14 +53,24 @@ const isCorporateEmail = (email: string | null | undefined): boolean => {
   return normalizeEmail(email)?.endsWith(`@${CORPORATE_EMAIL_DOMAIN}`) ?? false;
 }
 
-const setAuthSessionCookie = () => {
+// Cookie de sessão agora é gerenciado server-side via /api/me/session (POST) e /api/auth/clear (DELETE).
+// - cv_session é definido com httpOnly + Secure + SameSite=Strict pelo servidor — não pode ser forjado via JS.
+// - cv_auth (legado) é mantido para compatibilidade durante a transição; expira em 24h sem renovação.
+
+/** @deprecated Substituído por cookie server-side em /api/me/session. Mantido apenas para limpar o cookie legado. */
+const clearLegacyAuthCookie = () => {
   if (typeof document === 'undefined') return;
-  document.cookie = `${AUTH_COOKIE_NAME}=1; path=/; max-age=${AUTH_COOKIE_MAX_AGE_SECONDS}; samesite=lax`;
+  // Expira o cookie legado imediatamente para limpar sessões antigas
+  document.cookie = `${AUTH_COOKIE_NAME}=; path=/; max-age=0; samesite=lax`;
 };
 
-const clearAuthSessionCookie = () => {
-  if (typeof document === 'undefined') return;
-  document.cookie = `${AUTH_COOKIE_NAME}=; path=/; max-age=0; samesite=lax`;
+/** Limpa o cookie de sessão seguro chamando o endpoint server-side. Fire-and-forget com fallback silencioso. */
+const clearServerSession = (): void => {
+  // Não await — o logout não deve bloquear na limpeza do cookie
+  fetch('/api/auth/clear', { method: 'DELETE' }).catch(() => {
+    // Silencia erros de rede — o cookie expirará naturalmente
+  });
+  clearLegacyAuthCookie();
 };
 
 const saveGoogleAccessToken = (token: string) => {
@@ -127,6 +137,7 @@ const defaultPermissions: CollaboratorPermissions = {
   canViewOpportunityMap: false,
   canViewMeetAnalyses: false,
   canViewDirectoria: false,
+  canViewPortalRepasse: false,
 };
 
 const adminPermissionKeys: Array<keyof CollaboratorPermissions> = [
@@ -217,7 +228,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         try {
             if (!isCorporateEmail(firebaseUser.email)) {
               await firebaseSignOut(auth);
-              clearAuthSessionCookie();
+              clearServerSession();
               setUser(null);
               setCurrentUserCollab(null);
               toast({
@@ -234,7 +245,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             const serverSession: ClientSessionInfo | null = await fetchClientSessionInfo(firebaseUser);
             if (!serverSession) {
               await firebaseSignOut(auth);
-              clearAuthSessionCookie();
+              clearServerSession();
               setUser(null);
               setCurrentUserCollab(null);
               setIsSuperAdmin(false);
@@ -270,18 +281,18 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
             if (maintenanceMode && !isSuper && !isAllowedDuringMaintenance && !collaboratorLookupTimedOut) {
                 await firebaseSignOut(auth);
-                clearAuthSessionCookie();
+                clearServerSession();
                 setUser(null);
                 setCurrentUserCollab(null);
                 toast({ title: "Manutenção", description: maintenanceMessage, duration: 9000 });
             } else if (!collaborator && !isSuper && !collaboratorLookupTimedOut) {
                  await firebaseSignOut(auth);
-                 clearAuthSessionCookie();
+                 clearServerSession();
                  setUser(null);
                  setCurrentUserCollab(null);
                  toast({ title: "Acesso Negado", description: "Seu perfil não foi encontrado na base de dados de colaboradores.", variant: 'destructive' });
             } else {
-                setAuthSessionCookie();
+                // Cookie de sessão (cv_session) é setado server-side pelo /api/me/session — não precisa de ação aqui.
                 setUser(firebaseUser);
                 const restoredToken = restoreGoogleAccessToken();
                 setAccessToken(restoredToken);
@@ -309,13 +320,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
              });
              console.error("Error during auth state change verification:", e);
              await firebaseSignOut(auth);
-             clearAuthSessionCookie();
+             clearServerSession();
              setUser(null);
              toast({ title: "Erro de Configuração", description: "Não foi possível verificar as configurações do sistema.", variant: 'destructive' });
         }
       } else {
         bootstrapTrace('auth_state_without_user');
-        clearAuthSessionCookie();
+        clearServerSession();
         clearGoogleAccessToken();
         setUser(null);
         setCurrentUserCollab(null);
@@ -353,7 +364,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
       if (!isCorporateEmail(firebaseUser.email)) {
         await firebaseSignOut(auth);
-        clearAuthSessionCookie();
+        clearServerSession();
         toast({
           title: "Acesso Negado",
           description: `Apenas contas @${CORPORATE_EMAIL_DOMAIN} podem acessar a plataforma.`,
@@ -367,7 +378,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       const serverSession: ClientSessionInfo | null = await fetchClientSessionInfo(firebaseUser);
       if (!serverSession) {
         await firebaseSignOut(auth);
-        clearAuthSessionCookie();
+        clearServerSession();
         toast({
           title: "Sessão indisponível",
           description: "Não foi possível validar sua sessão agora. Tente novamente em instantes.",
@@ -391,7 +402,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       }
       
       if (collaborator || isSuper) {
-        setAuthSessionCookie();
+        // Cookie de sessão (cv_session) é setado server-side pelo /api/me/session — não precisa de ação aqui.
         const credential = GoogleAuthProvider.credentialFromResult(result);
         if (credential?.accessToken) {
           saveGoogleAccessToken(credential.accessToken);
@@ -412,7 +423,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         router.push('/dashboard');
       } else {
         await firebaseSignOut(auth);
-        clearAuthSessionCookie();
+        clearServerSession();
         clearGoogleAccessToken();
         setAccessToken(null);
         toast({
@@ -448,7 +459,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const signOut = useCallback(async () => {
     try {
       await firebaseSignOut(auth);
-      clearAuthSessionCookie();
+      clearServerSession();
       clearGoogleAccessToken();
       setAccessToken(null);
       setCurrentUserCollab(null);

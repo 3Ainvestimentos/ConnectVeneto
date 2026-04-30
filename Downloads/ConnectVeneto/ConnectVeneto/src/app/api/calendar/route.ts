@@ -69,9 +69,12 @@ export async function GET(request: Request) {
     await requireCorporateUser(request.headers.get('Authorization'));
 
     const calendarId = normalizeCalendarId(process.env.CALENDAR_PUBLIC_ID ?? '');
-    const apiKey =
-      process.env.GOOGLE_CALENDAR_API_KEY?.trim() ||
-      process.env.NEXT_PUBLIC_FIREBASE_API_KEY?.trim();
+
+    // Usar APENAS a chave dedicada para a Calendar API.
+    // O fallback para NEXT_PUBLIC_FIREBASE_API_KEY foi removido: essa chave tem escopo
+    // diferente (Firebase Web SDK) e misturar os dois cria ambiguidade de permissões.
+    // Se GOOGLE_CALENDAR_API_KEY não estiver configurada, falhar explicitamente.
+    const apiKey = process.env.GOOGLE_CALENDAR_API_KEY?.trim();
 
     if (!calendarId) {
       return NextResponse.json(
@@ -82,7 +85,7 @@ export async function GET(request: Request) {
 
     if (!apiKey) {
       return NextResponse.json(
-        { error: 'GOOGLE_CALENDAR_API_KEY ou NEXT_PUBLIC_FIREBASE_API_KEY não configurada.' },
+        { error: 'GOOGLE_CALENDAR_API_KEY não configurada. Configure a variável de ambiente no servidor.' },
         { status: 503 }
       );
     }

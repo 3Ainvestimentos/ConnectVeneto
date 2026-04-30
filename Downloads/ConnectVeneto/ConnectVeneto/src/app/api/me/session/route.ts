@@ -132,9 +132,13 @@ async function resolveMaintenanceAccess(
   }
 }
 
+const SESSION_COOKIE_NAME = 'cv_session';
+const SESSION_COOKIE_MAX_AGE = 60 * 60 * 24; // 24 horas
+
 export async function GET(request: Request) {
   try {
-    const context = await requireCorporateUser(request.headers.get('Authorization'));
+    const authHeader = request.headers.get('Authorization');
+    const context = await requireCorporateUser(authHeader);
 
     const settings = await readSystemSettingsServerSide();
     const normalizedEmail = normalizeEmail(context.email);
@@ -170,11 +174,28 @@ export async function GET(request: Request) {
       loginFrequencyGoal: settings.loginFrequencyGoal,
     };
 
-    return NextResponse.json(payload, {
+    const response = NextResponse.json(payload, {
       headers: {
         'Cache-Control': 'private, no-store',
       },
     });
+
+    // Seta o cookie de sessão seguro (httpOnly, Secure, SameSite=Strict) server-side.
+    // O valor é o Firebase ID Token — verificável criptograficamente, não trivialmente forjável.
+    // Isso substitui o `cv_auth=1` definido via document.cookie no cliente (que qualquer
+    // usuário poderia forjar para bypassar o middleware).
+    const idToken = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : null;
+    if (idToken) {
+      response.cookies.set(SESSION_COOKIE_NAME, idToken, {
+        httpOnly: true,                                          // não acessível via JS/XSS
+        secure: process.env.NODE_ENV === 'production',          // apenas HTTPS em produção
+        sameSite: 'strict',                                     // bloqueia envio cross-site
+        maxAge: SESSION_COOKIE_MAX_AGE,
+        path: '/',
+      });
+    }
+
+    return response;
   } catch (error) {
     const knownSecurityError = securityErrorResponse(error);
     if (knownSecurityError) {

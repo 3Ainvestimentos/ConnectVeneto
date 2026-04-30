@@ -9,6 +9,11 @@ const createJestConfig = nextJest({
 const customJestConfig = {
   setupFilesAfterEnv: ['<rootDir>/jest.setup.js'],
   testEnvironment: 'jest-environment-jsdom',
+  // Força resolução de pacotes usando condições Node.js (req, default) em vez de
+  // 'browser', evitando que pacotes como 'jose' carreguem o build ESM no jsdom.
+  testEnvironmentOptions: {
+    customExportConditions: ['node', 'require', 'default'],
+  },
   moduleNameMapper: {
     '^@/(.*)$': '<rootDir>/src/$1',
   },
