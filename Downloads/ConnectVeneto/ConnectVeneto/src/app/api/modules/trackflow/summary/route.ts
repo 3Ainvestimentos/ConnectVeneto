@@ -9,7 +9,7 @@ import { getFirestore } from 'firebase-admin/firestore';
 import { getFirebaseAdminApp } from '@/lib/firebase-admin';
 
 const HUB_JWT_SECRET = new TextEncoder().encode(process.env.HUB_JWT_SECRET!);
-const TRACKFLOW_URL = (process.env.NEXT_PUBLIC_TRACKFLOW_URL ?? 'http://localhost:3001').replace(/\/$/, '');
+const TRACKFLOW_URL = (process.env.NEXT_PUBLIC_TRACKFLOW_URL ?? 'https://vnt-trackflow.azurewebsites.net').replace(/\/$/, '');
 
 export async function GET(request: Request) {
   try {

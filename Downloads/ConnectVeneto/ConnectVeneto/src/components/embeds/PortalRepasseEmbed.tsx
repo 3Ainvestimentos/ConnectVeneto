@@ -8,7 +8,7 @@ import { useCollaborators } from '@/contexts/CollaboratorsContext';
 import { Settings, FlaskConical, X } from 'lucide-react';
 import Link from 'next/link';
 
-const PORTAL_REPASSE_URL = (process.env.NEXT_PUBLIC_PORTAL_REPASSE_URL ?? 'http://localhost:3001').replace(/\/$/, '');
+const PORTAL_REPASSE_URL = (process.env.NEXT_PUBLIC_PORTAL_REPASSE_URL ?? 'https://vnt-repasse.azurewebsites.net').replace(/\/$/, '');
 const MODULE_ID = 'portal-repasse';
 
 export default function PortalRepasseEmbed() {
