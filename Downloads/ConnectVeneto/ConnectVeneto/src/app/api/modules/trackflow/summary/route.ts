@@ -8,7 +8,13 @@ import { requireCorporateUser } from '@/lib/security';
 import { getFirestore } from 'firebase-admin/firestore';
 import { getFirebaseAdminApp } from '@/lib/firebase-admin';
 
-const HUB_JWT_SECRET = new TextEncoder().encode(process.env.HUB_JWT_SECRET!);
+function getHubJwtSecret() {
+  const raw = process.env.HUB_JWT_SECRET?.trim().replace(/^["']|["']$/g, '');
+  if (!raw) throw new Error('HUB_JWT_SECRET ausente');
+  return new TextEncoder().encode(raw);
+}
+
+const HUB_JWT_SECRET = getHubJwtSecret();
 const TRACKFLOW_URL = (process.env.NEXT_PUBLIC_TRACKFLOW_URL ?? 'https://vnt-trackflow.azurewebsites.net').replace(/\/$/, '');
 
 export async function GET(request: Request) {
