@@ -16,7 +16,6 @@ function getHubJwtSecret() {
   return new TextEncoder().encode(raw);
 }
 
-const HUB_JWT_SECRET = getHubJwtSecret();
 const TOKEN_TTL_SECONDS = 15 * 60; // 15 minutos
 
 type ModuleConfig = {
@@ -138,7 +137,7 @@ export async function POST(
       .setAudience(moduleId)
       .setIssuedAt(now)
       .setExpirationTime(now + TOKEN_TTL_SECONDS)
-      .sign(HUB_JWT_SECRET);
+      .sign(getHubJwtSecret());
 
     return NextResponse.json({ token }, { headers: { 'Cache-Control': 'no-store' } });
   } catch (error) {
