@@ -2,8 +2,8 @@
 import type {NextConfig} from 'next';
 import path from 'path';
 
-const TRACKFLOW_URL      = process.env.NEXT_PUBLIC_TRACKFLOW_URL      ?? 'http://localhost:3001';
-const PORTAL_REPASSE_URL = process.env.NEXT_PUBLIC_PORTAL_REPASSE_URL ?? 'http://localhost:3000';
+const TRACKFLOW_URL      = process.env.NEXT_PUBLIC_TRACKFLOW_URL      ?? 'https://vnt-trackflow.azurewebsites.net';
+const PORTAL_REPASSE_URL = process.env.NEXT_PUBLIC_PORTAL_REPASSE_URL ?? 'https://vnt-repasse.azurewebsites.net';
 
 const nextConfig: NextConfig = {
   /* config options here */

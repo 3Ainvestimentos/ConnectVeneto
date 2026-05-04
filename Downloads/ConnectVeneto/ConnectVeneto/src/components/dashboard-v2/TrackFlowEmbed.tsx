@@ -4,7 +4,7 @@ import { useEffect, useRef, useCallback } from 'react';
 import { getAuth } from 'firebase/auth';
 import { getFirebaseApp } from '@/lib/firebase';
 
-const TRACKFLOW_URL = (process.env.NEXT_PUBLIC_TRACKFLOW_URL ?? 'http://localhost:3001').replace(/\/$/, '');
+const TRACKFLOW_URL = (process.env.NEXT_PUBLIC_TRACKFLOW_URL ?? 'https://vnt-trackflow.azurewebsites.net').replace(/\/$/, '');
 const MODULE_ID = 'trackflow';
 
 export default function TrackFlowEmbed({ fullHeight }: { fullHeight?: boolean }) {
