@@ -14,7 +14,6 @@ function getHubJwtSecret() {
   return new TextEncoder().encode(raw);
 }
 
-const HUB_JWT_SECRET = getHubJwtSecret();
 const TRACKFLOW_URL = (process.env.NEXT_PUBLIC_TRACKFLOW_URL ?? 'https://vnt-trackflow.azurewebsites.net').replace(/\/$/, '');
 
 export async function GET(request: Request) {
@@ -50,7 +49,7 @@ export async function GET(request: Request) {
       .setAudience('trackflow')
       .setIssuedAt(now)
       .setExpirationTime(now + 60)
-      .sign(HUB_JWT_SECRET);
+      .sign(getHubJwtSecret());
 
     const res = await fetch(`${TRACKFLOW_URL}/api/summary`, {
       headers: { Authorization: `Bearer ${token}` },
