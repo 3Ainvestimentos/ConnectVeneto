@@ -1,9 +1,8 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { getAuth } from 'firebase/auth';
-import { getFirebaseApp } from '@/lib/firebase';
-import { AlertCircle, Clock, CheckCircle, ExternalLink } from 'lucide-react';
+import { useAuth } from '@/contexts/AuthContext';
+import { AlertCircle, Clock, CheckCircle, ExternalLink, RotateCw } from 'lucide-react';
 import Link from 'next/link';
 
 type SummaryItem = {
@@ -25,18 +24,24 @@ function formatDue(iso: string): string {
 }
 
 export default function TrackFlowSummary() {
+  const { user, loading: authLoading } = useAuth();
   const [data, setData] = useState<SummaryData | null>(null);
   const [error, setError] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [reloadKey, setReloadKey] = useState(0);
 
   useEffect(() => {
+    // Aguarda o Firebase restaurar a sessão antes de decidir entre fetch e erro —
+    // no primeiro acesso, currentUser ainda é null enquanto authLoading=true.
+    if (authLoading) return;
+    if (!user) { setError(true); setLoading(false); return; }
+
     let cancelled = false;
+    setLoading(true);
+    setError(false);
     (async () => {
       try {
-        const auth = getAuth(getFirebaseApp());
-        const idToken = await auth.currentUser?.getIdToken();
-        if (!idToken) { setError(true); setLoading(false); return; }
-
+        const idToken = await user.getIdToken();
         const res = await fetch('/api/modules/trackflow/summary', {
           headers: { Authorization: `Bearer ${idToken}` },
           cache: 'no-store',
@@ -51,7 +56,7 @@ export default function TrackFlowSummary() {
       }
     })();
     return () => { cancelled = true; };
-  }, []);
+  }, [user, authLoading, reloadKey]);
 
   if (loading) {
     return (
@@ -65,9 +70,18 @@ export default function TrackFlowSummary() {
 
   if (error || !data) {
     return (
-      <p className="text-sm text-muted-foreground py-2">
-        Não foi possível carregar as tarefas.
-      </p>
+      <div className="flex flex-col items-start gap-2 py-2">
+        <p className="text-sm text-muted-foreground">
+          Não foi possível carregar as tarefas.
+        </p>
+        <button
+          onClick={() => setReloadKey((k) => k + 1)}
+          className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
+        >
+          <RotateCw className="w-3 h-3" />
+          Tentar novamente
+        </button>
+      </div>
     );
   }
 
