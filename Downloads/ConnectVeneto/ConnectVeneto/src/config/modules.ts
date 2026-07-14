@@ -85,6 +85,52 @@ export const modules: AppModule[] = allModules.map((mod) => ({
   enabled: mod.featureFlag ? FEATURE_FLAGS[mod.featureFlag] : true,
 }));
 
+/**
+ * Módulos externos embarcados via iframe + hub-auth (CONNECTVENETO_MODULE_PROTOCOL.md).
+ * Fonte única consumida pelo token route (/api/modules/[moduleId]/token), pelos
+ * componentes de embed (ModuleEmbed) e por qualquer proxy server-to-server.
+ *
+ * As URLs usam vars NEXT_PUBLIC_* para serem resolvíveis tanto no client
+ * (postMessage targetOrigin) quanto no server (emissão de token / proxy).
+ */
+export type EmbeddedModuleConfig = {
+  id: string;
+  name: string;
+  /** Origem do módulo, sem barra final — usada como src do iframe e targetOrigin. */
+  url: string;
+  /** Rota de bootstrap do embed no módulo. */
+  embedPath: string;
+  /** Permissões de quem tem acesso padrão. Vazio = acesso só por permissão explícita no Firestore. */
+  defaultPermissions: string[];
+  /** Permissões concedidas a super admins. */
+  adminPermissions: string[];
+};
+
+export const EMBEDDED_MODULES: Record<string, EmbeddedModuleConfig> = {
+  trackflow: {
+    id: 'trackflow',
+    name: 'TrackFlow',
+    url: (process.env.NEXT_PUBLIC_TRACKFLOW_URL ?? 'https://vnt-trackflow.azurewebsites.net').replace(/\/$/, ''),
+    embedPath: '/embed',
+    defaultPermissions: ['trackflow:view', 'trackflow:create'],
+    adminPermissions: ['trackflow:view', 'trackflow:create', 'trackflow:manage', 'trackflow:admin', 'trackflow:export'],
+  },
+  'portal-repasse': {
+    id: 'portal-repasse',
+    name: 'Portal de Repasse',
+    url: (process.env.NEXT_PUBLIC_PORTAL_REPASSE_URL ?? 'https://vnt-repasse.azurewebsites.net').replace(/\/$/, ''),
+    embedPath: '/embed',
+    defaultPermissions: [],  // acesso por permissão explícita — ver canViewPortalRepasse no Firestore
+    adminPermissions: ['portal-repasse:view', 'portal-repasse:manage', 'portal-repasse:export',
+                       'portal-repasse:tickets:view', 'portal-repasse:tickets:create',
+                       'portal-repasse:params:view', 'portal-repasse:params:edit'],
+  },
+};
+
+export function getEmbeddedModule(id: string): EmbeddedModuleConfig | undefined {
+  return EMBEDDED_MODULES[id];
+}
+
 export function getModuleById(id: string): AppModule | undefined {
   return modules.find((m) => m.id === id);
 }

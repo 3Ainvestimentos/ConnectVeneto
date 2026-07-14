@@ -9,6 +9,7 @@ import { requireCorporateUser } from '@/lib/security';
 import { getFirestore } from 'firebase-admin/firestore';
 import { getFirebaseAdminApp } from '@/lib/firebase-admin';
 import { normalizeEmail } from '@/lib/email-utils';
+import { getEmbeddedModule } from '@/config/modules';
 
 function getHubJwtSecret() {
   const raw = process.env.HUB_JWT_SECRET?.trim().replace(/^["']|["']$/g, '');
@@ -17,27 +18,6 @@ function getHubJwtSecret() {
 }
 
 const TOKEN_TTL_SECONDS = 15 * 60; // 15 minutos
-
-type ModuleConfig = {
-  id: string;
-  defaultPermissions: string[];
-  adminPermissions: string[];
-};
-
-const MODULE_REGISTRY: Record<string, ModuleConfig> = {
-  trackflow: {
-    id: 'trackflow',
-    defaultPermissions: ['trackflow:view', 'trackflow:create'],
-    adminPermissions: ['trackflow:view', 'trackflow:create', 'trackflow:manage', 'trackflow:admin', 'trackflow:export'],
-  },
-  'portal-repasse': {
-    id: 'portal-repasse',
-    defaultPermissions: [],  // acesso por permissão explícita — ver canViewPortalRepasse no Firestore
-    adminPermissions: ['portal-repasse:view', 'portal-repasse:manage', 'portal-repasse:export',
-                       'portal-repasse:tickets:view', 'portal-repasse:tickets:create',
-                       'portal-repasse:params:view', 'portal-repasse:params:edit'],
-  },
-};
 
 async function isSuperAdmin(uid: string, email: string | null): Promise<boolean> {
   try {
@@ -63,7 +43,7 @@ export async function POST(
 ) {
   try {
     const { moduleId } = await params;
-    const moduleConfig = MODULE_REGISTRY[moduleId];
+    const moduleConfig = getEmbeddedModule(moduleId);
     if (!moduleConfig) {
       return NextResponse.json({ error: 'Módulo não registrado' }, { status: 404 });
     }
