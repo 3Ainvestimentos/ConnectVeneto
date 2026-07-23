@@ -211,8 +211,8 @@ export default function GoogleCalendar() {
               </Button>
             </div>
           ) : (
-            <div className="grid min-h-[280px] flex-grow gap-6 lg:grid-cols-[auto_minmax(0,1fr)] lg:items-stretch">
-              <div className="flex justify-center self-start lg:justify-start">
+            <div className="flex min-h-[280px] flex-grow flex-col gap-4">
+              <div className="flex justify-center">
                 <div className="w-fit max-w-full shrink-0">
                   <Calendar
                     mode="single"
@@ -231,7 +231,7 @@ export default function GoogleCalendar() {
                   />
                 </div>
               </div>
-              <div className="flex h-full min-h-[240px] flex-col rounded-lg border border-border/60 bg-background p-4">
+              <div className="flex min-h-[240px] flex-1 flex-col rounded-lg border border-border/60 bg-background p-4">
                 <div className="mb-3 flex-shrink-0">
                   <h3 className="text-sm font-semibold text-foreground">
                     Eventos de {selectedDate ? format(selectedDate, 'dd/MM/yyyy') : 'hoje'}

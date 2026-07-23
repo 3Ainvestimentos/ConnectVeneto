@@ -6,7 +6,6 @@ export type SolicitationItemExternal = {
   description?: string;
   newTab?: boolean;
   trackingKey?: string;
-  pillVariant?: "default" | "primary";
 };
 
 export type SolicitationItemInfo = {
@@ -16,7 +15,6 @@ export type SolicitationItemInfo = {
   subtitle?: string;
   description?: string;
   trackingKey?: string;
-  pillVariant?: "default" | "primary";
 };
 
 export type SolicitationItem = SolicitationItemExternal | SolicitationItemInfo;
@@ -26,7 +24,6 @@ export type SolicitationArea = {
   title: string;
   icon: string;
   overviewUrl?: string;
-  subitemsLayout?: "default" | "pill-grid";
   showSlaImage?: boolean;
   slaImageSrc?: string;
   slaImageAlt?: string;
@@ -382,7 +379,6 @@ export const venetoSolicitacoesAreas: SolicitationArea[] = [
     title: "Wealth Planning",
     icon: "Briefcase",
     overviewUrl: "https://venetofamilyoffice.wixsite.com/website/wealth-planning",
-    subitemsLayout: "pill-grid",
     trackingKey: "area_wealth",
     items: [
       {
@@ -396,7 +392,6 @@ export const venetoSolicitacoesAreas: SolicitationArea[] = [
         title: "Cartilha Impressa",
         infoText: CARTILHA_IMPRESSA_INFO,
         trackingKey: "wp_cartilha_impressa",
-        pillVariant: "primary",
       },
     ],
   },
