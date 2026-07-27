@@ -127,7 +127,7 @@ export default function PortalRepasseAdminPage() {
           style={{ color: '#94A3B8' }}
         >
           <ChevronLeft className="w-4 h-4" />
-          Portal de Repasse
+          Dados Estratégicos
         </Link>
         <span style={{ color: '#1E2D4A' }}>/</span>
         <div className="flex items-center gap-2">
@@ -137,7 +137,7 @@ export default function PortalRepasseAdminPage() {
       </div>
 
       <p className="text-sm mb-4" style={{ color: '#64748B' }}>
-        Controle quem pode acessar o Portal de Repasse e quais abas cada usuário visualiza.
+        Controle quem pode acessar o Dados Estratégicos e quais abas cada usuário visualiza.
         Alterações entram em vigor no próximo login do colaborador.
       </p>
 

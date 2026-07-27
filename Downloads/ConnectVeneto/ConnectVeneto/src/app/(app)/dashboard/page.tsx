@@ -74,20 +74,19 @@ export default function DashboardV2Page() {
         {/* Layout principal: TrackFlow à esquerda, widgets na coluna direita */}
         <section className="grid grid-cols-1 md:grid-cols-12 gap-6 md:items-start">
 
-          {/* Coluna esquerda — Resumo nativo do TrackFlow */}
-          <div className="md:col-span-9 min-w-0 rounded-xl border border-border bg-background shadow-sm">
-            <div className="px-6 py-4 border-b border-border flex items-center justify-between">
-              <h2 className="font-headline text-foreground text-xl font-semibold">TrackFlow</h2>
-            </div>
-            <div className="p-6">
-              <WidgetErrorBoundary title="TrackFlow indisponível">
-                <TrackFlowSummary />
-              </WidgetErrorBoundary>
-            </div>
-          </div>
+          {/* Coluna esquerda — TrackFlow + Notícias */}
+          <div className="md:col-span-9 min-w-0 flex flex-col gap-6">
 
-          {/* Coluna direita — Notícias + Calendário + Links Rápidos */}
-          <div className="md:col-span-3 min-w-0 flex flex-col gap-6">
+            <div className="rounded-xl border border-border bg-background shadow-sm">
+              <div className="px-6 py-4 border-b border-border flex items-center justify-between">
+                <h2 className="font-headline text-foreground text-xl font-semibold">TrackFlow</h2>
+              </div>
+              <div className="p-6">
+                <WidgetErrorBoundary title="TrackFlow indisponível">
+                  <TrackFlowSummary />
+                </WidgetErrorBoundary>
+              </div>
+            </div>
 
             <Card className="shadow-sm w-full flex flex-col">
               <CardHeader className="pb-2">
@@ -95,10 +94,14 @@ export default function DashboardV2Page() {
               </CardHeader>
               <CardContent className="pt-0">
                 <WidgetErrorBoundary title="Notícias indisponível">
-                  <NewsHighlights compact />
+                  <NewsHighlights />
                 </WidgetErrorBoundary>
               </CardContent>
             </Card>
+          </div>
+
+          {/* Coluna direita — Calendário + Links Rápidos */}
+          <div className="md:col-span-3 min-w-0 flex flex-col gap-6">
 
             <GoogleCalendar />
 

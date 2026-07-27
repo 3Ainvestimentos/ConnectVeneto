@@ -9,7 +9,7 @@ import { getFirestore } from 'firebase-admin/firestore';
 const COLLECTION_NAME = 'quickLinks';
 
 const WHATSAPP_ICON = 'https://upload.wikimedia.org/wikipedia/commons/6/6b/WhatsApp.svg';
-const EMAIL_ICON = 'https://upload.wikimedia.org/wikipedia/commons/c/c0/Circle-icons-mail.svg';
+const EMAIL_ICON = '/quicklinks/hype-email-icon.svg';
 
 const NEW_LINKS = [
   {

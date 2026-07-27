@@ -95,7 +95,7 @@ export async function POST(
     } else if (moduleConfig.id === 'portal-repasse') {
       const collabPerms = (collabData?.permissions as Record<string, unknown> | undefined) ?? {};
       if (!simulateAs && !collabPerms['canViewPortalRepasse']) {
-        return NextResponse.json({ error: 'Acesso ao Portal de Repasse não autorizado' }, { status: 403 });
+        return NextResponse.json({ error: 'Acesso ao Dados Estratégicos não autorizado' }, { status: 403 });
       }
       const modulePerms = (collabData?.modulePermissions as Record<string, string[]> | undefined)?.['portal-repasse'];
       permissions = modulePerms?.length ? modulePerms : ['portal-repasse:view'];

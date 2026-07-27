@@ -11,6 +11,7 @@ import {
 } from "@/config/veneto-solicitacoes";
 import { Card, CardContent } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Input } from "@/components/ui/input";
 import {
   Dialog,
   DialogContent,
@@ -18,7 +19,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Link2, Info } from "lucide-react";
+import { Link2, Info, Search, ChevronRight } from "lucide-react";
 import Image from "next/image";
 
 function trackSolicitacaoEvent(eventName: string, payload: Record<string, string>) {
@@ -43,7 +44,7 @@ function linkRel(item: SolicitationItemExternal): string | undefined {
   return linkTarget(item) === "_blank" ? "noopener noreferrer" : undefined;
 }
 
-function ItemCard({
+function SolicitationTile({
   item,
   onInfoClick,
   areaId,
@@ -52,97 +53,37 @@ function ItemCard({
   onInfoClick: (item: SolicitationItemInfo) => void;
   areaId: string;
 }) {
-  if (isInfoItem(item)) {
-    return (
-      <button
-        type="button"
-        className="w-full text-left"
-        onClick={() => {
-          trackSolicitacaoEvent("info_open", {
-            areaId,
-            itemKey: item.trackingKey || item.title,
-          });
-          onInfoClick(item);
-        }}
+  const info = isInfoItem(item);
+  const badgeClass = info
+    ? "bg-muted text-muted-foreground"
+    : "bg-[#0d1d2c]/10 text-[#0d1d2c]";
+  const Icon = info ? Info : Link2;
+
+  const inner = (
+    <>
+      <div
+        className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full ${badgeClass}`}
       >
-        <Card className="hover:bg-muted/50 transition-colors">
-          <CardContent className="p-4 flex items-start gap-3">
-            <Info className="h-5 w-5 text-muted-foreground mt-0.5" />
-            <div className="space-y-1">
-              <p className="font-semibold text-sm">{item.title}</p>
-              {item.subtitle && (
-                <p className="text-xs text-muted-foreground">{item.subtitle}</p>
-              )}
-              {item.description && (
-                <p className="text-xs text-muted-foreground">{item.description}</p>
-              )}
-            </div>
-          </CardContent>
-        </Card>
-      </button>
-    );
-  }
-
-  const target = linkTarget(item);
-  const rel = linkRel(item);
-
-  return (
-    <a
-      href={item.href}
-      target={target}
-      rel={rel}
-      className="block"
-      onClick={() =>
-        trackSolicitacaoEvent("subitem_click", {
-          areaId,
-          itemKey: item.trackingKey || item.title,
-          hrefType: item.href.startsWith("mailto:") ? "mailto" : "external",
-        })
-      }
-    >
-      <Card className="hover:bg-muted/50 transition-colors">
-        <CardContent className="p-4 flex items-start gap-3">
-          <Link2 className="h-5 w-5 text-muted-foreground mt-0.5" />
-          <div className="space-y-1">
-            <p className="font-semibold text-sm">{item.title}</p>
-            {item.subtitle && (
-              <p className="text-xs text-muted-foreground">{item.subtitle}</p>
-            )}
-            {item.description && (
-              <p className="text-xs text-muted-foreground">{item.description}</p>
-            )}
-          </div>
-        </CardContent>
-      </Card>
-    </a>
+        <Icon className="h-4 w-4" />
+      </div>
+      <div className="min-w-0 flex-1">
+        <p className="truncate text-sm font-medium text-foreground">{item.title}</p>
+        {item.subtitle && (
+          <p className="truncate text-xs text-muted-foreground">{item.subtitle}</p>
+        )}
+      </div>
+      <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5" />
+    </>
   );
-}
 
-function WealthPill({
-  item,
-  onInfoClick,
-  areaId,
-}: {
-  item: SolicitationItem;
-  onInfoClick: (item: SolicitationItemInfo) => void;
-  areaId: string;
-}) {
-  const isPrimary = item.pillVariant === "primary";
-  const baseClass =
-    "inline-flex w-full items-center justify-center rounded-full border px-4 py-2 text-[11px] sm:text-xs font-semibold uppercase tracking-wide transition-colors";
-  const visualClass = isPrimary
-    ? "border-[#0d1d2c] bg-[#0d1d2c] text-white hover:bg-[#132c41]"
-    : "border-[#0d1d2c] bg-white text-[#0d1d2c] hover:bg-slate-50";
+  const className =
+    "group flex w-full items-center gap-3 rounded-lg border border-border bg-card p-3 text-left transition-all hover:border-[#0d1d2c]/40 hover:bg-muted/40 hover:shadow-sm";
 
-  if (isInfoItem(item)) {
-    const specialPositionClass = isPrimary
-      ? "sm:col-span-2 sm:w-[70%] sm:justify-self-center xl:col-span-2 xl:col-start-2 xl:w-full"
-      : "";
-
+  if (info) {
     return (
       <button
         type="button"
-        className={`${baseClass} ${visualClass} ${specialPositionClass}`.trim()}
+        className={className}
         onClick={() => {
           trackSolicitacaoEvent("info_open", {
             areaId,
@@ -151,7 +92,7 @@ function WealthPill({
           onInfoClick(item);
         }}
       >
-        {item.title}
+        {inner}
       </button>
     );
   }
@@ -161,7 +102,7 @@ function WealthPill({
       href={item.href}
       target={linkTarget(item)}
       rel={linkRel(item)}
-      className={`${baseClass} ${visualClass}`.trim()}
+      className={className}
       onClick={() =>
         trackSolicitacaoEvent("subitem_click", {
           areaId,
@@ -170,7 +111,7 @@ function WealthPill({
         })
       }
     >
-      {item.title}
+      {inner}
     </a>
   );
 }
@@ -178,39 +119,98 @@ function WealthPill({
 export default function VenetoSolicitacoesHub() {
   const [activeArea, setActiveArea] = React.useState<SolicitationArea | null>(null);
   const [activeInfo, setActiveInfo] = React.useState<SolicitationItemInfo | null>(null);
-
-  const isWealthLayout = activeArea?.subitemsLayout === "pill-grid";
+  const [searchTerm, setSearchTerm] = React.useState("");
 
   const sortedAreas = React.useMemo(() => venetoSolicitacoesAreas, []);
 
+  const query = searchTerm.trim().toLowerCase();
+
+  const searchResults = React.useMemo(() => {
+    if (!query) return [];
+    return sortedAreas
+      .map((area) => ({
+        area,
+        items: area.items.filter(
+          (item) =>
+            item.title.toLowerCase().includes(query) ||
+            item.subtitle?.toLowerCase().includes(query)
+        ),
+      }))
+      .filter((group) => group.items.length > 0);
+  }, [sortedAreas, query]);
+
   return (
     <>
-      <div className="mx-auto grid w-full max-w-7xl grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4 lg:gap-6">
-        {sortedAreas.map((area) => {
-          const Icon = getIcon(area.icon);
-          return (
-            <button
-              key={area.id}
-              type="button"
-              className="w-full min-w-0 text-left"
-              onClick={() => {
-                trackSolicitacaoEvent("area_open", {
-                  areaId: area.id,
-                  areaKey: area.trackingKey || area.title,
-                });
-                setActiveArea(area);
-              }}
-            >
-              <Card className="h-32 w-full hover:bg-muted/50 transition-colors">
-                <CardContent className="h-full p-4 flex flex-col items-center justify-center text-center">
-                  <Icon className="mb-2 h-7 w-7 text-muted-foreground" />
-                  <span className="font-semibold text-sm">{area.title}</span>
-                </CardContent>
-              </Card>
-            </button>
-          );
-        })}
+      <div className="relative mx-auto mb-6 w-full max-w-7xl">
+        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+        <Input
+          type="search"
+          placeholder="Pesquisar formulario, documento ou assunto..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          className="pl-9"
+          aria-label="Pesquisar solicitacoes"
+        />
       </div>
+
+      {query ? (
+        <div className="mx-auto w-full max-w-7xl space-y-6">
+          {searchResults.length > 0 ? (
+            searchResults.map(({ area, items }) => {
+              const Icon = getIcon(area.icon);
+              return (
+                <div key={area.id}>
+                  <div className="mb-2 flex items-center gap-2">
+                    <Icon className="h-4 w-4 text-muted-foreground" />
+                    <h3 className="text-sm font-semibold text-foreground">{area.title}</h3>
+                  </div>
+                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                    {items.map((item, idx) => (
+                      <SolicitationTile
+                        key={`${item.title}-${idx}`}
+                        item={item}
+                        onInfoClick={setActiveInfo}
+                        areaId={area.id}
+                      />
+                    ))}
+                  </div>
+                </div>
+              );
+            })
+          ) : (
+            <p className="py-10 text-center text-sm text-muted-foreground">
+              Nenhum resultado para &quot;{searchTerm.trim()}&quot;.
+            </p>
+          )}
+        </div>
+      ) : (
+        <div className="mx-auto grid w-full max-w-7xl grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4 lg:gap-6">
+          {sortedAreas.map((area) => {
+            const Icon = getIcon(area.icon);
+            return (
+              <button
+                key={area.id}
+                type="button"
+                className="w-full min-w-0 text-left"
+                onClick={() => {
+                  trackSolicitacaoEvent("area_open", {
+                    areaId: area.id,
+                    areaKey: area.trackingKey || area.title,
+                  });
+                  setActiveArea(area);
+                }}
+              >
+                <Card className="h-32 w-full hover:bg-muted/50 transition-colors">
+                  <CardContent className="h-full p-4 flex flex-col items-center justify-center text-center">
+                    <Icon className="mb-2 h-7 w-7 text-muted-foreground" />
+                    <span className="font-semibold text-sm">{area.title}</span>
+                  </CardContent>
+                </Card>
+              </button>
+            );
+          })}
+        </div>
+      )}
 
       <Dialog
         open={!!activeArea}
@@ -220,11 +220,7 @@ export default function VenetoSolicitacoesHub() {
           }
         }}
       >
-        <DialogContent
-          className={`max-h-[92vh] overflow-hidden p-0 ${
-            isWealthLayout ? "sm:max-w-5xl" : "sm:max-w-3xl"
-          }`}
-        >
+        <DialogContent className="max-h-[92vh] overflow-hidden p-0 sm:max-w-3xl">
           {activeArea && (
             <>
               <DialogHeader className="px-6 pt-6 pb-2">
@@ -270,29 +266,16 @@ export default function VenetoSolicitacoesHub() {
                     </div>
                   )}
 
-                  {isWealthLayout ? (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3 py-1 pr-1">
-                      {activeArea.items.map((item, idx) => (
-                        <WealthPill
-                          key={`${item.title}-${idx}`}
-                          item={item}
-                          onInfoClick={setActiveInfo}
-                          areaId={activeArea.id}
-                        />
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="space-y-3 py-1 pr-1">
-                      {activeArea.items.map((item, idx) => (
-                        <ItemCard
-                          key={`${item.title}-${idx}`}
-                          item={item}
-                          onInfoClick={setActiveInfo}
-                          areaId={activeArea.id}
-                        />
-                      ))}
-                    </div>
-                  )}
+                  <div className="grid grid-cols-1 gap-3 py-1 pr-1 sm:grid-cols-2">
+                    {activeArea.items.map((item, idx) => (
+                      <SolicitationTile
+                        key={`${item.title}-${idx}`}
+                        item={item}
+                        onInfoClick={setActiveInfo}
+                        areaId={activeArea.id}
+                      />
+                    ))}
+                  </div>
                 </div>
               </ScrollArea>
             </>
