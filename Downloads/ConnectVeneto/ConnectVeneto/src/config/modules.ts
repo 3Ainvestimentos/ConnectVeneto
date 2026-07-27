@@ -117,7 +117,7 @@ export const EMBEDDED_MODULES: Record<string, EmbeddedModuleConfig> = {
   },
   'portal-repasse': {
     id: 'portal-repasse',
-    name: 'Portal de Repasse',
+    name: 'Dados Estratégicos',
     url: (process.env.NEXT_PUBLIC_PORTAL_REPASSE_URL ?? 'https://vnt-repasse.azurewebsites.net').replace(/\/$/, ''),
     embedPath: '/embed',
     defaultPermissions: [],  // acesso por permissão explícita — ver canViewPortalRepasse no Firestore

@@ -3,7 +3,7 @@ import { WidgetErrorBoundary } from '@/components/error/WidgetErrorBoundary';
 
 export default function PortalRepassePage() {
   return (
-    <WidgetErrorBoundary title="Portal de Repasse indisponível">
+    <WidgetErrorBoundary title="Dados Estratégicos indisponível">
       <PortalRepasseEmbed />
     </WidgetErrorBoundary>
   );

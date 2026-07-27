@@ -43,7 +43,7 @@ export default function PortalRepasseEmbed() {
           href="/portal-repasse/admin"
           className="absolute right-4 z-20 flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-opacity hover:opacity-80"
           style={{ background: '#151E30', border: '1px solid #1E2D4A', color: '#94A3B8', top: devBarHeight + 6 }}
-          title="Gerenciar acessos ao Portal de Repasse"
+          title="Gerenciar acessos ao Dados Estratégicos"
         >
           <Settings className="w-3.5 h-3.5" />
           Gerenciar Acessos
@@ -111,7 +111,7 @@ export default function PortalRepasseEmbed() {
       >
         <ModuleEmbed
           moduleId="portal-repasse"
-          title="Portal de Repasse"
+          title="Dados Estratégicos"
           tokenBody={simulateAs ? { simulateAs } : undefined}
           reloadKey={simulateAs}
           skeleton={<PortalRepasseSkeleton />}

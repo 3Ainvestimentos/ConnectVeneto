@@ -11,7 +11,7 @@ import {
   BarChart,
   Workflow,
   ClipboardList,
-  DollarSign,
+  LineChart,
 } from "lucide-react";
 
 export type AppNavItem = {
@@ -31,7 +31,7 @@ const allNavItems: AppNavItem[] = [
   { href: "/documents", label: "Documentos", icon: FolderOpen, external: false, permission: "canViewDocuments" },
   { href: "/regras-comerciais", label: "Regras Comerciais", icon: BookMarked, external: false, permission: "canViewRegrasComerciais", featureFlag: "regrasComerciais" },
   { href: "/bi", label: "Painéis", icon: BarChart, external: false, permission: "canViewBI", featureFlag: "businessIntelligence" },
-  { href: "/portal-repasse", label: "Portal de Repasse", icon: DollarSign, external: false, permission: "canViewPortalRepasse", featureFlag: "portalRepasse" },
+  { href: "/portal-repasse", label: "Dados Estratégicos", icon: LineChart, external: false, permission: "canViewPortalRepasse", featureFlag: "portalRepasse" },
   { href: "https://www.venetostore.com.br/", label: "Veneto Store", icon: ShoppingCart, external: true, permission: null, featureFlag: "venetoStore" },
 ];
 
