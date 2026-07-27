@@ -110,7 +110,7 @@ export default function PortalRepasseAdminPage() {
       <div className="flex flex-col items-center justify-center gap-4 h-64" style={{ color: '#94A3B8' }}>
         <Shield className="w-12 h-12" style={{ color: '#EF4444' }} />
         <p className="text-sm">Você não tem permissão de administrador neste módulo.</p>
-        <Link href="/portal-repasse" className="text-sm" style={{ color: '#3B82F6' }}>
+        <Link href="/dados-estrategicos" className="text-sm" style={{ color: '#3B82F6' }}>
           ← Voltar
         </Link>
       </div>
@@ -122,7 +122,7 @@ export default function PortalRepasseAdminPage() {
       {/* Cabeçalho */}
       <div className="flex items-center gap-3 mb-6">
         <Link
-          href="/portal-repasse"
+          href="/dados-estrategicos"
           className="flex items-center gap-1 text-sm transition-colors hover:opacity-80"
           style={{ color: '#94A3B8' }}
         >

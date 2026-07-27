@@ -35,6 +35,16 @@ const nextConfig: NextConfig = {
         destination: "/area-logada",
         permanent: true,
       },
+      {
+        source: "/portal-repasse",
+        destination: "/dados-estrategicos",
+        permanent: true,
+      },
+      {
+        source: "/portal-repasse/:path*",
+        destination: "/dados-estrategicos/:path*",
+        permanent: true,
+      },
     ];
   },
 
