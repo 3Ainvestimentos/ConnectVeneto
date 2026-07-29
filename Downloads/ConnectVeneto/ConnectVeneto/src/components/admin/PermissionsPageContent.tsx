@@ -20,12 +20,22 @@ const allPermissionLabels: { key: keyof CollaboratorPermissions; label: string; 
     { key: 'canManageSystem', label: 'Sistema' },
     { key: 'canViewAudit', label: 'Auditoria' },
     { key: 'canManageContent', label: 'Conteúdo' },
+    { key: 'canManageWorkflows', label: 'Fluxos de Trabalho' },
     { key: 'canViewConsultaPessoal', label: 'Consulta Pessoal' },
     { key: 'canViewDocuments', label: 'Documentos' },
     { key: 'canViewApplications', label: 'Solicitações' },
+    { key: 'canViewTasks', label: 'Tarefas/Ações' },
     { key: 'canViewRegrasComerciais', label: 'Regras Comerciais', featureFlag: 'regrasComerciais' },
     { key: 'canViewBI', label: 'Painéis', featureFlag: 'businessIntelligence' },
+    { key: 'canViewPortalRepasse', label: 'Dados Estratégicos', featureFlag: 'portalRepasse' },
     { key: 'canViewPortalCliente', label: 'Portal do Cliente', featureFlag: 'portalCliente' },
+    { key: 'canManageTripsBirthdays', label: 'Viagens e Aniversários' },
+    { key: 'canManageVacation', label: 'Férias' },
+    { key: 'canViewCRM', label: 'CRM' },
+    { key: 'canViewStrategicPanel', label: 'Painel Estratégico' },
+    { key: 'canViewOpportunityMap', label: 'Mapa de Oportunidades' },
+    { key: 'canViewMeetAnalyses', label: 'Análises de Reuniões' },
+    { key: 'canViewDirectoria', label: 'Diretoria' },
 ];
 
 const permissionLabels = allPermissionLabels.filter((item) =>
