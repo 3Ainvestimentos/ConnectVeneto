@@ -25,6 +25,7 @@ const allPermissionLabels: { key: keyof CollaboratorPermissions; label: string; 
     { key: 'canViewApplications', label: 'Solicitações' },
     { key: 'canViewRegrasComerciais', label: 'Regras Comerciais', featureFlag: 'regrasComerciais' },
     { key: 'canViewBI', label: 'Painéis', featureFlag: 'businessIntelligence' },
+    { key: 'canViewPortalCliente', label: 'Portal do Cliente', featureFlag: 'portalCliente' },
 ];
 
 const permissionLabels = allPermissionLabels.filter((item) =>

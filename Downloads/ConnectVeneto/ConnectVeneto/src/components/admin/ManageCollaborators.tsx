@@ -109,6 +109,7 @@ const defaultPermissions: Collaborator["permissions"] = {
   canViewMeetAnalyses: false,
   canViewDirectoria: false,
   canViewPortalRepasse: false,
+  canViewPortalCliente: false,
 };
 
 function mapCsvRowToCollaboratorDraft(row: CsvRow): Omit<Collaborator, 'id'> | null {
