@@ -11,6 +11,7 @@ import { useCollaborators } from '@/contexts/CollaboratorsContext';
 import GoogleCalendar from '@/components/dashboard-v2/GoogleCalendar';
 import TrackFlowSummary from '@/components/dashboard-v2/TrackFlowSummary';
 import NewsHighlights from '@/components/dashboard-v2/NewsHighlights';
+import TradingViewWidget from '@/components/dashboard-v2/TradingViewWidget';
 import { findCollaboratorByEmail } from '@/lib/email-utils';
 import { WidgetErrorBoundary } from '@/components/error/WidgetErrorBoundary';
 import { bootstrapTrace } from '@/lib/bootstrap-trace';
@@ -104,6 +105,17 @@ export default function DashboardV2Page() {
           <div className="md:col-span-3 min-w-0 flex flex-col gap-6">
 
             <GoogleCalendar />
+
+            <Card className="shadow-sm w-full flex flex-col">
+              <CardHeader className="pb-2">
+                <CardTitle className="font-headline text-foreground text-xl">Índices de Mercado</CardTitle>
+              </CardHeader>
+              <CardContent className="pt-0 h-[400px]">
+                <WidgetErrorBoundary title="Índices de Mercado indisponível">
+                  <TradingViewWidget />
+                </WidgetErrorBoundary>
+              </CardContent>
+            </Card>
 
             {quickLinks.length > 0 && (
               <Card className="shadow-sm w-full flex flex-col">

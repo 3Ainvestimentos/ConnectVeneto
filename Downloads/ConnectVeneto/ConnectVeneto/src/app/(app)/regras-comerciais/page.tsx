@@ -1,21 +1,13 @@
 "use client";
 
+import { FileText } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { VenetoImageCarousel } from "@/components/regras-comerciais/VenetoImageCarousel";
-import {
-  frameworkR1Slides,
-  frameworkR1OffshoreSlides,
-  frameworkR2Slides,
-  frameworkR3Slides,
-  mixServicosSlides,
-} from "@/config/regras-comerciais-slides";
+import { mixServicosSlides } from "@/config/regras-comerciais-slides";
 
-const frameworkSections = [
-  { id: "r1", title: "Framework R1", slides: frameworkR1Slides },
-  { id: "r1-offshore", title: "Framework R1 | Offshore", slides: frameworkR1OffshoreSlides },
-  { id: "r2", title: "Framework R2", slides: frameworkR2Slides },
-  { id: "r3", title: "Framework R3", slides: frameworkR3Slides },
-];
+const MANUAL_REGRAS_CONTROLES_URL =
+  "https://208adb0a-813d-4d6c-818f-187f744fecf9.filesusr.com/ugd/a753c6_d4666a5c4570476cbe598a8101b48a1c.pdf";
 
 const politicaItems = [
   {
@@ -38,8 +30,19 @@ export default function RegrasComerciais() {
     <div className="space-y-10 p-6 md:p-8">
       <PageHeader
         title="Regras Comerciais"
-        description="Framework de reuniões e Mix de Serviços da Vêneto Family Office."
+        description="Mix de Serviços da Vêneto Family Office."
       />
+
+      <Button variant="link" asChild className="p-0 h-auto text-foreground hover:underline">
+        <a
+          href={MANUAL_REGRAS_CONTROLES_URL}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex items-center gap-1"
+        >
+          <FileText className="h-4 w-4" /> Manual de Regras e Controles Internos
+        </a>
+      </Button>
 
       {/* ── Mix de Serviços ── */}
       <section aria-labelledby="mix-heading" className="space-y-6">
@@ -78,32 +81,6 @@ export default function RegrasComerciais() {
               label="Mix de Serviços"
             />
           </div>
-        </div>
-      </section>
-
-      {/* ── Framework de Reuniões ── */}
-      <section aria-labelledby="framework-heading" className="space-y-8">
-        <h2
-          id="framework-heading"
-          className="text-xl font-headline font-bold text-foreground border-b border-border pb-2"
-        >
-          Framework de Reuniões
-        </h2>
-
-        <div className="space-y-10">
-          {frameworkSections.map((section) => (
-            <div key={section.id} className="space-y-4">
-              <h3 className="text-base font-headline font-semibold text-foreground">
-                {section.title}
-              </h3>
-              <div className="px-6">
-                <VenetoImageCarousel
-                  slides={section.slides}
-                  label={section.title}
-                />
-              </div>
-            </div>
-          ))}
         </div>
       </section>
     </div>
