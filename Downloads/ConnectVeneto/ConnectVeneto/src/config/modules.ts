@@ -43,7 +43,7 @@ const allModules: Omit<AppModule, "enabled">[] = [
   {
     id: "regras-comerciais",
     name: "Regras Comerciais",
-    description: "Framework de reuniões e Mix de Serviços da Vêneto",
+    description: "Mix de Serviços da Vêneto",
     featureFlag: "regrasComerciais",
     routes: ["/regras-comerciais"],
     permissions: [],
@@ -55,14 +55,6 @@ const allModules: Omit<AppModule, "enabled">[] = [
     featureFlag: "businessIntelligence",
     routes: ["/bi"],
     permissions: ["canViewBI"],
-  },
-  {
-    id: "veneto-store",
-    name: "Veneto Store",
-    description: "Link externo para a loja Veneto",
-    featureFlag: "venetoStore",
-    routes: [],
-    permissions: [],
   },
   {
     id: "travel-birthdays",

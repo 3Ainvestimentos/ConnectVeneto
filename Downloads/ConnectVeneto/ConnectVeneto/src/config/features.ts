@@ -1,6 +1,5 @@
 export const FEATURE_FLAGS = {
   businessIntelligence: false,
-  venetoStore: true,
   regrasComerciais: true,
   debugBootstrap: false,
   portalRepasse: true,

@@ -7,7 +7,6 @@ import {
   Table2,
   FolderOpen,
   BookMarked,
-  ShoppingCart,
   BarChart,
   Workflow,
   ClipboardList,
@@ -34,7 +33,6 @@ const allNavItems: AppNavItem[] = [
   { href: "/regras-comerciais", label: "Regras Comerciais", icon: BookMarked, external: false, permission: "canViewRegrasComerciais", featureFlag: "regrasComerciais" },
   { href: "/bi", label: "Painéis", icon: BarChart, external: false, permission: "canViewBI", featureFlag: "businessIntelligence" },
   { href: "/dados-estrategicos", label: "Dados Estratégicos", icon: LineChart, external: false, permission: "canViewPortalRepasse", featureFlag: "portalRepasse" },
-  { href: "https://www.venetostore.com.br/", label: "Veneto Store", icon: ShoppingCart, external: true, permission: null, featureFlag: "venetoStore" },
 ];
 
 export const navItems: AppNavItem[] = allNavItems.filter((item) =>
