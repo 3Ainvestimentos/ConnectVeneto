@@ -1,13 +1,19 @@
 "use client";
 
+import { useMemo } from "react";
 import { FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { VenetoImageCarousel } from "@/components/regras-comerciais/VenetoImageCarousel";
 import { mixServicosSlides } from "@/config/regras-comerciais-slides";
+import { venetoRepositoryDocuments } from "@/config/veneto-documentos";
+import { useDocuments } from "@/contexts/DocumentsContext";
+import { mergeStaticAndFirestoreDocuments } from "@/lib/document-repository-utils";
 
-const MANUAL_REGRAS_CONTROLES_URL =
-  "https://208adb0a-813d-4d6c-818f-187f744fecf9.filesusr.com/ugd/a753c6_d4666a5c4570476cbe598a8101b48a1c.pdf";
+const MANUAL_REGRAS_CONTROLES_ID = "veneto-manual-regras-controles";
+const MANUAL_REGRAS_CONTROLES_FALLBACK_URL = venetoRepositoryDocuments.find(
+  (doc) => doc.id === MANUAL_REGRAS_CONTROLES_ID
+)!.downloadUrl;
 
 const politicaItems = [
   {
@@ -26,6 +32,16 @@ const politicaItems = [
 ];
 
 export default function RegrasComerciais() {
+  const { documents } = useDocuments();
+
+  const manualUrl = useMemo(() => {
+    const merged = mergeStaticAndFirestoreDocuments(documents, venetoRepositoryDocuments);
+    return (
+      merged.find((doc) => doc.id === MANUAL_REGRAS_CONTROLES_ID)?.downloadUrl ??
+      MANUAL_REGRAS_CONTROLES_FALLBACK_URL
+    );
+  }, [documents]);
+
   return (
     <div className="space-y-10 p-6 md:p-8">
       <PageHeader
@@ -52,7 +68,7 @@ export default function RegrasComerciais() {
             </p>
           </div>
           <Button asChild className="shrink-0">
-            <a href={MANUAL_REGRAS_CONTROLES_URL} target="_blank" rel="noopener noreferrer">
+            <a href={manualUrl} target="_blank" rel="noopener noreferrer">
               Abrir manual
             </a>
           </Button>

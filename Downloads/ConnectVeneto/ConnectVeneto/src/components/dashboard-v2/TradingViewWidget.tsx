@@ -68,11 +68,19 @@ const TradingViewWidget: React.FC = () => {
                     "symbolActiveColor": "rgba(0, 166, 126, 0.12)",
                     "tabs": [
                         {
+                            "title": "Moedas",
+                            "symbols": [
+                                { "s": "FX_IDC:USDBRL", "d": "USD/BRL" },
+                                { "s": "FX_IDC:EURBRL", "d": "EUR/BRL" },
+                                { "s": "FX:EURUSD", "d": "EUR/USD" },
+                                { "s": "CMCMARKETS:GBPUSD", "d": "GBP/USD" }
+                            ],
+                            "originalTitle": "Forex"
+                        },
+                        {
                             "title": "Índices",
                             "symbols": [
                                 { "s": "BMFBOVESPA:IBOV", "d": "Ibovespa" },
-                                { "s": "SP:SPX", "d": "S&P 500 Index" },
-                                { "s": "TVC:DJI", "d": "Dow Jones" },
                                 { "s": "BMFBOVESPA:IFIX", "d": "IFIX" }
                             ],
                             "originalTitle": "Indices"
@@ -85,16 +93,6 @@ const TradingViewWidget: React.FC = () => {
                                 { "s": "BMFBOVESPA:ISP1!", "d": "S&P 500 Futuro" },
                                 { "s": "BMFBOVESPA:DI11!", "d": "DI Futuro" }
                             ]
-                        },
-                        {
-                            "title": "Moedas",
-                            "symbols": [
-                                { "s": "FX_IDC:USDBRL", "d": "USD/BRL" },
-                                { "s": "FX_IDC:EURBRL", "d": "EUR/BRL" },
-                                { "s": "FX:EURUSD", "d": "EUR/USD" },
-                                { "s": "CMCMARKETS:GBPUSD", "d": "GBP/USD" }
-                            ],
-                            "originalTitle": "Forex"
                         }
                     ],
                     "support_host": "https://www.tradingview.com",
