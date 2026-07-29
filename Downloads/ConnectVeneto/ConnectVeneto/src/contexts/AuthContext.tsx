@@ -138,6 +138,7 @@ const defaultPermissions: CollaboratorPermissions = {
   canViewMeetAnalyses: false,
   canViewDirectoria: false,
   canViewPortalRepasse: false,
+  canViewPortalCliente: false,
 };
 
 const adminPermissionKeys: Array<keyof CollaboratorPermissions> = [
