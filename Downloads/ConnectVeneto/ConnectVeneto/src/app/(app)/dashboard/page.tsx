@@ -104,8 +104,6 @@ export default function DashboardV2Page() {
           {/* Coluna direita — Calendário + Links Rápidos */}
           <div className="md:col-span-3 min-w-0 flex flex-col gap-6">
 
-            <GoogleCalendar />
-
             <Card className="shadow-sm w-full flex flex-col">
               <CardHeader className="pb-2">
                 <CardTitle className="font-headline text-foreground text-xl">Índices de Mercado</CardTitle>
@@ -116,6 +114,8 @@ export default function DashboardV2Page() {
                 </WidgetErrorBoundary>
               </CardContent>
             </Card>
+
+            <GoogleCalendar />
 
             {quickLinks.length > 0 && (
               <Card className="shadow-sm w-full flex flex-col">
