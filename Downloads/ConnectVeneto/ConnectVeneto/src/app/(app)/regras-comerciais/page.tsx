@@ -33,16 +33,31 @@ export default function RegrasComerciais() {
         description="Mix de Serviços da Vêneto Family Office."
       />
 
-      <Button variant="link" asChild className="p-0 h-auto text-foreground hover:underline">
-        <a
-          href={MANUAL_REGRAS_CONTROLES_URL}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="flex items-center gap-1"
+      {/* ── Manual de Regras e Controles Internos ── */}
+      <section aria-labelledby="manual-heading" className="space-y-4">
+        <h2
+          id="manual-heading"
+          className="text-xl font-headline font-bold text-foreground border-b border-border pb-2"
         >
-          <FileText className="h-4 w-4" /> Manual de Regras e Controles Internos
-        </a>
-      </Button>
+          Manual de Regras e Controles Internos
+        </h2>
+
+        <div className="flex flex-col sm:flex-row sm:items-center gap-4 rounded-xl border border-border bg-card p-6">
+          <div className="rounded-full bg-[#e1ca5f]/10 p-3 shrink-0">
+            <FileText className="h-6 w-6 text-[#e1ca5f]" />
+          </div>
+          <div className="flex-1 space-y-1">
+            <p className="font-body text-sm text-foreground">
+              Acesse aqui o documento com as descrições de todas as regras comerciais.
+            </p>
+          </div>
+          <Button asChild className="shrink-0">
+            <a href={MANUAL_REGRAS_CONTROLES_URL} target="_blank" rel="noopener noreferrer">
+              Abrir manual
+            </a>
+          </Button>
+        </div>
+      </section>
 
       {/* ── Mix de Serviços ── */}
       <section aria-labelledby="mix-heading" className="space-y-6">
