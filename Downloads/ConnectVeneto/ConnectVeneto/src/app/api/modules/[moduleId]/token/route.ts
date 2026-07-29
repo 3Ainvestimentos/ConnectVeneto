@@ -99,6 +99,13 @@ export async function POST(
       }
       const modulePerms = (collabData?.modulePermissions as Record<string, string[]> | undefined)?.['portal-repasse'];
       permissions = modulePerms?.length ? modulePerms : ['portal-repasse:view'];
+    } else if (moduleConfig.id === 'portal-cliente') {
+      const collabPerms = (collabData?.permissions as Record<string, unknown> | undefined) ?? {};
+      if (!simulateAs && !collabPerms['canViewPortalCliente']) {
+        return NextResponse.json({ error: 'Acesso ao Portal do Cliente não autorizado' }, { status: 403 });
+      }
+      const modulePerms = (collabData?.modulePermissions as Record<string, string[]> | undefined)?.['portal-cliente'];
+      permissions = modulePerms?.length ? modulePerms : ['portal-cliente:view'];
     } else {
       permissions = moduleConfig.defaultPermissions;
     }

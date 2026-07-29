@@ -72,6 +72,14 @@ const allModules: Omit<AppModule, "enabled">[] = [
     permissions: ["canManageTripsBirthdays", "canManageVacation"],
   },
   {
+    id: "portal-cliente",
+    name: "Portal do Cliente",
+    description: "Portal embarcado voltado ao relacionamento com clientes",
+    featureFlag: "portalCliente",
+    routes: ["/portal-cliente"],
+    permissions: ["canViewPortalCliente"],
+  },
+  {
     id: "admin",
     name: "Administração do Sistema",
     description: "Painel de configurações, permissões e auditoria",
@@ -124,6 +132,14 @@ export const EMBEDDED_MODULES: Record<string, EmbeddedModuleConfig> = {
     adminPermissions: ['portal-repasse:view', 'portal-repasse:manage', 'portal-repasse:export',
                        'portal-repasse:tickets:view', 'portal-repasse:tickets:create',
                        'portal-repasse:params:view', 'portal-repasse:params:edit'],
+  },
+  'portal-cliente': {
+    id: 'portal-cliente',
+    name: 'Portal do Cliente',
+    url: (process.env.NEXT_PUBLIC_PORTAL_CLIENTE_URL ?? '').replace(/\/$/, ''),
+    embedPath: '/embed',
+    defaultPermissions: [],  // acesso por permissão explícita — ver canViewPortalCliente no Firestore
+    adminPermissions: ['portal-cliente:view', 'portal-cliente:manage'],
   },
 };
 

@@ -12,6 +12,7 @@ import {
   Workflow,
   ClipboardList,
   LineChart,
+  Users,
 } from "lucide-react";
 
 export type AppNavItem = {
@@ -32,6 +33,7 @@ const allNavItems: AppNavItem[] = [
   { href: "/regras-comerciais", label: "Regras Comerciais", icon: BookMarked, external: false, permission: "canViewRegrasComerciais", featureFlag: "regrasComerciais" },
   { href: "/bi", label: "Painéis", icon: BarChart, external: false, permission: "canViewBI", featureFlag: "businessIntelligence" },
   { href: "/dados-estrategicos", label: "Dados Estratégicos", icon: LineChart, external: false, permission: "canViewPortalRepasse", featureFlag: "portalRepasse" },
+  { href: "/portal-cliente", label: "Portal do Cliente", icon: Users, external: false, permission: "canViewPortalCliente", featureFlag: "portalCliente" },
   { href: "https://www.venetostore.com.br/", label: "Veneto Store", icon: ShoppingCart, external: true, permission: null, featureFlag: "venetoStore" },
 ];
 
@@ -46,4 +48,5 @@ export const noZoomRoutes = [
   "/personal-panel",
   "/trackflow",
   "/dados-estrategicos",
+  "/portal-cliente",
 ];
