@@ -22,6 +22,10 @@ const ERROR_MAP: Record<string, ErrorDescriptor> = {
     status: 403,
     body: { error: 'Acesso negado: requer permissao de Super Administrador.' },
   },
+  FORBIDDEN_REGRAS_COMERCIAIS_MANAGER_REQUIRED: {
+    status: 403,
+    body: { error: 'Acesso negado: requer permissao para editar o Mix de Servicos.' },
+  },
   SYSTEM_SETTINGS_NOT_FOUND: {
     status: 503,
     body: { error: 'Configuracao do sistema indisponivel.' },

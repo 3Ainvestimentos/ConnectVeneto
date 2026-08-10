@@ -1,0 +1,44 @@
+rules_version = '2';
+
+/**
+ * Reconstruído a partir das rules em produção (release veneto-connect.firebasestorage.app,
+ * ruleset 795e616e-0ce8-4fe9-9e84-e21e771bc8ed) — o arquivo era referenciado pelo
+ * firebase.json mas não existia no repo.
+ *
+ * A produção nega tudo (`allow read, write: if false` em /{allPaths=**}). A única
+ * abertura adicionada aqui é a pasta do carrossel do Mix de Serviços.
+ *
+ * ATENÇÃO: uploads de anexos de fluxos de trabalho (`WorkflowSubmissionModal`,
+ * `RequestApprovalModal`) também usam Storage e caem no deny-all — provavelmente
+ * já estão quebrados em produção. Não abri caminho para eles aqui porque decidir o
+ * escopo dessas pastas é uma escolha de vocês, não algo a inferir.
+ */
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    /**
+     * Carrossel "Apresentação — Mix de Serviços" (/regras-comerciais).
+     *
+     * Escrita liberada para qualquer colaborador autenticado, não só para quem tem
+     * `canManageRegrasComerciais`: as Storage rules não conseguem consultar o
+     * documento do colaborador (IDs são auto-gerados, e `firestore.get` exige
+     * caminho conhecido). O controle real está na gravação do Firestore, que passa
+     * por PUT /api/regras-comerciais/slides e valida a permissão. Sem essa
+     * permissão, um upload aqui fica órfão: não entra na apresentação.
+     *
+     * Leitura autenticada é necessária para o `getDownloadURL()` do SDK client. O
+     * <img> do carrossel usa a URL com token, que dispensa as rules.
+     */
+    match /regras-comerciais/mix/{allPaths=**} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null
+                   && request.resource.size < 8 * 1024 * 1024
+                   && request.resource.contentType.matches('image/(png|jpeg|webp)');
+    }
+
+    // Bloqueio padrão (igual à produção).
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}

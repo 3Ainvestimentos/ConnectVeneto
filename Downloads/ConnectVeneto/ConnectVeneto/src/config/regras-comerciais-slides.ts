@@ -3,7 +3,21 @@ export type RegrasComerciaisSlide = {
   alt: string;
 };
 
-export const mixServicosSlides: RegrasComerciaisSlide[] = [
+/**
+ * Slide persistido no Firestore (coleção `regrasComerciaisSlides`).
+ * `order` define a sequência no carrossel.
+ */
+export type RegrasComerciaisSlideDoc = RegrasComerciaisSlide & {
+  id: string;
+  order: number;
+};
+
+/**
+ * Baseline versionada em código. É o que aparece enquanto a coleção
+ * `regrasComerciaisSlides` estiver vazia (nenhuma edição feita ainda) e o que o
+ * botão "Restaurar padrão" da tela de administração reaplica.
+ */
+export const defaultMixServicosSlides: RegrasComerciaisSlide[] = [
   { src: "/regras-comerciais/mix/03.png", alt: "Slide de abertura do Mix de Servicos" },
   { src: "/regras-comerciais/mix/02.png", alt: "Lembrete de politica comercial" },
   { src: "/regras-comerciais/mix/04.png", alt: "Tabela de produtos e precos" },
@@ -13,3 +27,6 @@ export const mixServicosSlides: RegrasComerciaisSlide[] = [
   { src: "/regras-comerciais/mix/08.png", alt: "Instituicoes com necessidade de consulta previa" },
   { src: "/regras-comerciais/mix/09.png", alt: "Capa institucional da Veneto para o Mix de Servicos" },
 ];
+
+/** @deprecated Use `useMixServicosSlides()` para ler os slides vigentes (Firestore + fallback). */
+export const mixServicosSlides = defaultMixServicosSlides;

@@ -26,6 +26,7 @@ const allPermissionLabels: { key: keyof CollaboratorPermissions; label: string; 
     { key: 'canViewApplications', label: 'Solicitações' },
     { key: 'canViewTasks', label: 'Tarefas/Ações' },
     { key: 'canViewRegrasComerciais', label: 'Regras Comerciais', featureFlag: 'regrasComerciais' },
+    { key: 'canManageRegrasComerciais', label: 'Editar Mix de Serviços', featureFlag: 'regrasComerciais' },
     { key: 'canViewBI', label: 'Painéis', featureFlag: 'businessIntelligence' },
     { key: 'canViewPortalRepasse', label: 'Dados Estratégicos', featureFlag: 'portalRepasse' },
     { key: 'canViewPortalCliente', label: 'Portal do Cliente', featureFlag: 'portalCliente' },

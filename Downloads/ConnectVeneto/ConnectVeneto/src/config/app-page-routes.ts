@@ -13,6 +13,7 @@ const EXACT_APP_PAGE_PATHS = new Set<string>([
   "/admin/crm",
   "/admin/fab-messages",
   "/admin/opportunity-map",
+  "/admin/regras-comerciais",
   "/admin/strategic-panel",
   "/admin/travel-birthdays",
   "/admin/workflows",

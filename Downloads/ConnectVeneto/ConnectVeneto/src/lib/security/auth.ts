@@ -26,10 +26,12 @@ export async function requireCorporateUser(
   };
 }
 
-export async function requireSuperAdmin(
-  authorizationHeader: string | null
-): Promise<AuthenticatedRequestContext> {
-  const context = await requireCorporateUser(authorizationHeader);
+/**
+ * Lê `systemSettings/config.superAdminEmails` e diz se o e-mail está lá.
+ * Lança `SYSTEM_SETTINGS_NOT_FOUND` se a configuração não existir — decisão de
+ * privilégio nunca é tomada com base em configuração ausente (fail-closed).
+ */
+async function isSuperAdminEmail(email: string | null): Promise<boolean> {
   const app = getFirebaseAdminApp();
   const db = getFirestore(app);
   const settingsDoc = await db.collection('systemSettings').doc('config').get();
@@ -44,12 +46,63 @@ export async function requireSuperAdmin(
     : [];
 
   const normalizedAdminEmails = superAdminEmails
-    .map((email) => normalizeEmail(email))
-    .filter((email): email is string => email !== null);
+    .map((candidate) => normalizeEmail(candidate))
+    .filter((candidate): candidate is string => candidate !== null);
 
-  if (!context.email || !normalizedAdminEmails.includes(context.email)) {
+  return !!email && normalizedAdminEmails.includes(email);
+}
+
+export async function requireSuperAdmin(
+  authorizationHeader: string | null
+): Promise<AuthenticatedRequestContext> {
+  const context = await requireCorporateUser(authorizationHeader);
+
+  if (!(await isSuperAdminEmail(context.email))) {
     throw new Error('FORBIDDEN_SUPER_ADMIN_REQUIRED');
   }
 
   return context;
+}
+
+/**
+ * Busca a permissão de um colaborador no Firestore. Tenta primeiro pelo `authUid`
+ * (vínculo forte) e depois pelo e-mail normalizado, que é como a base de RH é importada.
+ */
+async function collaboratorHasPermission(
+  context: AuthenticatedRequestContext,
+  permissionKey: string
+): Promise<boolean> {
+  const app = getFirebaseAdminApp();
+  const db = getFirestore(app);
+  const collaborators = db.collection('collaborators');
+
+  const byUid = await collaborators.where('authUid', '==', context.uid).limit(1).get();
+  const snapshot = byUid.empty && context.email
+    ? await collaborators.where('email', '==', context.email).limit(1).get()
+    : byUid;
+
+  if (snapshot.empty) return false;
+
+  const permissions = snapshot.docs[0].data()?.permissions;
+  return !!permissions && permissions[permissionKey] === true;
+}
+
+/**
+ * Autoriza a edição do carrossel "Apresentação — Mix de Serviços".
+ * Super admins passam sempre; demais precisam de `permissions.canManageRegrasComerciais`.
+ */
+export async function requireRegrasComerciaisManager(
+  authorizationHeader: string | null
+): Promise<AuthenticatedRequestContext> {
+  const context = await requireCorporateUser(authorizationHeader);
+
+  if (await isSuperAdminEmail(context.email)) {
+    return context;
+  }
+
+  if (await collaboratorHasPermission(context, 'canManageRegrasComerciais')) {
+    return context;
+  }
+
+  throw new Error('FORBIDDEN_REGRAS_COMERCIAIS_MANAGER_REQUIRED');
 }

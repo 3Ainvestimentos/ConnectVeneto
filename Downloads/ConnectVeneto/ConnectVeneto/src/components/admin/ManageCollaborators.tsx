@@ -101,6 +101,7 @@ const defaultPermissions: Collaborator["permissions"] = {
   canViewDocuments: true,
   canViewApplications: true,
   canViewRegrasComerciais: true,
+  canManageRegrasComerciais: false,
   canViewTasks: false,
   canViewBI: false,
   canViewCRM: false,

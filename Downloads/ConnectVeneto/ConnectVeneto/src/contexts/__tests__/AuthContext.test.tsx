@@ -238,6 +238,7 @@ describe('AuthContext', () => {
         canViewDocuments: true,
         canViewApplications: true,
         canViewRegrasComerciais: true,
+        canManageRegrasComerciais: false,
         canViewTasks: false,
         canViewBI: false,
         canViewCRM: false,
@@ -246,6 +247,7 @@ describe('AuthContext', () => {
         canViewMeetAnalyses: false,
         canViewDirectoria: false,
         canViewPortalRepasse: false,
+        canViewPortalCliente: false,
       });
     });
   });
