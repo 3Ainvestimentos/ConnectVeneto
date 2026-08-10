@@ -19,6 +19,8 @@ export interface CollaboratorPermissions {
   canViewDocuments: boolean;
   canViewApplications: boolean;
   canViewRegrasComerciais: boolean;
+  /** Edita a apresentação (carrossel) do Mix de Serviços em /regras-comerciais. */
+  canManageRegrasComerciais: boolean;
   canViewTasks: boolean;
   canViewBI: boolean;
   canViewCRM: boolean;
@@ -56,6 +58,7 @@ export interface Collaborator {
   createdAt?: string; // ISO String for creation timestamp
   authUid?: string; // Firebase Auth UID
   modulePermissions?: Record<string, string[]>; // ex: { 'portal-repasse': ['portal-repasse:view', 'portal-repasse:tickets:view'] }
+  accessType?: string; // Ex.: comercial / normal / admin / superadmin — usado para permissionamento futuro
 }
 
 export const getCollaboratorUserId = (collaborator: Partial<Collaborator> | null | undefined): string | null => {
@@ -90,6 +93,7 @@ const defaultPermissions: CollaboratorPermissions = {
   canViewDocuments: true,
   canViewApplications: true,
   canViewRegrasComerciais: true,
+  canManageRegrasComerciais: false,
   canViewTasks: false,
   canViewBI: false,
   canViewCRM: false,

@@ -130,6 +130,7 @@ const defaultPermissions: CollaboratorPermissions = {
   canViewDocuments: true,
   canViewApplications: true,
   canViewRegrasComerciais: true,
+  canManageRegrasComerciais: false,
   canViewTasks: false,
   canViewBI: false,
   canViewCRM: false,
@@ -141,6 +142,14 @@ const defaultPermissions: CollaboratorPermissions = {
   canViewPortalCliente: false,
 };
 
+/**
+ * Permissões que caracterizam um administrador geral (`isAdmin`) — liberam o `AdminGuard`
+ * e o menu "Painéis de controle".
+ *
+ * `canManageRegrasComerciais` é intencionalmente omitida: é uma permissão pontual
+ * (editar o carrossel do Mix de Serviços) e não deve abrir os demais painéis admin.
+ * A tela dela tem guarda própria em /admin/regras-comerciais.
+ */
 const adminPermissionKeys: Array<keyof CollaboratorPermissions> = [
   'canManageWorkflows',
   'canManageRequests',

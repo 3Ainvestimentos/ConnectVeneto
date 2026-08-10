@@ -46,3 +46,4 @@ firestore-debug.log
 
 # dev logs
 dev-server.log
+deploy-security-rules.log

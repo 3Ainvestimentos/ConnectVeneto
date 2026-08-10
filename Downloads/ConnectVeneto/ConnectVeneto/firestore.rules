@@ -82,16 +82,25 @@ service cloud.firestore {
     }
 
     // =========================
-    // systemSettings
+    // systemSettings (Bloco 7 Phase B aplicado)
+    // MUDANCA:
+    // - public_config: leitura publica (mensagem de manutencao antes do login).
+    // - config: leitura apenas super admin. Client comum nao precisa ler: usa `/api/me/session` (server-side via Admin SDK).
+    // - admin_config, keys: leitura apenas super admin.
+    // - write: continua apenas super admin em todos.
+    //
+    // Efeito: `superAdminEmails` e `collaboratorAdminEmails` deixam de vazar para
+    // o browser de qualquer autenticado. Finding F-01 fechado.
     // =========================
     match /systemSettings/{docId} {
       allow read: if docId == 'public_config';
-      allow read: if isAuthenticated() && docId in ['config', 'admin_config', 'keys'];
+      allow read: if isSuperAdmin() && docId in ['config', 'admin_config', 'keys'];
       allow write: if isSuperAdmin() && docId in ['public_config', 'config', 'admin_config', 'keys'];
     }
 
     // =========================
     // collaborators
+    // (sem mudanca; Finding F-03 aceito como residual no curto prazo)
     // =========================
     match /collaborators/{userId} {
       allow read: if isAuthenticated();
@@ -153,10 +162,22 @@ service cloud.firestore {
       allow write: if isSuperAdmin();
     }
 
+    /**
+     * Slides do carrossel "Apresentação — Mix de Serviços" (/regras-comerciais).
+     * Somente leitura pelo client. A gravação passa por PUT /api/regras-comerciais/slides,
+     * que valida permissions.canManageRegrasComerciais com o Admin SDK — as rules não
+     * conseguem consultar o documento do colaborador pelo e-mail.
+     */
+    match /regrasComerciaisSlides/{docId} {
+      allow read: if isAuthenticated();
+      allow write: if false;
+    }
+
     // =========================
     // Viagens (modo simples)
     // usuário cria/edita/exclui as próprias
     // super admin gerencia tudo
+    // MUDANCA: update agora valida shape (mesmos campos do create).
     // =========================
     match /leaderTrips/{tripId} {
       allow read: if isAuthenticated();
@@ -170,8 +191,17 @@ service cloud.firestore {
                       && request.resource.data.endDate is string
                     );
 
-      allow update, delete: if isSuperAdmin()
-                            || isOwnerByUid('responsavelUid');
+      allow update: if isSuperAdmin()
+                    || (
+                      isOwnerByUid('responsavelUid')
+                      && request.resource.data.leaderName is string
+                      && request.resource.data.destinationBranch is string
+                      && request.resource.data.startDate is string
+                      && request.resource.data.endDate is string
+                    );
+
+      allow delete: if isSuperAdmin()
+                    || isOwnerByUid('responsavelUid');
     }
 
     // =========================

@@ -1,13 +1,16 @@
 "use client";
 
 import { useMemo } from "react";
-import { FileText } from "lucide-react";
+import Link from "next/link";
+import { FileText, Settings } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { VenetoImageCarousel } from "@/components/regras-comerciais/VenetoImageCarousel";
-import { mixServicosSlides } from "@/config/regras-comerciais-slides";
 import { venetoRepositoryDocuments } from "@/config/veneto-documentos";
+import { useAuth } from "@/contexts/AuthContext";
 import { useDocuments } from "@/contexts/DocumentsContext";
+import { useMixServicosSlides } from "@/hooks/useMixServicosSlides";
 import { mergeStaticAndFirestoreDocuments } from "@/lib/document-repository-utils";
 
 const MANUAL_REGRAS_CONTROLES_ID = "veneto-manual-regras-controles";
@@ -33,6 +36,10 @@ const politicaItems = [
 
 export default function RegrasComerciais() {
   const { documents } = useDocuments();
+  const { permissions, isSuperAdmin } = useAuth();
+  const { slides: mixSlides } = useMixServicosSlides();
+
+  const canManageSlides = isSuperAdmin || permissions.canManageRegrasComerciais;
 
   const manualUrl = useMemo(() => {
     const merged = mergeStaticAndFirestoreDocuments(documents, venetoRepositoryDocuments);
@@ -103,14 +110,35 @@ export default function RegrasComerciais() {
 
         {/* Apresentação Mix de Serviços */}
         <div className="space-y-4">
-          <h3 className="text-base font-headline font-semibold text-foreground">
-            Apresentação — Mix de Serviços
-          </h3>
+          <div className="flex items-center gap-1.5">
+            <h3 className="text-base font-headline font-semibold text-foreground">
+              Apresentação — Mix de Serviços
+            </h3>
+            {canManageSlides && (
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      asChild
+                      variant="ghost"
+                      size="icon"
+                      className="h-7 w-7 text-muted-foreground/60 hover:text-foreground"
+                    >
+                      <Link
+                        href="/admin/regras-comerciais"
+                        aria-label="Editar as imagens da apresentação"
+                      >
+                        <Settings className="h-4 w-4" />
+                      </Link>
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>Editar as imagens da apresentação</TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            )}
+          </div>
           <div className="px-6">
-            <VenetoImageCarousel
-              slides={mixServicosSlides}
-              label="Mix de Serviços"
-            />
+            <VenetoImageCarousel slides={mixSlides} label="Mix de Serviços" />
           </div>
         </div>
       </section>
