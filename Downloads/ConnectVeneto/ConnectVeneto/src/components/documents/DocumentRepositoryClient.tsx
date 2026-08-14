@@ -30,6 +30,9 @@ import {
 } from "@/lib/document-repository-utils";
 import { toast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
+import { useDocumentFavorites } from "@/hooks/useDocumentFavorites";
+import { FavoriteToggleButton } from "@/components/documents/FavoriteToggleButton";
+import { FavoritesQuickAccess } from "@/components/documents/FavoritesQuickAccess";
 
 interface DocumentRepositoryClientProps {
   initialDocuments: DocumentType[];
@@ -85,6 +88,7 @@ export default function DocumentRepositoryClient({
 
   const { user } = useAuth();
   const { collaborators } = useCollaborators();
+  const { isFavorite, toggleFavorite } = useDocumentFavorites();
   const debouncedSearchTerm = useDebounce(searchTerm, 500);
 
   const logRepositoryAccess = (doc: DocumentType, eventType: string, extra: Record<string, string>) => {
@@ -215,8 +219,18 @@ export default function DocumentRepositoryClient({
     );
   };
 
+  // Favoritos ignoram busca e filtros de propósito: são o atalho para o que se usa sempre.
+  const favoriteItems = initialDocuments
+    .filter((doc) => isFavorite("internal", doc.id))
+    .map((doc) => ({
+      id: doc.id,
+      label: doc.name,
+      onOpen: () => handleOpenDocument(doc),
+    }));
+
   return (
     <div>
+      <FavoritesQuickAccess items={favoriteItems} />
       <div className="mb-6 p-4 bg-card rounded-lg sticky top-[var(--header-height)] z-30">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-center">
           <div className="relative md:col-span-1">
@@ -287,6 +301,7 @@ export default function DocumentRepositoryClient({
             <TableHeader>
               <TableRow>
                 <TableHead className="w-[50px]"></TableHead>
+                <TableHead className="w-[50px]"></TableHead>
                 <TableHead
                   onClick={() => handleSort("name")}
                   className="cursor-pointer hover:bg-muted/50 font-body"
@@ -343,6 +358,13 @@ export default function DocumentRepositoryClient({
                 const isInternal = isAllowedDocumentInternalPath(doc.internalPath);
                 return (
                   <TableRow key={doc.id} className="hover:bg-muted/30">
+                    <TableCell>
+                      <FavoriteToggleButton
+                        isFavorite={isFavorite("internal", doc.id)}
+                        onToggle={() => void toggleFavorite("internal", doc.id)}
+                        documentLabel={doc.name}
+                      />
+                    </TableCell>
                     <TableCell>{getFileIcon(doc.type)}</TableCell>
                     <TableCell className="font-body max-w-[min(48vw,32rem)]">
                       <button

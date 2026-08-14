@@ -14,17 +14,23 @@ export default function DocumentsLayout({
   const router = useRouter();
   const [isAuthorized, setIsAuthorized] = useState(false);
 
+  // Quem só tem a Biblioteca Comercial também entra: a página abre direto na aba dela.
+  const canViewAnyLibrary =
+    permissions.canViewDocuments ||
+    permissions.canViewBibliotecaComercial ||
+    permissions.canManageBibliotecaComercial;
+
   useEffect(() => {
     if (!loading) {
       if (!user) {
         router.replace("/login");
-      } else if (!permissions.canViewDocuments) {
+      } else if (!canViewAnyLibrary) {
         router.replace("/dashboard");
       } else {
         setIsAuthorized(true);
       }
     }
-  }, [user, loading, permissions.canViewDocuments, router]);
+  }, [user, loading, canViewAnyLibrary, router]);
 
   if (loading || !isAuthorized) {
     return (

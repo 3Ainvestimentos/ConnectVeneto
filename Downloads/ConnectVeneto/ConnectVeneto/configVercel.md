@@ -18,6 +18,10 @@ FIREBASE_ADMIN_PRIVATE_KEY=
 
 FERIADOS_API_BASE_URL=https://feriadosapi.com
 FERIADOS_API_KEY=
+
+# Biblioteca Comercial (chat de busca e assistente de catalogacao).
+# Sem prefixo NEXT_PUBLIC_: e usada somente nas API routes.
+OPENAI_API_KEY=
 ```
 
 ## Preview
@@ -36,6 +40,10 @@ FIREBASE_ADMIN_PRIVATE_KEY=
 
 FERIADOS_API_BASE_URL=https://feriadosapi.com
 FERIADOS_API_KEY=
+
+# Biblioteca Comercial (chat de busca e assistente de catalogacao).
+# Sem prefixo NEXT_PUBLIC_: e usada somente nas API routes.
+OPENAI_API_KEY=
 ```
 
 ## Development
@@ -54,10 +62,15 @@ FIREBASE_ADMIN_PRIVATE_KEY=
 
 FERIADOS_API_BASE_URL=https://feriadosapi.com
 FERIADOS_API_KEY=
+
+# Biblioteca Comercial (chat de busca e assistente de catalogacao).
+# Sem prefixo NEXT_PUBLIC_: e usada somente nas API routes.
+OPENAI_API_KEY=
 ```
 
 ## Observacoes de seguranca
 
 - Nunca cole secrets em chat ou commit.
+- `OPENAI_API_KEY` nunca deve receber o prefixo `NEXT_PUBLIC_`: isso a exporia no bundle do browser.
 - Em `FIREBASE_ADMIN_PRIVATE_KEY`, manter os `\n` escapados na Vercel.
 - Se usar valores diferentes por ambiente, altere cada bloco separadamente.

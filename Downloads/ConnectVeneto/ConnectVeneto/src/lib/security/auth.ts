@@ -106,3 +106,59 @@ export async function requireRegrasComerciaisManager(
 
   throw new Error('FORBIDDEN_REGRAS_COMERCIAIS_MANAGER_REQUIRED');
 }
+
+/**
+ * A busca da Biblioteca Comercial cobre os dois acervos, mas o repositório interno
+ * tem permissão própria: quem só tem acesso comercial não pode receber documentos
+ * internos nos resultados.
+ */
+export async function canViewInternalDocuments(
+  context: AuthenticatedRequestContext
+): Promise<boolean> {
+  if (await isSuperAdminEmail(context.email)) return true;
+  return collaboratorHasPermission(context, 'canViewDocuments');
+}
+
+/**
+ * Autoriza a leitura da Biblioteca Comercial (busca por IA e acervo).
+ * Quem gerencia também pode ver — a permissão de gestão implica a de visualização.
+ */
+export async function requireBibliotecaComercialViewer(
+  authorizationHeader: string | null
+): Promise<AuthenticatedRequestContext> {
+  const context = await requireCorporateUser(authorizationHeader);
+
+  if (await isSuperAdminEmail(context.email)) {
+    return context;
+  }
+
+  if (
+    (await collaboratorHasPermission(context, 'canViewBibliotecaComercial')) ||
+    (await collaboratorHasPermission(context, 'canManageBibliotecaComercial'))
+  ) {
+    return context;
+  }
+
+  throw new Error('FORBIDDEN_BIBLIOTECA_COMERCIAL_VIEWER_REQUIRED');
+}
+
+/**
+ * Autoriza escrita na Biblioteca Comercial (subir, editar e excluir documentos).
+ * As rules do Firestore só liberam leitura da coleção: a permissão mora no
+ * documento do colaborador, que elas não conseguem consultar por e-mail.
+ */
+export async function requireBibliotecaComercialManager(
+  authorizationHeader: string | null
+): Promise<AuthenticatedRequestContext> {
+  const context = await requireCorporateUser(authorizationHeader);
+
+  if (await isSuperAdminEmail(context.email)) {
+    return context;
+  }
+
+  if (await collaboratorHasPermission(context, 'canManageBibliotecaComercial')) {
+    return context;
+  }
+
+  throw new Error('FORBIDDEN_BIBLIOTECA_COMERCIAL_MANAGER_REQUIRED');
+}

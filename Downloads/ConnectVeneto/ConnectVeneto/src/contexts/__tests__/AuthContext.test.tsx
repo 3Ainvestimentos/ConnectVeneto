@@ -239,6 +239,8 @@ describe('AuthContext', () => {
         canViewApplications: true,
         canViewRegrasComerciais: true,
         canManageRegrasComerciais: false,
+        canViewBibliotecaComercial: false,
+        canManageBibliotecaComercial: false,
         canViewTasks: false,
         canViewBI: false,
         canViewCRM: false,

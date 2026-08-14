@@ -21,6 +21,10 @@ export interface CollaboratorPermissions {
   canViewRegrasComerciais: boolean;
   /** Edita a apresentação (carrossel) do Mix de Serviços em /regras-comerciais. */
   canManageRegrasComerciais: boolean;
+  /** Vê a aba "Comercial" da biblioteca de documentos (chat de IA + acervo comercial). */
+  canViewBibliotecaComercial: boolean;
+  /** Sobe, edita e exclui documentos da Biblioteca Comercial. */
+  canManageBibliotecaComercial: boolean;
   canViewTasks: boolean;
   canViewBI: boolean;
   canViewCRM: boolean;
@@ -94,6 +98,8 @@ const defaultPermissions: CollaboratorPermissions = {
   canViewApplications: true,
   canViewRegrasComerciais: true,
   canManageRegrasComerciais: false,
+  canViewBibliotecaComercial: false,
+  canManageBibliotecaComercial: false,
   canViewTasks: false,
   canViewBI: false,
   canViewCRM: false,
