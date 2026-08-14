@@ -14,6 +14,9 @@ import {
   type AssistantModelResponse,
 } from '@/lib/biblioteca-comercial-prompts';
 
+/** Teto do conteúdo lido do arquivo, alinhado ao que o client extrai. */
+const MAX_DOCUMENT_TEXT = 8100;
+
 const payloadSchema = z.object({
   fileName: z.string().trim().min(1).max(300),
   fileType: z.enum(['pdf', 'ppt', 'audio', 'link']),
@@ -22,6 +25,8 @@ const payloadSchema = z.object({
     .trim()
     .min(3, 'Escreva uma descrição breve para o assistente trabalhar.')
     .max(1000),
+  /** Texto lido do próprio arquivo no navegador (páginas, slides ou transcrição). */
+  documentText: z.string().trim().max(MAX_DOCUMENT_TEXT).default(''),
   /** Rodadas de entrevista já respondidas. */
   answers: z
     .array(
@@ -58,13 +63,17 @@ export async function POST(request: Request) {
       );
     }
 
-    const { fileName, fileType, userDescription, answers, round, finalize } = parsed.data;
+    const { fileName, fileType, userDescription, documentText, answers, round, finalize } =
+      parsed.data;
     const isLastRound = finalize || round >= MAX_ROUNDS - 1;
 
     const userContent = [
       `Nome do arquivo: ${fileName}`,
       `Tipo: ${fileType}`,
       `Descrição do usuário: ${userDescription}`,
+      ...(documentText
+        ? ['', 'Conteúdo lido do arquivo:', '"""', documentText, '"""']
+        : ['', '(Não foi possível ler o conteúdo do arquivo.)']),
       ...(answers.length > 0
         ? [
             '',
@@ -103,7 +112,13 @@ export async function POST(request: Request) {
 
     if (result.status === 'questions') {
       return NextResponse.json(
-        { status: 'questions', questions: result.questions.slice(0, MAX_QUESTIONS) },
+        {
+          status: 'questions',
+          questions: result.questions.slice(0, MAX_QUESTIONS).map((item) => ({
+            question: item.question,
+            suggestedAnswer: item.suggestedAnswer ?? '',
+          })),
+        },
         { headers: { 'Cache-Control': 'private, no-store' } }
       );
     }

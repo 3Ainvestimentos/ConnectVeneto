@@ -19,6 +19,11 @@ export class OpenAINotConfiguredError extends Error {
   }
 }
 
+/** Permite responder 503 com mensagem clara em vez de estourar erro genérico. */
+export function isOpenAIConfigured(): boolean {
+  return !!process.env.OPENAI_API_KEY;
+}
+
 export function getOpenAIClient(): OpenAI {
   const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) throw new OpenAINotConfiguredError();

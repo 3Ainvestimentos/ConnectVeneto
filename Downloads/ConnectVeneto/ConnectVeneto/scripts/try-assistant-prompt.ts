@@ -1,75 +1,165 @@
 /**
- * Exercita o prompt do assistente de catalogação direto contra a OpenAI, sem
- * precisar de login nem da interface. Serve para inspecionar o que o modelo
- * devolve quando um cadastro real sai ruim (título em minúsculas, tags sem
- * acento, perguntas genéricas) e para conferir ajustes de prompt.
+ * Exercita os prompts de catalogação direto contra a OpenAI, sem precisar de login
+ * nem da interface. Usa o conteúdo real de um documento já publicado (baixado do
+ * Storage e extraído do mesmo jeito que o navegador faz), então mostra exatamente
+ * o rascunho e as respostas sugeridas que quem publica veria.
  *
- * Importa o mesmo módulo que a API usa, então não há risco de testar um prompt
- * diferente do que roda em produção.
+ * Importa o mesmo módulo de prompts que a API usa — sem risco de testar outra coisa.
  *
  * Usage:
- *   node --env-file=.env.local node_modules/.bin/tsx scripts/try-assistant-prompt.ts
- *   node --env-file=.env.local node_modules/.bin/tsx scripts/try-assistant-prompt.ts "Arquivo.pptx" "descrição breve"
+ *   node --env-file=.env.local node_modules/tsx/dist/cli.mjs scripts/try-assistant-prompt.ts
+ *   node --env-file=.env.local node_modules/tsx/dist/cli.mjs scripts/try-assistant-prompt.ts <docId>
  */
 import OpenAI from 'openai';
+import JSZip from 'jszip';
+import { initializeApp, cert, getApps } from 'firebase-admin/app';
+import { getFirestore } from 'firebase-admin/firestore';
+import { getStorage } from 'firebase-admin/storage';
 import {
   buildAssistantResponseSchema,
   buildAssistantSystemPrompt,
+  buildDraftSystemPrompt,
+  draftResponseSchema,
   type AssistantModelResponse,
+  type DraftModelResponse,
 } from '../src/lib/biblioteca-comercial-prompts';
-
-const fileName = process.argv[2] ?? 'Comparativo de Custo FE.pptx';
-const userDescription = process.argv[3] ?? 'comparativo de custos de fundos exclusivos';
 
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
-async function ask(isLastRound: boolean, userContent: string): Promise<AssistantModelResponse> {
+if (!getApps().length) {
+  initializeApp({
+    credential: cert({
+      projectId: process.env.FIREBASE_ADMIN_PROJECT_ID,
+      clientEmail: process.env.FIREBASE_ADMIN_CLIENT_EMAIL,
+      privateKey: process.env.FIREBASE_ADMIN_PRIVATE_KEY?.replace(/\\n/g, '\n'),
+    }),
+  });
+}
+
+/** Mesma extração de src/lib/document-text-extraction.ts (ramo .pptx). */
+async function extractPptx(buffer: Buffer): Promise<string> {
+  const zip = await JSZip.loadAsync(buffer);
+  const slidePaths = Object.keys(zip.files)
+    .filter((path) => /^ppt\/slides\/slide\d+\.xml$/.test(path))
+    .sort((a, b) => {
+      const numberOf = (path: string) => Number(path.match(/slide(\d+)\.xml$/)?.[1] ?? 0);
+      return numberOf(a) - numberOf(b);
+    });
+
+  const slides: string[] = [];
+  for (const path of slidePaths.slice(0, 25)) {
+    const xml = await zip.files[path].async('string');
+    const texts = [...xml.matchAll(/<a:t>([^<]*)<\/a:t>/g)].map((match) => match[1]);
+    if (texts.length > 0) slides.push(`Slide ${slides.length + 1}: ${texts.join(' ')}`);
+    if (slides.join(' ').length > 8000) break;
+  }
+  return slides.join('\n').replace(/\s+/g, ' ').trim().slice(0, 8000);
+}
+
+async function complete<T>(
+  systemPrompt: string,
+  userContent: string,
+  schema: Record<string, unknown>,
+  name: string
+) {
   const response = await openai.chat.completions.create({
     model: 'gpt-4o-mini',
     max_completion_tokens: 700,
     messages: [
-      { role: 'system', content: buildAssistantSystemPrompt(isLastRound) },
+      { role: 'system', content: systemPrompt },
       { role: 'user', content: userContent },
     ],
-    response_format: {
-      type: 'json_schema',
-      json_schema: {
-        name: 'catalogacao',
-        strict: true,
-        schema: buildAssistantResponseSchema(isLastRound),
-      },
-    },
+    response_format: { type: 'json_schema', json_schema: { name, strict: true, schema } },
   });
-  return JSON.parse(response.choices[0].message.content ?? '{}') as AssistantModelResponse;
+  return JSON.parse(response.choices[0].message.content ?? '{}') as T;
 }
 
-// Envolvido em função: o projeto é CommonJS e não aceita await no topo do módulo.
 async function run() {
-  const base = `Nome do arquivo: ${fileName}\nTipo: ppt\nDescrição do usuário: ${userDescription}`;
+  const db = getFirestore();
+  const docId = process.argv[2];
+  const snapshot = docId
+    ? await db.collection('commercialDocuments').doc(docId).get()
+    : (await db.collection('commercialDocuments').limit(1).get()).docs[0];
 
-  console.log('=== rodada 0 (o assistente ainda pode perguntar) ===');
-  const first = await ask(false, base);
-  console.log(JSON.stringify(first, null, 2));
+  if (!snapshot?.exists) {
+    console.error('Nenhum documento com arquivo encontrado.');
+    process.exit(1);
+  }
 
-  // Reproduz o botão "Pular perguntas": nada respondido, entrevista encerrada na hora.
-  console.log('\n=== "Pular perguntas" (nada respondido, pior caso) ===');
-  const answers = (first.questions ?? []).map((q) => `- ${q} → (não respondido)`).join('\n');
-  const final = await ask(true, `${base}\n\nRespostas já obtidas:\n${answers}`);
-  console.log(JSON.stringify(final, null, 2));
+  const data = snapshot.data()!;
+  const fileName = String(data.storagePath ?? '').split('/').pop() ?? 'arquivo';
+  console.log('arquivo:', fileName);
 
-  console.log('\n=== veredito ===');
-  const title = final.title ?? '';
-  console.log('título:', JSON.stringify(title));
-  console.log(
-    '  todo em minúsculas?',
-    title && title === title.toLowerCase() ? 'SIM (problema)' : 'não'
+  const [buffer] = await getStorage()
+    .bucket(process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET)
+    .file(data.storagePath)
+    .download();
+
+  const documentText = await extractPptx(buffer);
+  console.log('caracteres extraídos:', documentText.length);
+
+  console.log('\n=== 1) rascunho da descrição (a partir do conteúdo) ===');
+  const draft = await complete<DraftModelResponse>(
+    buildDraftSystemPrompt(),
+    [`Nome do arquivo: ${fileName}`, 'Tipo: ppt', '', 'Conteúdo lido do arquivo:', '"""', documentText, '"""'].join('\n'),
+    draftResponseSchema,
+    'rascunho'
   );
-  console.log('  contém sigla em maiúsculas?', /\b[A-Z]{2,}\b/.test(title) ? 'sim' : 'não');
-  console.log('tags:', JSON.stringify(final.tags));
-  console.log(
-    '  tags acentuadas?',
-    (final.tags ?? []).some((tag) => /[áàâãéêíóôõúç]/i.test(tag)) ? 'sim' : 'nenhuma'
+  console.log(draft.description);
+
+  console.log('\n=== 2) perguntas com respostas sugeridas ===');
+  const interview = await complete<AssistantModelResponse>(
+    buildAssistantSystemPrompt(false),
+    [
+      `Nome do arquivo: ${fileName}`,
+      'Tipo: ppt',
+      `Descrição do usuário: ${draft.description}`,
+      '',
+      'Conteúdo lido do arquivo:',
+      '"""',
+      documentText,
+      '"""',
+    ].join('\n'),
+    buildAssistantResponseSchema(false),
+    'catalogacao'
   );
+
+  reportInterview(interview);
+
+  // Conteúdo rico costuma dispensar perguntas; este segundo cenário usa só um
+  // trecho do início, que é o caso real de áudio parcial ou PDF digitalizado.
+  console.log('\n=== 3) mesmo material com conteúdo escasso (força as perguntas) ===');
+  const scarce = await complete<AssistantModelResponse>(
+    buildAssistantSystemPrompt(false),
+    [
+      `Nome do arquivo: ${fileName}`,
+      'Tipo: ppt',
+      'Descrição do usuário: material sobre custos',
+      '',
+      'Conteúdo lido do arquivo:',
+      '"""',
+      documentText.slice(0, 220),
+      '"""',
+    ].join('\n'),
+    buildAssistantResponseSchema(false),
+    'catalogacao'
+  );
+  reportInterview(scarce);
+}
+
+function reportInterview(result: AssistantModelResponse) {
+  if (result.status === 'questions') {
+    for (const item of result.questions) {
+      console.log(`\n  P: ${item.question}`);
+      console.log(`  sugestão: ${item.suggestedAnswer || '(vazia — não deu para deduzir)'}`);
+    }
+    const semSugestao = result.questions.filter((q) => !q.suggestedAnswer).length;
+    console.log(`\n  ${result.questions.length} pergunta(s), ${semSugestao} sem sugestão.`);
+  } else {
+    console.log('  (foi direto para os metadados finais — o conteúdo já bastava)');
+    console.log('  título:', result.title);
+    console.log('  tags:', JSON.stringify(result.tags));
+  }
 }
 
 run().catch((error) => {
