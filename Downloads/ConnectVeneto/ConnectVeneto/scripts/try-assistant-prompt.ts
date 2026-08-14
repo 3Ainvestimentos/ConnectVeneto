@@ -81,22 +81,37 @@ async function run() {
     ? await db.collection('commercialDocuments').doc(docId).get()
     : (await db.collection('commercialDocuments').limit(1).get()).docs[0];
 
-  if (!snapshot?.exists) {
-    console.error('Nenhum documento com arquivo encontrado.');
-    process.exit(1);
+  let fileName: string;
+  let documentText: string;
+
+  if (snapshot?.exists && snapshot.data()?.storagePath) {
+    const data = snapshot.data()!;
+    fileName = String(data.storagePath).split('/').pop() ?? 'arquivo';
+    const [buffer] = await getStorage()
+      .bucket(process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET)
+      .file(data.storagePath)
+      .download();
+    documentText = await extractPptx(buffer);
+    console.log('arquivo (da biblioteca):', fileName);
+  } else {
+    // Sem documento publicado, usa uma amostra fiel ao material real da casa,
+    // para o script continuar servindo para calibrar o prompt.
+    fileName = 'Comparativo de Custo FE.pptx';
+    documentText = [
+      'Slide 1: Fundos Exclusivos 62% Patrimônio líquido alocado: R$ 32,83 milhões',
+      'Taxa de administração: 0,20% ao ano Carteira Atual % da carteira PL por ativo',
+      'Custo Rebate Custo Final Título Público 19,00% Emissão Primária 0,00%',
+      'Crédito Privado Secundário 0,00% Ações 0,00% Fundo Renda Fixa 21,00%',
+      'Fundo Multimercado 45,00% Fundo Ações 11,00% Fundo Internacional 4,00%',
+      'Slide 2: Fundo Vêneto Perfil Conservador Comparação de custos entre as carteiras',
+      'Taxa de Gestão 0,20% 0,50% Custo Implícito 1,88% 0,65% Total 2,08% 1,04%',
+      'Diferença de taxa 1,04% Economia financeira real (a.a) Premissas adotadas:',
+      'CDI = 12% a.a., FIRF = 120% CDI, FIM = 150% CDI, FIA = IBOV + 4%',
+    ].join(' ');
+    console.log('arquivo (amostra — biblioteca vazia):', fileName);
   }
 
-  const data = snapshot.data()!;
-  const fileName = String(data.storagePath ?? '').split('/').pop() ?? 'arquivo';
-  console.log('arquivo:', fileName);
-
-  const [buffer] = await getStorage()
-    .bucket(process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET)
-    .file(data.storagePath)
-    .download();
-
-  const documentText = await extractPptx(buffer);
-  console.log('caracteres extraídos:', documentText.length);
+  console.log('caracteres do conteúdo:', documentText.length);
 
   console.log('\n=== 1) rascunho da descrição (a partir do conteúdo) ===');
   const draft = await complete<DraftModelResponse>(
@@ -109,7 +124,7 @@ async function run() {
 
   console.log('\n=== 2) perguntas com respostas sugeridas ===');
   const interview = await complete<AssistantModelResponse>(
-    buildAssistantSystemPrompt(false),
+    buildAssistantSystemPrompt('first'),
     [
       `Nome do arquivo: ${fileName}`,
       'Tipo: ppt',
@@ -120,7 +135,7 @@ async function run() {
       documentText,
       '"""',
     ].join('\n'),
-    buildAssistantResponseSchema(false),
+    buildAssistantResponseSchema('first'),
     'catalogacao'
   );
 
@@ -130,7 +145,7 @@ async function run() {
   // trecho do início, que é o caso real de áudio parcial ou PDF digitalizado.
   console.log('\n=== 3) mesmo material com conteúdo escasso (força as perguntas) ===');
   const scarce = await complete<AssistantModelResponse>(
-    buildAssistantSystemPrompt(false),
+    buildAssistantSystemPrompt('first'),
     [
       `Nome do arquivo: ${fileName}`,
       'Tipo: ppt',
@@ -141,7 +156,7 @@ async function run() {
       documentText.slice(0, 220),
       '"""',
     ].join('\n'),
-    buildAssistantResponseSchema(false),
+    buildAssistantResponseSchema('first'),
     'catalogacao'
   );
   reportInterview(scarce);

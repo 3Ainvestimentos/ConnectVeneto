@@ -48,7 +48,7 @@ export const draftResponseSchema = {
 export type DraftModelResponse = { description: string };
 
 /** Instruções de catalogação: é o que decide a qualidade da busca depois. */
-export const buildAssistantSystemPrompt = (isLastRound: boolean): string =>
+export const buildAssistantSystemPrompt = (phase: AssistantPhase): string =>
   [
     'Você ajuda a catalogar materiais da Biblioteca Comercial da Vêneto (uma gestora de',
     'patrimônio). Os documentos são usados por consultores em reunião com clientes:',
@@ -62,9 +62,11 @@ export const buildAssistantSystemPrompt = (isLastRound: boolean): string =>
     'faltam informações essenciais para catalogar bem (por exemplo: público-alvo,',
     'produto ou fundo tratado, finalidade do material, período de validade).',
     '',
-    isLastRound
+    phase === 'last'
       ? 'Esta é a última rodada: responda com status "final", preenchendo title, description e tags com o que já tem.'
-      : `Se faltarem informações, responda com status "questions" e no máximo ${MAX_ASSISTANT_QUESTIONS} perguntas curtas, objetivas e específicas (nunca genéricas como "fale mais sobre o arquivo"). Se já houver contexto suficiente, responda direto com status "final".`,
+      : phase === 'first'
+        ? `Esta é a rodada de confirmação: responda com status "questions" e de 2 a ${MAX_ASSISTANT_QUESTIONS} perguntas curtas, objetivas e específicas (nunca genéricas como "fale mais sobre o arquivo"). Mesmo que o conteúdo pareça suficiente, pergunte — o objetivo é quem publica confirmar o que você deduziu. Nesse caso, pergunte sobre o que mais afeta a busca depois (público-alvo, produto tratado, quando usar) e traga a dedução em suggestedAnswer, para a confirmação ser um clique.`
+        : `Se faltarem informações, responda com status "questions" e no máximo ${MAX_ASSISTANT_QUESTIONS} perguntas curtas, objetivas e específicas. Se já houver contexto suficiente, responda direto com status "final".`,
     '',
     'Cada pergunta vem com `suggestedAnswer`: a resposta que o conteúdo do arquivo indica,',
     'para quem publica só confirmar ou corrigir — é isso que torna a entrevista rápida.',
@@ -92,19 +94,31 @@ export const buildAssistantSystemPrompt = (isLastRound: boolean): string =>
   ].join('\n');
 
 /**
- * Schema estrito: o modo `strict` exige todos os campos, então os não usados voltam vazios.
+ * Fase da entrevista, imposta pelo schema em vez de pedida no texto do prompt —
+ * instrução textual não segurava o modelo, que devolvia perguntas quando devia
+ * fechar (e metadados vazios junto).
  *
- * Na última rodada, `status` fica restrito a `final`. Só pedir no texto do prompt não
- * basta — na prática o modelo continuava devolvendo perguntas e metadados vazios, e o
- * cadastro terminava com a descrição crua do usuário. Tirar a opção do schema é o que
- * garante o desfecho.
+ * - `first`: primeira rodada, sempre pergunta. O fluxo previsto é ler o arquivo,
+ *   validar a descrição, confirmar as perguntas e revisar; pular direto para os
+ *   metadados atropelaria a etapa de confirmação, mesmo com conteúdo farto.
+ * - `last`: última rodada, obrigada a fechar.
+ * - `open`: rodadas do meio, o modelo decide.
  */
-export const buildAssistantResponseSchema = (isLastRound: boolean) => ({
+export type AssistantPhase = 'first' | 'open' | 'last';
+
+const STATUS_BY_PHASE: Record<AssistantPhase, string[]> = {
+  first: ['questions'],
+  open: ['questions', 'final'],
+  last: ['final'],
+};
+
+/** Schema estrito: o modo `strict` exige todos os campos, então os não usados voltam vazios. */
+export const buildAssistantResponseSchema = (phase: AssistantPhase) => ({
   type: 'object',
   properties: {
     status: {
       type: 'string',
-      enum: isLastRound ? ['final'] : ['questions', 'final'],
+      enum: STATUS_BY_PHASE[phase],
       description:
         'questions quando ainda faltam informações; final quando os metadados estão prontos.',
     },

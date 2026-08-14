@@ -12,6 +12,7 @@ import {
   MAX_ASSISTANT_QUESTIONS as MAX_QUESTIONS,
   MAX_ASSISTANT_ROUNDS as MAX_ROUNDS,
   type AssistantModelResponse,
+  type AssistantPhase,
 } from '@/lib/biblioteca-comercial-prompts';
 
 /** Teto do conteúdo lido do arquivo, alinhado ao que o client extrai. */
@@ -65,7 +66,11 @@ export async function POST(request: Request) {
 
     const { fileName, fileType, userDescription, documentText, answers, round, finalize } =
       parsed.data;
+
     const isLastRound = finalize || round >= MAX_ROUNDS - 1;
+    // A primeira rodada sempre pergunta: é a etapa em que quem publica confirma o
+    // que a IA deduziu do arquivo. "Pular perguntas" (finalize) tem precedência.
+    const phase: AssistantPhase = isLastRound ? 'last' : round === 0 ? 'first' : 'open';
 
     const userContent = [
       `Nome do arquivo: ${fileName}`,
@@ -84,10 +89,10 @@ export async function POST(request: Request) {
     ].join('\n');
 
     const result = await completeWithJsonSchema<AssistantModelResponse>({
-      systemPrompt: buildAssistantSystemPrompt(isLastRound),
+      systemPrompt: buildAssistantSystemPrompt(phase),
       messages: [{ role: 'user', content: userContent }],
       schemaName: 'biblioteca_comercial_catalogacao',
-      schema: buildAssistantResponseSchema(isLastRound),
+      schema: buildAssistantResponseSchema(phase),
       maxOutputTokens: 700,
     });
 

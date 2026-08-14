@@ -17,6 +17,7 @@ import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "@/hooks/use-toast";
+import { cn } from "@/lib/utils";
 import {
   resolveUploadMime,
   UPLOAD_ACCEPT_ATTRIBUTE,
@@ -88,6 +89,8 @@ export function CommercialUploadDialog({
 
   /** Conteúdo lido do arquivo e o que contar a quem publica sobre essa leitura. */
   const [extraction, setExtraction] = useState<ExtractionResult | null>(null);
+  /** Marca que a descrição veio da IA, para pedir validação em vez de parecer digitada. */
+  const [hasDraftDescription, setHasDraftDescription] = useState(false);
 
   const [questions, setQuestions] = useState<AssistantQuestion[]>([]);
   const [answers, setAnswers] = useState<string[]>([]);
@@ -122,6 +125,7 @@ export function CommercialUploadDialog({
       setTags([]);
     }
     setExtraction(null);
+    setHasDraftDescription(false);
     setQuestions([]);
     setAnswers([]);
     setPreviousAnswers([]);
@@ -172,7 +176,11 @@ export function CommercialUploadDialog({
 
     // Não sobrescreve o que a pessoa já tenha digitado.
     if (draftDescription) {
-      setBriefDescription((current) => current.trim() || draftDescription);
+      setBriefDescription((current) => {
+        if (current.trim()) return current;
+        setHasDraftDescription(true);
+        return draftDescription;
+      });
     }
   };
 
@@ -327,13 +335,36 @@ export function CommercialUploadDialog({
           </DialogTitle>
           <DialogDescription className="font-body">
             {mode === "source" &&
-              "Envie o arquivo ou cole o link e descreva brevemente o material. O assistente de IA completa o resto."}
+              "Envie o arquivo: a IA lê o conteúdo e escreve a descrição para você validar."}
             {mode === "interview" &&
-              "Responda só o que fizer sentido. Se as perguntas não se aplicam a este material, use “Pular perguntas”."}
+              "Confirme ou corrija o que a IA deduziu. O que não se aplica pode ficar em branco — ou use “Pular perguntas”."}
             {mode === "review" &&
-              "Revise os metadados. É por eles que o chat encontra este documento."}
+              "Validação final. É por estes metadados que a busca encontra o documento."}
           </DialogDescription>
         </DialogHeader>
+
+        {/* Torna o fluxo visível: arquivo e descrição → perguntas → validação final. */}
+        {!isEditing && (
+          <ol className="flex items-center gap-2 font-body text-xs text-muted-foreground">
+            {[
+              { key: "source", label: "1. Arquivo e descrição" },
+              { key: "interview", label: "2. Perguntas" },
+              { key: "review", label: "3. Validação" },
+            ].map((step) => (
+              <li
+                key={step.key}
+                className={cn(
+                  "rounded-full border px-2.5 py-1",
+                  mode === step.key
+                    ? "border-primary bg-primary/10 font-medium text-foreground"
+                    : "border-transparent bg-muted"
+                )}
+              >
+                {step.label}
+              </li>
+            ))}
+          </ol>
+        )}
 
         {mode === "source" && (
           <div className="space-y-4">
@@ -428,7 +459,7 @@ export function CommercialUploadDialog({
 
             <div className="space-y-2">
               <Label htmlFor="commercial-brief" className="font-body">
-                Descrição breve
+                {hasDraftDescription ? "Descrição sugerida — valide ou edite" : "Descrição breve"}
               </Label>
               <Textarea
                 id="commercial-brief"
@@ -438,6 +469,13 @@ export function CommercialUploadDialog({
                 onChange={(event) => setBriefDescription(event.target.value)}
                 className="font-body"
               />
+              {hasDraftDescription && (
+                <p className="flex items-center gap-1.5 font-body text-xs text-muted-foreground">
+                  <Sparkles className="h-3 w-3 text-primary" />
+                  Escrita a partir do conteúdo do arquivo. É ela que orienta as próximas
+                  perguntas — ajuste antes de seguir.
+                </p>
+              )}
             </div>
           </div>
         )}
