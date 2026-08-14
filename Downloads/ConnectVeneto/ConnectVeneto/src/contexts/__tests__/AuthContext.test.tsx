@@ -239,7 +239,8 @@ describe('AuthContext', () => {
         canViewApplications: true,
         canViewRegrasComerciais: true,
         canManageRegrasComerciais: false,
-        canViewBibliotecaComercial: false,
+        // Acervo aberto a toda a empresa; só publicar é restrito.
+        canViewBibliotecaComercial: true,
         canManageBibliotecaComercial: false,
         canViewTasks: false,
         canViewBI: false,

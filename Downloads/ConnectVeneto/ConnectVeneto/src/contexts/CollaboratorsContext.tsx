@@ -98,7 +98,9 @@ const defaultPermissions: CollaboratorPermissions = {
   canViewApplications: true,
   canViewRegrasComerciais: true,
   canManageRegrasComerciais: false,
-  canViewBibliotecaComercial: false,
+  // Acervo aberto a toda a empresa, como o repositório interno. Publicar é que
+  // continua restrito a quem cura a biblioteca.
+  canViewBibliotecaComercial: true,
   canManageBibliotecaComercial: false,
   canViewTasks: false,
   canViewBI: false,

@@ -18,16 +18,23 @@ import { Progress } from "@/components/ui/progress";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "@/hooks/use-toast";
 import {
+  resolveUploadMime,
   UPLOAD_ACCEPT_ATTRIBUTE,
+  UPLOAD_MIME_TO_FILE_TYPE,
   type CommercialDocument,
   type CommercialFileType,
 } from "@/config/biblioteca-comercial";
+import type { ExtractionResult } from "@/lib/document-text-extraction";
 import {
   deleteCommercialFile,
   uploadCommercialFile,
   validateCommercialFile,
 } from "@/lib/biblioteca-comercial-storage";
-import { useUploadAssistant, type AssistantAnswer } from "@/hooks/useUploadAssistant";
+import {
+  useUploadAssistant,
+  type AssistantAnswer,
+  type AssistantQuestion,
+} from "@/hooks/useUploadAssistant";
 import type {
   CommercialDocumentDraft,
   CommercialDocumentEdit,
@@ -70,7 +77,7 @@ export function CommercialUploadDialog({
   onUpdate,
 }: CommercialUploadDialogProps) {
   const isEditing = !!editing;
-  const { ask, isThinking } = useUploadAssistant();
+  const { ask, readFile, isThinking, isReadingFile } = useUploadAssistant();
 
   const [mode, setMode] = useState<Mode>("source");
   const [sourceType, setSourceType] = useState<"upload" | "link">("upload");
@@ -79,7 +86,10 @@ export function CommercialUploadDialog({
   const [linkFileType, setLinkFileType] = useState<CommercialFileType>("pdf");
   const [briefDescription, setBriefDescription] = useState("");
 
-  const [questions, setQuestions] = useState<string[]>([]);
+  /** Conteúdo lido do arquivo e o que contar a quem publica sobre essa leitura. */
+  const [extraction, setExtraction] = useState<ExtractionResult | null>(null);
+
+  const [questions, setQuestions] = useState<AssistantQuestion[]>([]);
   const [answers, setAnswers] = useState<string[]>([]);
   const [previousAnswers, setPreviousAnswers] = useState<AssistantAnswer[]>([]);
   const [round, setRound] = useState(0);
@@ -111,6 +121,7 @@ export function CommercialUploadDialog({
       setDescription("");
       setTags([]);
     }
+    setExtraction(null);
     setQuestions([]);
     setAnswers([]);
     setPreviousAnswers([]);
@@ -120,22 +131,49 @@ export function CommercialUploadDialog({
   }, [open, editing]);
 
   const effectiveFileName = file?.name ?? linkUrl;
-  const effectiveFileType: CommercialFileType = sourceType === "link" ? linkFileType : "pdf";
+
+  /** Deriva o tipo do próprio arquivo — antes vinha fixo como "pdf". */
+  const effectiveFileType: CommercialFileType = useMemo(() => {
+    if (sourceType === "link") return linkFileType;
+    if (!file) return "pdf";
+    const mime = resolveUploadMime(file.name, file.type);
+    return (mime && UPLOAD_MIME_TO_FILE_TYPE[mime]) || "pdf";
+  }, [sourceType, linkFileType, file]);
 
   const canStartAssistant = useMemo(() => {
+    // Esperar a leitura evita mandar o assistente trabalhar sem o conteúdo do arquivo.
+    if (isReadingFile) return false;
     if (briefDescription.trim().length < 3) return false;
     if (sourceType === "upload") return !!file;
     return /^https:\/\/\S+$/.test(linkUrl.trim());
-  }, [briefDescription, sourceType, file, linkUrl]);
+  }, [isReadingFile, briefDescription, sourceType, file, linkUrl]);
 
-  const handleFileChange = (selected: File | undefined) => {
+  /**
+   * Ao escolher o arquivo, lê o conteúdo e já preenche a descrição com um rascunho.
+   * Quem publica revisa em vez de escrever do zero; se a leitura falhar, o campo
+   * fica em branco e o motivo aparece abaixo dele.
+   */
+  const handleFileChange = async (selected: File | undefined) => {
     if (!selected) return;
     const validationError = validateCommercialFile(selected);
     if (validationError) {
       toast({ title: "Arquivo não aceito", description: validationError, variant: "destructive" });
       return;
     }
+
     setFile(selected);
+    setExtraction(null);
+
+    const mime = resolveUploadMime(selected.name, selected.type);
+    const detectedType = (mime && UPLOAD_MIME_TO_FILE_TYPE[mime]) || "pdf";
+
+    const { extraction: result, draftDescription } = await readFile(selected, detectedType);
+    setExtraction(result);
+
+    // Não sobrescreve o que a pessoa já tenha digitado.
+    if (draftDescription) {
+      setBriefDescription((current) => current.trim() || draftDescription);
+    }
   };
 
   const runAssistant = async (
@@ -147,6 +185,7 @@ export function CommercialUploadDialog({
       fileName: effectiveFileName,
       fileType: effectiveFileType,
       userDescription: briefDescription.trim(),
+      documentText: extraction?.text ?? "",
       answers: accumulatedAnswers,
       round: nextRound,
       finalize,
@@ -167,7 +206,9 @@ export function CommercialUploadDialog({
 
     if (result.status === "questions") {
       setQuestions(result.questions);
-      setAnswers(new Array(result.questions.length).fill(""));
+      // Campos já vêm com a resposta que o conteúdo do arquivo sugere: confirmar é
+      // mais rápido que escrever, e o que a IA não soube deduzir fica em branco.
+      setAnswers(result.questions.map((item) => item.suggestedAnswer ?? ""));
       setPreviousAnswers(accumulatedAnswers);
       setRound(nextRound);
       setMode("interview");
@@ -182,7 +223,10 @@ export function CommercialUploadDialog({
 
   const collectAnswers = (): AssistantAnswer[] => [
     ...previousAnswers,
-    ...questions.map((question, index) => ({ question, answer: answers[index] ?? "" })),
+    ...questions.map((item, index) => ({
+      question: item.question,
+      answer: answers[index] ?? "",
+    })),
   ];
 
   const handleSubmitAnswers = () => {
@@ -325,11 +369,26 @@ export function CommercialUploadDialog({
                   id="commercial-file"
                   type="file"
                   accept={UPLOAD_ACCEPT_ATTRIBUTE}
-                  onChange={(event) => handleFileChange(event.target.files?.[0])}
+                  onChange={(event) => void handleFileChange(event.target.files?.[0])}
+                  disabled={isReadingFile}
                   className="font-body"
                 />
                 {file && (
                   <p className="font-body text-sm text-muted-foreground">Selecionado: {file.name}</p>
+                )}
+                {isReadingFile && (
+                  <p className="flex items-center gap-1.5 font-body text-sm text-muted-foreground">
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    Lendo o conteúdo do arquivo…
+                  </p>
+                )}
+                {/* Diz de onde saiu (ou por que não saiu) a descrição sugerida. */}
+                {!isReadingFile && extraction && (
+                  <p className="font-body text-sm text-muted-foreground">
+                    {extraction.source === "none"
+                      ? `Não consegui ler o conteúdo. ${extraction.note ?? ""} Descreva o material abaixo.`
+                      : `Conteúdo lido${extraction.note ? ` — ${extraction.note}` : ""}. Revise a descrição sugerida.`}
+                  </p>
                 )}
               </div>
             ) : (
@@ -385,25 +444,37 @@ export function CommercialUploadDialog({
 
         {mode === "interview" && (
           <div className="space-y-4">
-            {questions.map((question, index) => (
-              <div key={question} className="space-y-2">
-                <Label htmlFor={`assistant-answer-${index}`} className="font-body">
-                  {question}{" "}
-                  <span className="font-normal text-muted-foreground">(opcional)</span>
-                </Label>
-                <Input
-                  id={`assistant-answer-${index}`}
-                  value={answers[index] ?? ""}
-                  onChange={(event) => {
-                    const next = [...answers];
-                    next[index] = event.target.value;
-                    setAnswers(next);
-                  }}
-                  placeholder="Deixe em branco se não se aplica"
-                  className="font-body"
-                />
-              </div>
-            ))}
+            {questions.map((item, index) => {
+              const hasSuggestion = !!item.suggestedAnswer;
+              const isUnchanged = hasSuggestion && answers[index] === item.suggestedAnswer;
+
+              return (
+                <div key={item.question} className="space-y-2">
+                  <Label htmlFor={`assistant-answer-${index}`} className="font-body">
+                    {item.question}{" "}
+                    <span className="font-normal text-muted-foreground">(opcional)</span>
+                  </Label>
+                  <Input
+                    id={`assistant-answer-${index}`}
+                    value={answers[index] ?? ""}
+                    onChange={(event) => {
+                      const next = [...answers];
+                      next[index] = event.target.value;
+                      setAnswers(next);
+                    }}
+                    placeholder="Deixe em branco se não se aplica"
+                    className="font-body"
+                  />
+                  {/* Sugestão intacta merece conferência: ela veio do arquivo, não de você. */}
+                  {isUnchanged && (
+                    <p className="flex items-center gap-1.5 font-body text-xs text-muted-foreground">
+                      <Sparkles className="h-3 w-3 text-primary" />
+                      Sugerido a partir do conteúdo do arquivo — confirme ou corrija.
+                    </p>
+                  )}
+                </div>
+              );
+            })}
           </div>
         )}
 

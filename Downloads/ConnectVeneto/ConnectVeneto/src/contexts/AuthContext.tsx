@@ -131,7 +131,7 @@ const defaultPermissions: CollaboratorPermissions = {
   canViewApplications: true,
   canViewRegrasComerciais: true,
   canManageRegrasComerciais: false,
-  canViewBibliotecaComercial: false,
+  canViewBibliotecaComercial: true,
   canManageBibliotecaComercial: false,
   canViewTasks: false,
   canViewBI: false,
