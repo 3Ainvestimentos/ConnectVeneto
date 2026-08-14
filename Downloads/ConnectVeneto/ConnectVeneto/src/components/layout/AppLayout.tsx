@@ -34,7 +34,7 @@ import { findCollaboratorByEmail } from '@/lib/email-utils';
 import { getCollaboratorUserId } from '@/contexts/CollaboratorsContext';
 import logoSidebar from '../../../docs/PNG/logotipo_vênetoPrancheta 1.png';
 import { UserNav } from './UserNav';
-import { navItems, noZoomRoutes } from './navigation';
+import { canSeeNavItem, navItems, noZoomRoutes } from './navigation';
 import { bootstrapTrace } from '@/lib/bootstrap-trace';
 
 
@@ -233,7 +233,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
               </div>
               <SidebarMenu>
                 {navItems.map((item) => {
-                  if (item.permission && !permissions[item.permission as keyof typeof permissions]) {
+                  if (!canSeeNavItem(item, permissions)) {
                     return null;
                   }
                   return (

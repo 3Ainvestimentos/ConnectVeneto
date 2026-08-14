@@ -50,7 +50,7 @@ import { useSystemSettings } from '@/contexts/SystemSettingsContext';
 import { TermsOfUseModal } from '@/features/auth/components/TermsOfUseModal';
 import { findCollaboratorByEmail } from '@/lib/email-utils';
 import { getCollaboratorUserId } from '@/contexts/CollaboratorsContext';
-import { navItems, noZoomRoutes } from '@/components/layout/navigation';
+import { canSeeNavItem, navItems, noZoomRoutes } from '@/components/layout/navigation';
 import logoSidebar from '../../../../docs/PNG/logotipo_vênetoPrancheta 1.png';
 
 function UserNav({ onProfileClick, hasPendingRequests, hasPendingTasks }: { onProfileClick: () => void; hasPendingRequests: boolean; hasPendingTasks: boolean; }) {
@@ -378,7 +378,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
               </div>
               <SidebarMenu>
                 {navItems.map((item) => {
-                  if (item.permission && !permissions[item.permission as keyof typeof permissions]) {
+                  if (!canSeeNavItem(item, permissions)) {
                     return null;
                   }
                   return (

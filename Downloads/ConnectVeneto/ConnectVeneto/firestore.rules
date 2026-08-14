@@ -173,6 +173,26 @@ service cloud.firestore {
       allow write: if false;
     }
 
+    /**
+     * Biblioteca Comercial (aba "Comercial" em /documents).
+     * Somente leitura pelo client — a gravação passa pelas rotas
+     * /api/biblioteca-comercial/documents, que validam
+     * permissions.canManageBibliotecaComercial com o Admin SDK. Mesmo motivo dos
+     * slides: as rules não conseguem consultar o documento do colaborador pelo e-mail.
+     */
+    match /commercialDocuments/{docId} {
+      allow read: if isAuthenticated();
+      allow write: if false;
+    }
+
+    /**
+     * Favoritos da biblioteca de documentos, um documento por usuário
+     * (ID do documento = auth.uid). Cada um só lê e escreve o próprio.
+     */
+    match /documentFavorites/{userId} {
+      allow read, write: if isAuthenticated() && request.auth.uid == userId;
+    }
+
     // =========================
     // Viagens (modo simples)
     // usuário cria/edita/exclui as próprias

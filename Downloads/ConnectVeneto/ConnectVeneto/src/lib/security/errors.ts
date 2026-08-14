@@ -26,9 +26,21 @@ const ERROR_MAP: Record<string, ErrorDescriptor> = {
     status: 403,
     body: { error: 'Acesso negado: requer permissao para editar o Mix de Servicos.' },
   },
+  FORBIDDEN_BIBLIOTECA_COMERCIAL_VIEWER_REQUIRED: {
+    status: 403,
+    body: { error: 'Acesso negado: requer acesso a Biblioteca Comercial.' },
+  },
+  FORBIDDEN_BIBLIOTECA_COMERCIAL_MANAGER_REQUIRED: {
+    status: 403,
+    body: { error: 'Acesso negado: requer permissao para gerenciar a Biblioteca Comercial.' },
+  },
   SYSTEM_SETTINGS_NOT_FOUND: {
     status: 503,
     body: { error: 'Configuracao do sistema indisponivel.' },
+  },
+  OPENAI_NOT_CONFIGURED: {
+    status: 503,
+    body: { error: 'Assistente de IA indisponivel: OPENAI_API_KEY nao configurada.' },
   },
 };
 
