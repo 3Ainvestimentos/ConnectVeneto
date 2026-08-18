@@ -121,16 +121,6 @@ export const venetoRepositoryDocuments: DocumentType[] = [
       "https://drive.google.com/file/d/1S7JQgDXHpinAFT9difYD-aOO2zAizdmL/view?usp=sharing",
   },
   {
-    id: "lamina-latache-special-solutions",
-    name: "Lamina Asset — VL LATACHE SPECIAL SOLUTIONS FIC FIM CP",
-    category: "Laminas Asset",
-    type: "pdf",
-    size: "—",
-    lastModified: VENETO_REPOSITORY_SORT_SENTINEL_ISO,
-    downloadUrl:
-      "https://drive.google.com/file/d/1XGi2mCna-ev9DTlT5Dog78xCdG8_8JBW/view?usp=sharing",
-  },
-  {
     id: "lamina-vp-equities",
     name: "Lamina Asset — VP EQUITIES FIA",
     category: "Laminas Asset",
