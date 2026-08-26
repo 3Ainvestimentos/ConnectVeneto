@@ -45,6 +45,15 @@ const KIND_ICON = {
   link: { Icon: Link2, className: "text-sky-600" },
 } as const;
 
+/** "08/2026" a partir do ISO de publicação; null se ausente/inválido. */
+const formatMonthYear = (iso?: string): string | null => {
+  if (!iso) return null;
+  const timestamp = Date.parse(iso);
+  if (!Number.isFinite(timestamp)) return null;
+  const date = new Date(timestamp);
+  return `${String(date.getMonth() + 1).padStart(2, "0")}/${date.getFullYear()}`;
+};
+
 const KIND_LABEL: Record<UnifiedDocument["kind"], string> = {
   pdf: "PDF",
   ppt: "Apresentação",
@@ -112,6 +121,8 @@ export function CommercialDocumentCard({
       ? document.sizeLabel
       : null;
 
+  const monthYearLabel = formatMonthYear(document.createdAt);
+
   return (
     <Card className={cn("flex flex-col shadow-sm transition-shadow hover:shadow-md", className)}>
       <CardContent className="flex flex-1 flex-col gap-3 p-4">
@@ -166,6 +177,7 @@ export function CommercialDocumentCard({
           <span className="font-body text-xs text-muted-foreground">
             {KIND_LABEL[document.kind] ?? "Documento"}
             {sizeLabel ? ` · ${sizeLabel}` : ""}
+            {monthYearLabel ? ` · ${monthYearLabel}` : ""}
           </span>
           <div className="flex items-center gap-1">
             {isCommercial && canManage && onEdit && (
