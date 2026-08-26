@@ -28,6 +28,8 @@ export type UnifiedDocument = {
   sourceType: 'upload' | 'link';
   sizeBytes?: number;
   sizeLabel?: string;
+  /** ISO de publicação — só nos comerciais; usado para exibir mês/ano no card. */
+  createdAt?: string;
 };
 
 const INTERNAL_TYPE_TO_KIND: Record<string, UnifiedDocument['kind']> = {
@@ -54,6 +56,7 @@ export const toUnifiedFromCommercial = (document: CommercialDocument): UnifiedDo
   downloadUrl: document.downloadUrl,
   sourceType: document.sourceType,
   sizeBytes: document.sizeBytes,
+  createdAt: document.createdAt,
 });
 
 export const toUnifiedFromInternal = (document: DocumentType): UnifiedDocument => ({
