@@ -8,22 +8,50 @@ import {
 import { completeWithJsonSchema } from '@/lib/openai';
 import {
   buildDraftSystemPrompt,
+  buildImageDraftSystemPrompt,
   draftResponseSchema,
   type DraftModelResponse,
 } from '@/lib/biblioteca-comercial-prompts';
 
 const MAX_DOCUMENT_TEXT = 8100;
 
-const payloadSchema = z.object({
-  fileName: z.string().trim().min(1).max(300),
-  fileType: z.enum(['pdf', 'ppt', 'audio', 'link']),
-  /** Texto lido do arquivo no navegador. Sem ele não há o que resumir. */
-  documentText: z.string().trim().min(1, 'Sem conteúdo para descrever.').max(MAX_DOCUMENT_TEXT),
-});
+/**
+ * Teto do data URL da imagem. O client já reduz a imagem antes de enviar; este
+ * limite existe para o corpo da requisição não passar do que a Vercel aceita (~4,5 MB)
+ * mesmo se alguém chamar a rota direto.
+ */
+const MAX_IMAGE_DATA_URL_CHARS = 3_000_000;
+
+const IMAGE_DATA_URL = /^data:image\/(jpeg|png|webp|gif);base64,[A-Za-z0-9+/=]+$/;
 
 /**
- * Redige o rascunho da descrição a partir do conteúdo do próprio arquivo, para o
- * campo já nascer preenchido em vez de exigir que quem publica escreva do zero.
+ * O rascunho vem do texto lido do arquivo ou, quando o material é uma imagem, da
+ * própria imagem — nunca dos dois. Imagem não tem texto para o browser extrair:
+ * quem lê é o modelo de visão.
+ */
+const payloadSchema = z
+  .object({
+    fileName: z.string().trim().min(1).max(300),
+    fileType: z.enum(['pdf', 'ppt', 'audio', 'image', 'link']),
+    /** Texto lido do arquivo no navegador. */
+    documentText: z.string().trim().max(MAX_DOCUMENT_TEXT).optional(),
+    /** Imagem já reduzida no navegador, em data URL. */
+    imageDataUrl: z
+      .string()
+      .trim()
+      .max(MAX_IMAGE_DATA_URL_CHARS, 'Imagem grande demais para leitura.')
+      .refine((value) => IMAGE_DATA_URL.test(value), 'Imagem inválida.')
+      .optional(),
+  })
+  .refine(
+    (value) => !!value.documentText || !!value.imageDataUrl,
+    'Sem conteúdo para descrever.'
+  );
+
+/**
+ * Redige o rascunho da descrição a partir do conteúdo do próprio arquivo — o texto
+ * lido no navegador ou, quando o material é uma imagem, a peça vista pelo modelo —
+ * para o campo já nascer preenchido em vez de exigir que quem publica escreva do zero.
  *
  * Quem publica revisa e edita antes de seguir — o rascunho é ponto de partida,
  * não verdade final.
@@ -41,23 +69,32 @@ export async function POST(request: Request) {
       );
     }
 
-    const { fileName, fileType, documentText } = parsed.data;
+    const { fileName, fileType, documentText, imageDataUrl } = parsed.data;
 
     const result = await completeWithJsonSchema<DraftModelResponse>({
-      systemPrompt: buildDraftSystemPrompt(),
+      systemPrompt: imageDataUrl ? buildImageDraftSystemPrompt() : buildDraftSystemPrompt(),
       messages: [
-        {
-          role: 'user',
-          content: [
-            `Nome do arquivo: ${fileName}`,
-            `Tipo: ${fileType}`,
-            '',
-            'Conteúdo lido do arquivo:',
-            '"""',
-            documentText,
-            '"""',
-          ].join('\n'),
-        },
+        imageDataUrl
+          ? {
+              role: 'user',
+              content: [
+                { type: 'text', text: `Nome do arquivo: ${fileName}\nTipo: ${fileType}` },
+                // `detail: 'high'`: sem isso o modelo não lê o texto impresso na peça.
+                { type: 'image_url', image_url: { url: imageDataUrl, detail: 'high' } },
+              ],
+            }
+          : {
+              role: 'user',
+              content: [
+                `Nome do arquivo: ${fileName}`,
+                `Tipo: ${fileType}`,
+                '',
+                'Conteúdo lido do arquivo:',
+                '"""',
+                documentText ?? '',
+                '"""',
+              ].join('\n'),
+            },
       ],
       schemaName: 'biblioteca_comercial_rascunho',
       schema: draftResponseSchema,
@@ -66,7 +103,8 @@ export async function POST(request: Request) {
 
     logSecurityEvent('[api/biblioteca-comercial/draft] rascunho gerado', {
       email: context.email,
-      chars: documentText.length,
+      source: imageDataUrl ? 'imagem' : 'texto',
+      chars: documentText?.length ?? 0,
     });
 
     return NextResponse.json(

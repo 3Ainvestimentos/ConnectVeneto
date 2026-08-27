@@ -19,7 +19,7 @@ const MAX_DOCUMENT_TEXT = 8100;
 
 const payloadSchema = z.object({
   fileName: z.string().trim().min(1).max(300),
-  fileType: z.enum(['pdf', 'ppt', 'audio', 'link']),
+  fileType: z.enum(['pdf', 'ppt', 'audio', 'image', 'link']),
   userDescription: z
     .string()
     .trim()

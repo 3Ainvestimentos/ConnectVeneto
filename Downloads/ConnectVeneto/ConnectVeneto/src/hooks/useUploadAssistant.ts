@@ -68,7 +68,8 @@ export function useUploadAssistant() {
         const token = await getIdToken();
         const extraction = await extractDocumentText(file, token);
 
-        if (!extraction.text) {
+        // Imagem não produz texto no browser: quem a lê é o modelo de visão, na rota.
+        if (!extraction.text && !extraction.imageDataUrl) {
           return { extraction, draftDescription: '' };
         }
 
@@ -78,7 +79,9 @@ export function useUploadAssistant() {
           body: JSON.stringify({
             fileName: file.name,
             fileType,
-            documentText: extraction.text,
+            ...(extraction.imageDataUrl
+              ? { imageDataUrl: extraction.imageDataUrl }
+              : { documentText: extraction.text }),
           }),
         });
 
@@ -93,6 +96,15 @@ export function useUploadAssistant() {
               note: payload?.error ?? 'Li o arquivo, mas não consegui redigir a descrição.',
             },
             draftDescription: '',
+          };
+        }
+
+        // O assistente da entrevista só recebe texto. Para imagens, o "conteúdo lido"
+        // passa a ser a leitura que o modelo de visão fez da peça.
+        if (extraction.imageDataUrl) {
+          return {
+            extraction: { ...extraction, text: payload.description },
+            draftDescription: payload.description,
           };
         }
 

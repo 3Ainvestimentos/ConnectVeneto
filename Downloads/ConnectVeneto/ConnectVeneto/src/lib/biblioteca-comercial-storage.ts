@@ -26,7 +26,7 @@ export const validateCommercialFile = (file: File): string | null => {
     return `Arquivo muito grande. O limite é ${Math.floor(MAX_UPLOAD_BYTES / (1024 * 1024))} MB.`;
   }
   if (!resolveUploadMime(file.name, file.type)) {
-    return 'Formato não suportado. Envie PDF, PPT/PPTX, MP3, M4A ou WAV.';
+    return 'Formato não suportado. Envie PDF, PPT/PPTX, MP3, M4A, WAV, JPG, PNG, WEBP ou GIF.';
   }
   return null;
 };
@@ -46,7 +46,7 @@ export const uploadCommercialFile = (
   return new Promise((resolve, reject) => {
     const mimeType = resolveUploadMime(file.name, file.type);
     if (!mimeType) {
-      reject(new Error('Formato não suportado. Envie PDF, PPT/PPTX, MP3, M4A ou WAV.'));
+      reject(new Error('Formato não suportado. Envie PDF, PPT/PPTX, MP3, M4A, WAV, JPG, PNG, WEBP ou GIF.'));
       return;
     }
 

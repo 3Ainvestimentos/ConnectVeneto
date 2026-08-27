@@ -103,7 +103,10 @@ export default function CommercialLibraryClient({
     });
   };
 
-  /** PDF do Storage abre no visualizador; áudio toca no card; o resto sai do app. */
+  /**
+   * PDF e imagem do Storage abrem no visualizador; áudio toca no card; o resto sai
+   * do app.
+   */
   const handleOpen = (document: UnifiedDocument) => {
     if (isAllowedDocumentInternalPath(document.internalPath)) {
       logAccess(document);
@@ -122,7 +125,10 @@ export default function CommercialLibraryClient({
 
     logAccess(document);
 
-    if (document.kind === "pdf" && document.sourceType === "upload") {
+    if (
+      (document.kind === "pdf" || document.kind === "image") &&
+      document.sourceType === "upload"
+    ) {
       setPreviewDocument(document);
       return;
     }
@@ -258,6 +264,7 @@ export default function CommercialLibraryClient({
         title={previewDocument?.title ?? ""}
         description={previewDocument?.description}
         url={previewDocument?.downloadUrl ?? null}
+        kind={previewDocument?.kind === "image" ? "image" : "pdf"}
         onClose={() => setPreviewDocument(null)}
       />
 

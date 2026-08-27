@@ -14,7 +14,7 @@ export const COMMERCIAL_STORAGE_FOLDER = 'biblioteca-comercial';
 
 export const MAX_UPLOAD_BYTES = 100 * 1024 * 1024;
 
-export type CommercialFileType = 'pdf' | 'ppt' | 'audio' | 'link';
+export type CommercialFileType = 'pdf' | 'ppt' | 'audio' | 'image' | 'link';
 
 /**
  * MIME types aceitos no upload, mapeados para o tipo exibido na interface.
@@ -30,6 +30,10 @@ export const UPLOAD_MIME_TO_FILE_TYPE: Record<string, Exclude<CommercialFileType
   'audio/m4a': 'audio',
   'audio/wav': 'audio',
   'audio/x-wav': 'audio',
+  'image/jpeg': 'image',
+  'image/png': 'image',
+  'image/webp': 'image',
+  'image/gif': 'image',
 };
 
 export const ACCEPTED_UPLOAD_MIME_TYPES = Object.keys(UPLOAD_MIME_TO_FILE_TYPE);
@@ -45,6 +49,11 @@ export const EXTENSION_TO_UPLOAD_MIME: Record<string, string> = {
   mp3: 'audio/mpeg',
   m4a: 'audio/mp4',
   wav: 'audio/wav',
+  jpg: 'image/jpeg',
+  jpeg: 'image/jpeg',
+  png: 'image/png',
+  webp: 'image/webp',
+  gif: 'image/gif',
 };
 
 /** MIME efetivo de um upload: o do arquivo quando reconhecido, senão o da extensão. */
@@ -55,12 +64,14 @@ export const resolveUploadMime = (fileName: string, fileType: string): string | 
 };
 
 /** Valor do atributo `accept` do input de arquivo. */
-export const UPLOAD_ACCEPT_ATTRIBUTE = '.pdf,.ppt,.pptx,.mp3,.m4a,.wav';
+export const UPLOAD_ACCEPT_ATTRIBUTE =
+  '.pdf,.ppt,.pptx,.mp3,.m4a,.wav,.jpg,.jpeg,.png,.webp,.gif';
 
 export const COMMERCIAL_FILE_TYPE_LABEL: Record<CommercialFileType, string> = {
   pdf: 'PDF',
   ppt: 'Apresentação',
   audio: 'Áudio',
+  image: 'Imagem',
   link: 'Link',
 };
 
