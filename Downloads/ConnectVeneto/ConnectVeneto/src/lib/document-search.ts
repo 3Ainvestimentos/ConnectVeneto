@@ -21,7 +21,7 @@ export type UnifiedDocument = {
   tags: string[];
   /** Categoria dos internos; os comerciais não têm (a taxonomia deles é só tags). */
   category?: string;
-  kind: 'pdf' | 'ppt' | 'audio' | 'doc' | 'sheet' | 'form' | 'page' | 'link';
+  kind: 'pdf' | 'ppt' | 'audio' | 'image' | 'doc' | 'sheet' | 'form' | 'page' | 'link';
   downloadUrl: string;
   /** Só em documentos internos que são páginas do próprio app (ex.: glossário). */
   internalPath?: string;
@@ -40,6 +40,12 @@ const INTERNAL_TYPE_TO_KIND: Record<string, UnifiedDocument['kind']> = {
   docx: 'doc',
   xls: 'sheet',
   xlsx: 'sheet',
+  jpg: 'image',
+  jpeg: 'image',
+  png: 'image',
+  webp: 'image',
+  gif: 'image',
+  image: 'image',
   form: 'form',
   interno: 'page',
   link: 'link',

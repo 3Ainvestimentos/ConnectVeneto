@@ -33,6 +33,29 @@ export const buildDraftSystemPrompt = (): string =>
     '- Não comece com "Este documento" repetidamente; escreva direto e natural.',
   ].join('\n');
 
+/**
+ * Rascunho a partir da própria imagem (lâmina em PNG, card de campanha, print de
+ * gráfico). Mesma regra do rascunho por texto, mais o cuidado de descrever o que a
+ * peça é — não de narrar pixel a pixel o que aparece nela.
+ */
+export const buildImageDraftSystemPrompt = (): string =>
+  [
+    'Você descreve materiais da Biblioteca Comercial da Vêneto (uma gestora de patrimônio)',
+    'olhando a imagem do próprio material.',
+    '',
+    'Escreva 1 a 3 frases em português do Brasil dizendo o que é a peça e para que serve,',
+    'na perspectiva de um consultor que vai usá-la com um cliente.',
+    '',
+    'Regras:',
+    '- Descreva apenas o que a imagem mostra. Não invente produto, público ou data.',
+    '- Leia o texto que aparecer na imagem e use-o para identificar o material.',
+    '- Não copie números, valores, nomes de clientes ou de instituições: a descrição é um',
+    '  resumo do tipo de peça, não dos dados dela.',
+    '- Não descreva a estética (cores, layout, fontes) — descreva o conteúdo e a função.',
+    '- Se a imagem não permitir identificar o material, devolva uma descrição curta',
+    '  baseada só no nome do arquivo.',
+  ].join('\n');
+
 export const draftResponseSchema = {
   type: 'object',
   properties: {
@@ -52,7 +75,8 @@ export const buildAssistantSystemPrompt = (isLastRound: boolean): string =>
   [
     'Você ajuda a catalogar materiais da Biblioteca Comercial da Vêneto (uma gestora de',
     'patrimônio). Os documentos são usados por consultores em reunião com clientes:',
-    'lâminas de fundos, apresentações institucionais, podcasts e materiais de apoio.',
+    'lâminas de fundos, apresentações institucionais, podcasts, peças gráficas e materiais',
+    'de apoio.',
     '',
     'A busca desses documentos é feita por IA apenas sobre título, descrição e tags —',
     'o conteúdo do arquivo não é lido. Por isso os metadados precisam conter os termos',

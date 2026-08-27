@@ -35,13 +35,21 @@ export function getOpenAIClient(): OpenAI {
 }
 
 /**
+ * Parte de mensagem no formato multimodal do chat completions. Existe para o
+ * rascunho de imagens: `gpt-4o-mini` enxerga a imagem enviada como data URL.
+ */
+export type ChatContentPart =
+  | { type: 'text'; text: string }
+  | { type: 'image_url'; image_url: { url: string; detail?: 'low' | 'high' | 'auto' } };
+
+/**
  * Uma chamada de chat completion com resposta em JSON validado por schema
  * (structured outputs). O modelo não tem como devolver texto fora do formato,
  * então quem chama não precisa tratar parsing tolerante.
  */
 export async function completeWithJsonSchema<T>(options: {
   systemPrompt: string;
-  messages: Array<{ role: 'user' | 'assistant'; content: string }>;
+  messages: Array<{ role: 'user' | 'assistant'; content: string | ChatContentPart[] }>;
   schemaName: string;
   schema: Record<string, unknown>;
   maxOutputTokens?: number;
@@ -53,7 +61,8 @@ export async function completeWithJsonSchema<T>(options: {
     max_completion_tokens: options.maxOutputTokens ?? 800,
     messages: [
       { role: 'system', content: options.systemPrompt },
-      ...options.messages,
+      // O SDK tipa `content` por papel; a união role+content aqui é sempre válida.
+      ...(options.messages as OpenAI.Chat.ChatCompletionMessageParam[]),
     ],
     response_format: {
       type: 'json_schema',

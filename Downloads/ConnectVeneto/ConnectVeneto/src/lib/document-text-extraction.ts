@@ -8,8 +8,9 @@
  * publica, e mandá-lo para uma API route esbarraria no limite de ~4,5 MB de body
  * da Vercel. Sobe só o texto extraído (poucos KB).
  *
- * Áudio é a exceção: transcrever exige o modelo, então vai um trecho inicial para
- * /api/biblioteca-comercial/transcribe.
+ * Áudio e imagem são as exceções: os dois exigem o modelo. O áudio vai em trecho
+ * para /api/biblioteca-comercial/transcribe; a imagem é reduzida aqui e segue como
+ * data URL para /api/biblioteca-comercial/draft, que a lê com o modelo de visão.
  */
 
 /** Teto do texto enviado ao modelo: o suficiente para descrever, sem inflar o prompt. */
@@ -20,12 +21,24 @@ const MAX_PPTX_SLIDES = 25;
 /** O body da Vercel não passa de ~4,5 MB; o trecho de áudio fica abaixo disso. */
 const MAX_AUDIO_SLICE_BYTES = 4 * 1024 * 1024;
 
+/**
+ * Lado maior da imagem enviada ao modelo de visão. Acima disso não se ganha
+ * legibilidade de texto em lâmina, só custo e tamanho de payload.
+ */
+const MAX_IMAGE_DIMENSION = 1400;
+const IMAGE_JPEG_QUALITY = 0.82;
+
 export type ExtractionResult = {
   text: string;
   /** De onde o texto veio — `none` quando não foi possível ler. */
-  source: 'pdf' | 'pptx' | 'audio' | 'none';
+  source: 'pdf' | 'pptx' | 'audio' | 'image' | 'none';
   /** Explicação curta para a interface quando a leitura falha ou é parcial. */
   note?: string;
+  /**
+   * Só em imagens: a própria imagem reduzida, em data URL, para o modelo de visão
+   * descrever. Aqui não há texto a extrair no browser — quem "lê" é o modelo.
+   */
+  imageDataUrl?: string;
 };
 
 const clamp = (text: string): string =>
@@ -164,6 +177,46 @@ async function extractAudio(file: File, idToken: string): Promise<ExtractionResu
 }
 
 /**
+ * Reduz a imagem e devolve um JPEG em data URL.
+ *
+ * Reduzir no browser é o que mantém o payload longe do limite de ~4,5 MB da Vercel:
+ * uma foto de celular de 8 MB vira algumas centenas de KB sem perder o texto da peça.
+ * GIF animado perde a animação aqui — o que vai ao modelo é só o primeiro quadro.
+ */
+async function extractImage(file: File): Promise<ExtractionResult> {
+  const bitmap = await createImageBitmap(file);
+
+  try {
+    const scale = Math.min(1, MAX_IMAGE_DIMENSION / Math.max(bitmap.width, bitmap.height));
+    const width = Math.max(1, Math.round(bitmap.width * scale));
+    const height = Math.max(1, Math.round(bitmap.height * scale));
+
+    const canvas = document.createElement('canvas');
+    canvas.width = width;
+    canvas.height = height;
+
+    const context = canvas.getContext('2d');
+    if (!context) {
+      return { text: '', source: 'none', note: 'Não consegui preparar a imagem para leitura.' };
+    }
+
+    // Fundo branco: PNG/WEBP com transparência viram preto ao achatar em JPEG.
+    context.fillStyle = '#ffffff';
+    context.fillRect(0, 0, width, height);
+    context.drawImage(bitmap, 0, 0, width, height);
+
+    return {
+      text: '',
+      source: 'image',
+      imageDataUrl: canvas.toDataURL('image/jpeg', IMAGE_JPEG_QUALITY),
+      note: scale < 1 ? 'Imagem reduzida para leitura.' : undefined,
+    };
+  } finally {
+    bitmap.close();
+  }
+}
+
+/**
  * Lê o conteúdo do arquivo conforme o tipo. Nunca lança: quando não dá para ler,
  * devolve `source: 'none'` com a explicação, e o cadastro continua sem o texto.
  */
@@ -193,6 +246,10 @@ export async function extractDocumentText(
 
     if (file.type.startsWith('audio/') || /\.(mp3|m4a|wav)$/.test(name)) {
       return await extractAudio(file, idToken);
+    }
+
+    if (file.type.startsWith('image/') || /\.(jpe?g|png|webp|gif)$/.test(name)) {
+      return await extractImage(file);
     }
 
     return { text: '', source: 'none', note: 'Tipo de arquivo sem leitura automática.' };

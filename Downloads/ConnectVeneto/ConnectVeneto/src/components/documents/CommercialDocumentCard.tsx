@@ -9,6 +9,7 @@ import {
   FileText,
   FileType,
   Headphones,
+  ImageIcon,
   Link2,
   Pencil,
   Presentation,
@@ -38,6 +39,7 @@ const KIND_ICON = {
   pdf: { Icon: FileType, className: "text-red-500" },
   ppt: { Icon: Presentation, className: "text-orange-500" },
   audio: { Icon: Headphones, className: "text-violet-500" },
+  image: { Icon: ImageIcon, className: "text-pink-500" },
   doc: { Icon: FileText, className: "text-blue-500" },
   sheet: { Icon: FileSpreadsheet, className: "text-green-600" },
   form: { Icon: FileText, className: "text-muted-foreground" },
@@ -58,6 +60,7 @@ const KIND_LABEL: Record<UnifiedDocument["kind"], string> = {
   pdf: "PDF",
   ppt: "Apresentação",
   audio: "Áudio",
+  image: "Imagem",
   doc: "Documento",
   sheet: "Planilha",
   form: "Formulário",
@@ -80,6 +83,7 @@ export function CommercialDocumentCard({
   const isCommercial = document.segment === "commercial";
   const isInlineAudio = document.kind === "audio" && document.sourceType === "upload";
   const isInlinePdf = document.kind === "pdf" && document.sourceType === "upload";
+  const isInlineImage = document.kind === "image" && document.sourceType === "upload";
   const isInternalPage = !!document.internalPath;
 
   // Fallback: um `kind` inesperado (documento antigo, dado manual) não pode derrubar a grade toda.
@@ -87,7 +91,7 @@ export function CommercialDocumentCard({
 
   const actionLabel = isInternalPage
     ? "Abrir página"
-    : isInlinePdf
+    : isInlinePdf || isInlineImage
       ? "Visualizar"
       : isInlineAudio
         ? showPlayer
@@ -101,9 +105,11 @@ export function CommercialDocumentCard({
     ? BookOpen
     : isInlineAudio
       ? Headphones
-      : document.sourceType === "upload"
-        ? Download
-        : ExternalLink;
+      : isInlineImage
+        ? ImageIcon
+        : document.sourceType === "upload"
+          ? Download
+          : ExternalLink;
 
   const handleAction = () => {
     // Áudio enviado ao Storage toca no próprio card; o resto vai pelo handler do pai.
@@ -161,6 +167,25 @@ export function CommercialDocumentCard({
               </Badge>
             ))}
           </div>
+        )}
+
+        {/* A miniatura é o próprio material: numa biblioteca de peças, o texto do
+            card não substitui ver a imagem. Clicar abre o visualizador. */}
+        {isInlineImage && (
+          <button
+            type="button"
+            onClick={() => onOpen(document)}
+            aria-label={`Visualizar ${document.title}`}
+            className="overflow-hidden rounded-md border bg-muted"
+          >
+            {/* eslint-disable-next-line @next/next/no-img-element -- URL do Storage com token, fora do loader do next/image. */}
+            <img
+              src={document.downloadUrl}
+              alt=""
+              loading="lazy"
+              className="h-36 w-full object-cover transition-transform hover:scale-[1.02]"
+            />
+          </button>
         )}
 
         {showPlayer && isInlineAudio && (

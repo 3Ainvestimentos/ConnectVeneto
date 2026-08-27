@@ -45,7 +45,7 @@ const baseFieldsSchema = z.object({
  */
 const uploadPayloadSchema = baseFieldsSchema.extend({
   sourceType: z.literal('upload'),
-  fileType: z.enum(['pdf', 'ppt', 'audio']),
+  fileType: z.enum(['pdf', 'ppt', 'audio', 'image']),
   downloadUrl: httpsUrlSchema,
   storagePath: z
     .string()
@@ -62,7 +62,7 @@ const uploadPayloadSchema = baseFieldsSchema.extend({
 
 const linkPayloadSchema = baseFieldsSchema.extend({
   sourceType: z.literal('link'),
-  fileType: z.enum(['pdf', 'ppt', 'audio', 'link']),
+  fileType: z.enum(['pdf', 'ppt', 'audio', 'image', 'link']),
   downloadUrl: httpsUrlSchema,
 });
 

@@ -55,6 +55,7 @@ const LINK_FILE_TYPES: Array<{ value: CommercialFileType; label: string }> = [
   { value: "pdf", label: "PDF" },
   { value: "ppt", label: "Apresentação" },
   { value: "audio", label: "Áudio" },
+  { value: "image", label: "Imagem" },
   { value: "link", label: "Outro link" },
 ];
 
@@ -363,7 +364,7 @@ export function CommercialUploadDialog({
             {sourceType === "upload" ? (
               <div className="space-y-2">
                 <Label htmlFor="commercial-file" className="font-body">
-                  Arquivo (PDF, PPT/PPTX, MP3, M4A ou WAV — até 100 MB)
+                  Arquivo (PDF, PPT/PPTX, áudio ou imagem — até 100 MB)
                 </Label>
                 <Input
                   id="commercial-file"
@@ -387,8 +388,19 @@ export function CommercialUploadDialog({
                   <p className="font-body text-sm text-muted-foreground">
                     {extraction.source === "none"
                       ? `Não consegui ler o conteúdo. ${extraction.note ?? ""} Descreva o material abaixo.`
-                      : `Conteúdo lido${extraction.note ? ` — ${extraction.note}` : ""}. Revise a descrição sugerida.`}
+                      : extraction.source === "image"
+                        ? `Imagem lida${extraction.note ? ` — ${extraction.note}` : ""}. Revise a descrição sugerida.`
+                        : `Conteúdo lido${extraction.note ? ` — ${extraction.note}` : ""}. Revise a descrição sugerida.`}
                   </p>
+                )}
+                {/* Miniatura: confirma que a peça enviada é mesmo a certa. */}
+                {!isReadingFile && extraction?.imageDataUrl && (
+                  /* eslint-disable-next-line @next/next/no-img-element -- data URL local, fora do loader do next/image. */
+                  <img
+                    src={extraction.imageDataUrl}
+                    alt={`Prévia de ${file?.name ?? "imagem selecionada"}`}
+                    className="max-h-40 rounded-md border object-contain"
+                  />
                 )}
               </div>
             ) : (
