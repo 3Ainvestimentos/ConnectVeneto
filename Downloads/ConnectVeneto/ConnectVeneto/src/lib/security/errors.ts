@@ -26,6 +26,10 @@ const ERROR_MAP: Record<string, ErrorDescriptor> = {
     status: 403,
     body: { error: 'Acesso negado: requer permissao para editar o Mix de Servicos.' },
   },
+  FORBIDDEN_CONTENT_MANAGER_REQUIRED: {
+    status: 403,
+    body: { error: 'Acesso negado: requer permissao para gerenciar o conteudo da intranet.' },
+  },
   FORBIDDEN_BIBLIOTECA_COMERCIAL_VIEWER_REQUIRED: {
     status: 403,
     body: { error: 'Acesso negado: requer acesso a Biblioteca Comercial.' },

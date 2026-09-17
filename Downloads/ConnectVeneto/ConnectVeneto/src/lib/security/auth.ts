@@ -108,6 +108,30 @@ export async function requireRegrasComerciaisManager(
 }
 
 /**
+ * Autoriza a gestão de conteúdo da intranet (hoje: notícias em /admin/content).
+ * Super admins passam sempre; demais precisam de `permissions.canManageContent`.
+ *
+ * As rules do Firestore não conseguem consultar o documento do colaborador por
+ * e-mail (IDs são auto-gerados), por isso `newsItems` é somente-leitura pelo
+ * client e toda escrita passa por aqui.
+ */
+export async function requireContentManager(
+  authorizationHeader: string | null
+): Promise<AuthenticatedRequestContext> {
+  const context = await requireCorporateUser(authorizationHeader);
+
+  if (await isSuperAdminEmail(context.email)) {
+    return context;
+  }
+
+  if (await collaboratorHasPermission(context, 'canManageContent')) {
+    return context;
+  }
+
+  throw new Error('FORBIDDEN_CONTENT_MANAGER_REQUIRED');
+}
+
+/**
  * A busca da Biblioteca Comercial cobre os dois acervos, mas o repositório interno
  * tem permissão própria: quem só tem acesso comercial não pode receber documentos
  * internos nos resultados.

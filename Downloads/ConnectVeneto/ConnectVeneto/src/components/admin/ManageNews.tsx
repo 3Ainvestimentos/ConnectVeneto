@@ -1,6 +1,6 @@
 
 "use client";
-import React, { useState, useMemo } from 'react';
+import React, { useRef, useState, useMemo } from 'react';
 import { useNews } from '@/contexts/NewsContext';
 import type { NewsItemType, NewsStatus } from '@/contexts/NewsContext';
 import { Button } from '@/components/ui/button';
@@ -22,6 +22,8 @@ import { Badge } from '../ui/badge';
 import Image from 'next/image';
 import { cn } from '@/lib/utils';
 import { Separator } from '../ui/separator';
+import { NewsMediaField } from './NewsMediaField';
+import { deleteNewsMediaFile } from '@/lib/news-media-storage';
 
 const newsSchema = z.object({
     id: z.string().optional(),
@@ -30,8 +32,10 @@ const newsSchema = z.object({
     content: z.string().min(10, "Conteúdo completo deve ter no mínimo 10 caracteres"),
     category: z.string().min(1, "Categoria é obrigatória"),
     date: z.string().refine((val) => !isNaN(Date.parse(val)), { message: "Data inválida" }),
-    imageUrl: z.string().url("URL da imagem principal inválida."),
+    imageUrl: z.string().url("Envie uma imagem ou informe uma URL válida."),
+    imageStoragePath: z.string().optional().or(z.literal('')),
     videoUrl: z.string().url("URL do vídeo inválida.").optional().or(z.literal('')),
+    videoStoragePath: z.string().optional().or(z.literal('')),
     link: z.string().url("URL do link inválida").optional().or(z.literal('')),
 });
 
@@ -64,9 +68,23 @@ export function ManageNews() {
           .sort((a,b) => (a.order || 0) - (b.order || 0));
     }, [newsItems, showArchived]);
 
-    const { register, handleSubmit, reset, formState: { errors, isSubmitting } } = useForm<NewsFormValues>({
+    const { register, handleSubmit, reset, setValue, watch, formState: { errors, isSubmitting } } = useForm<NewsFormValues>({
         resolver: zodResolver(newsSchema),
     });
+
+    /**
+     * Arquivos enviados enquanto o diálogo está aberto. Se a notícia não for salva
+     * (ou o arquivo for trocado antes de salvar), eles viram lixo no Storage — este
+     * ref permite apagá-los. Arquivos já persistidos numa notícia são apagados pela
+     * API de notícias, não aqui.
+     */
+    const pendingUploadsRef = useRef<string[]>([]);
+
+    const discardPendingUploads = async (keep: string[] = []) => {
+        const orphans = pendingUploadsRef.current.filter((path) => !keep.includes(path));
+        pendingUploadsRef.current = [];
+        await Promise.all(orphans.map((path) => deleteNewsMediaFile(path)));
+    };
 
     const handleDialogOpen = (newsItem: NewsItemType | null) => {
         setEditingNews(newsItem);
@@ -76,6 +94,8 @@ export function ManageNews() {
               date: new Date(newsItem.date).toISOString().split('T')[0],
               link: newsItem.link || '',
               videoUrl: newsItem.videoUrl || '',
+              imageStoragePath: newsItem.imageStoragePath || '',
+              videoStoragePath: newsItem.videoStoragePath || '',
             };
             reset(formattedNews);
         } else {
@@ -87,7 +107,9 @@ export function ManageNews() {
                 category: 'Institucional',
                 date: new Date().toISOString().split('T')[0],
                 imageUrl: 'https://firebasestorage.googleapis.com/v0/b/a-riva-hub.firebasestorage.app/o/Imagens%20institucionais%20(logos%20e%20etc)%2Flogo_oficial_branca.png?alt=media&token=329d139b-cca1-4aed-95c7-a699fa32f0bb',
+                imageStoragePath: '',
                 videoUrl: '',
+                videoStoragePath: '',
                 link: '',
             });
         }
@@ -143,9 +165,11 @@ export function ManageNews() {
                 await updateNewsItem({ ...data, id: editingNews.id });
                 toast({ title: "Notícia atualizada com sucesso." });
             } else {
-                await addNewsItem(data as Omit<NewsItemType, 'id'>);
+                await addNewsItem(data);
                 toast({ title: "Notícia criada com sucesso." });
             }
+            // Só os arquivos que ficaram na notícia sobrevivem; os demais eram tentativas.
+            await discardPendingUploads([data.imageStoragePath || '', data.videoStoragePath || '']);
             setIsDialogOpen(false);
         } catch (error) {
              toast({
@@ -385,7 +409,7 @@ export function ManageNews() {
                 </DialogContent>
             </Dialog>
 
-             <Dialog open={isDialogOpen} onOpenChange={(isOpen) => { if (!isOpen) setEditingNews(null); setIsDialogOpen(isOpen); }}>
+             <Dialog open={isDialogOpen} onOpenChange={(isOpen) => { if (!isOpen) { setEditingNews(null); void discardPendingUploads(); } setIsDialogOpen(isOpen); }}>
                 <DialogContent className="max-w-2xl">
                    <ScrollArea className="max-h-[80vh]">
                      <div className="p-6 pt-0">
@@ -418,16 +442,39 @@ export function ManageNews() {
                                 <Input id="date" type="date" {...register('date')} disabled={isSubmitting}/>
                                 {errors.date && <p className="text-sm text-destructive mt-1">{errors.date.message}</p>}
                             </div>
-                             <div>
-                                <Label htmlFor="imageUrl">URL da Imagem Principal</Label>
-                                <Input id="imageUrl" {...register('imageUrl')} placeholder="https://..." disabled={isSubmitting}/>
-                                {errors.imageUrl && <p className="text-sm text-destructive mt-1">{errors.imageUrl.message}</p>}
-                            </div>
-                            <div>
-                                <Label htmlFor="videoUrl">URL do Vídeo (Opcional)</Label>
-                                <Input id="videoUrl" {...register('videoUrl')} placeholder="https://..." disabled={isSubmitting}/>
-                                {errors.videoUrl && <p className="text-sm text-destructive mt-1">{errors.videoUrl.message}</p>}
-                            </div>
+                            <input type="hidden" {...register('imageUrl')} />
+                            <input type="hidden" {...register('imageStoragePath')} />
+                            <input type="hidden" {...register('videoUrl')} />
+                            <input type="hidden" {...register('videoStoragePath')} />
+
+                            <NewsMediaField
+                                kind="image"
+                                label="Imagem Principal"
+                                url={watch('imageUrl') || ''}
+                                storagePath={watch('imageStoragePath') || ''}
+                                onChange={({ url, storagePath }) => {
+                                    setValue('imageUrl', url, { shouldValidate: true });
+                                    setValue('imageStoragePath', storagePath);
+                                }}
+                                onUploaded={(path) => pendingUploadsRef.current.push(path)}
+                                disabled={isSubmitting}
+                                error={errors.imageUrl?.message}
+                            />
+
+                            <NewsMediaField
+                                kind="video"
+                                label="Vídeo (Opcional)"
+                                url={watch('videoUrl') || ''}
+                                storagePath={watch('videoStoragePath') || ''}
+                                onChange={({ url, storagePath }) => {
+                                    setValue('videoUrl', url, { shouldValidate: true });
+                                    setValue('videoStoragePath', storagePath);
+                                }}
+                                onUploaded={(path) => pendingUploadsRef.current.push(path)}
+                                disabled={isSubmitting}
+                                error={errors.videoUrl?.message}
+                                helperText="Quando há vídeo, ele substitui a imagem no card e no destaque."
+                            />
                             <div>
                                 <Label htmlFor="link">URL do Link (opcional)</Label>
                                 <Input id="link" {...register('link')} placeholder="https://..." disabled={isSubmitting}/>

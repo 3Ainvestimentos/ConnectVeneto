@@ -1,10 +1,12 @@
-
 "use client";
 
 import React, { createContext, useContext, ReactNode, useMemo, useCallback } from 'react';
+import { getAuth } from 'firebase/auth';
 import { useQuery, useMutation, useQueryClient, UseMutationResult } from '@tanstack/react-query';
 import { toast } from '@/hooks/use-toast';
-import { addDocumentToCollection, updateDocumentInCollection, deleteDocumentFromCollection, WithId, listenToCollection, getCollection } from '@/lib/firestore-service';
+import { listenToCollection, getCollection } from '@/lib/firestore-service';
+import { getFirebaseApp } from '@/lib/firebase';
+import { NEWS_COLLECTION } from '@/config/news-media';
 import { useAuth } from './AuthContext';
 
 export type NewsStatus = 'draft' | 'approved' | 'published' | 'archived';
@@ -17,7 +19,11 @@ export interface NewsItemType {
   category: string;
   date: string; // ISO string
   imageUrl: string;
+  /** Preenchido quando a imagem veio de upload — usado para apagar o arquivo junto. */
+  imageStoragePath?: string;
   videoUrl?: string;
+  /** Preenchido quando o vídeo veio de upload. */
+  videoStoragePath?: string;
   isHighlight: boolean;
   highlightType?: 'large' | 'small';
   link?: string;
@@ -25,10 +31,13 @@ export interface NewsItemType {
   status: NewsStatus;
 }
 
+export type NewsItemDraft = Omit<NewsItemType, 'id' | 'status' | 'order' | 'isHighlight'> &
+  Partial<Pick<NewsItemType, 'isHighlight' | 'order'>>;
+
 interface NewsContextType {
   newsItems: NewsItemType[];
   loading: boolean;
-  addNewsItem: (item: Omit<NewsItemType, 'id' | 'status'>) => Promise<WithId<Omit<NewsItemType, 'id' | 'status'>>>;
+  addNewsItem: (item: NewsItemDraft) => Promise<{ id: string }>;
   updateNewsItem: (item: Partial<NewsItemType> & { id: string }) => Promise<void>;
   updateNewsStatus: (id: string, status: NewsStatus) => Promise<void>;
   archiveNewsItem: (id: string) => Promise<void>;
@@ -38,7 +47,44 @@ interface NewsContextType {
 }
 
 const NewsContext = createContext<NewsContextType | undefined>(undefined);
-const COLLECTION_NAME = 'newsItems';
+const COLLECTION_NAME = NEWS_COLLECTION;
+const API_PATH = '/api/admin/news';
+
+/**
+ * Toda escrita passa pela API route, que valida `canManageContent` com o Admin SDK.
+ *
+ * As rules do Firestore só liberam leitura de `newsItems`: a permissão mora no
+ * documento do colaborador, que elas não conseguem consultar por e-mail (os IDs
+ * são auto-gerados). Escrever direto daqui dava `permission-denied` para quem não
+ * é super admin — mesmo padrão já usado na Biblioteca Comercial e no Mix de Serviços.
+ */
+const authorizedRequest = async <T,>(
+  url: string,
+  init: { method: string; body?: unknown }
+): Promise<T> => {
+  const currentUser = getAuth(getFirebaseApp()).currentUser;
+  if (!currentUser) throw new Error('Sessão expirada. Entre novamente para continuar.');
+
+  const token = await currentUser.getIdToken();
+  const response = await fetch(url, {
+    method: init.method,
+    headers: {
+      Authorization: `Bearer ${token}`,
+      ...(init.body !== undefined ? { 'Content-Type': 'application/json' } : {}),
+    },
+    ...(init.body !== undefined ? { body: JSON.stringify(init.body) } : {}),
+  });
+
+  const payload = (await response.json().catch(() => null)) as
+    | ({ error?: string } & Record<string, unknown>)
+    | null;
+
+  if (!response.ok) {
+    throw new Error(payload?.error ?? 'Não foi possível concluir a operação.');
+  }
+
+  return (payload ?? {}) as T;
+};
 
 export const NewsProvider = ({ children }: { children: ReactNode }) => {
   const queryClient = useQueryClient();
@@ -75,25 +121,22 @@ export const NewsProvider = ({ children }: { children: ReactNode }) => {
     return () => unsubscribe();
   }, [queryClient, user]);
 
-  const addNewsItemMutation = useMutation<WithId<Omit<NewsItemType, 'id' | 'status'>>, Error, Omit<NewsItemType, 'id' | 'status'>>({
-    mutationFn: (itemData) => {
-        const currentMaxOrder = newsItems.reduce((max, item) => Math.max(max, item.order || 0), 0);
-        const dataWithDefaults = { 
-            ...itemData, 
-            status: 'draft' as NewsStatus,
-            order: currentMaxOrder + 1 
-        };
-        return addDocumentToCollection(COLLECTION_NAME, dataWithDefaults);
-    },
+  const addNewsItemMutation = useMutation<{ id: string }, Error, NewsItemDraft>({
+    // `status` e `order` são definidos no servidor — o client não tem a lista completa.
+    mutationFn: (itemData) =>
+      authorizedRequest<{ id: string }>(API_PATH, { method: 'POST', body: itemData }),
     onSuccess: () => {
         queryClient.invalidateQueries({ queryKey: [COLLECTION_NAME] });
     },
   });
 
   const updateNewsItemMutation = useMutation<void, Error, Partial<NewsItemType> & { id: string }>({
-    mutationFn: (updatedItem) => {
+    mutationFn: async (updatedItem) => {
         const { id, ...data } = updatedItem;
-        return updateDocumentInCollection(COLLECTION_NAME, id, data);
+        await authorizedRequest(`${API_PATH}?id=${encodeURIComponent(id)}`, {
+          method: 'PATCH',
+          body: data,
+        });
     },
     onSuccess: () => {
         queryClient.invalidateQueries({ queryKey: [COLLECTION_NAME] });
@@ -108,7 +151,9 @@ export const NewsProvider = ({ children }: { children: ReactNode }) => {
   });
 
   const deleteNewsItemMutation = useMutation<void, Error, string>({
-    mutationFn: (id: string) => deleteDocumentFromCollection(COLLECTION_NAME, id),
+    mutationFn: async (id: string) => {
+      await authorizedRequest(`${API_PATH}?id=${encodeURIComponent(id)}`, { method: 'DELETE' });
+    },
     onSuccess: () => {
         queryClient.invalidateQueries({ queryKey: [COLLECTION_NAME] });
     },
@@ -139,7 +184,7 @@ export const NewsProvider = ({ children }: { children: ReactNode }) => {
     // A trava de 3 itens foi removida para você não ficar bloqueado por notícias "fantasmas"
     // ou por bugs do Firebase. O componente da tela inicial (NewsHighlights.tsx)
     // já se encarrega de fatiar apenas as 3 mais relevantes e exibir, não havendo quebra de layout.
-    
+
     updateNewsItemMutation.mutate({ id, isHighlight: !targetNews.isHighlight });
   }, [newsItems, updateNewsItemMutation]);
 
@@ -149,7 +194,7 @@ export const NewsProvider = ({ children }: { children: ReactNode }) => {
 
     // A trava que impedia a mudança foi removida para contornar lixo no banco de dados.
     // O sistema visual já trata qual será grande se houverem várias.
-    
+
     updateNewsItemMutation.mutate({ id, highlightType: type });
   }, [newsItems, updateNewsItemMutation]);
 
@@ -157,7 +202,7 @@ export const NewsProvider = ({ children }: { children: ReactNode }) => {
   const value = useMemo(() => ({
     newsItems,
     loading: isFetching,
-    addNewsItem: (item: Omit<NewsItemType, 'id' | 'status'>) => addNewsItemMutation.mutateAsync(item),
+    addNewsItem: (item: NewsItemDraft) => addNewsItemMutation.mutateAsync(item),
     updateNewsItem: (item: Partial<NewsItemType> & { id: string }) => updateNewsItemMutation.mutateAsync(item),
     deleteNewsItemMutation,
     toggleNewsHighlight,
