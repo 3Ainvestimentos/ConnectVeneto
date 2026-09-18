@@ -8,7 +8,7 @@ import { ManageDocuments } from '@/components/admin/ManageDocuments';
 import AdminGuard from '@/components/auth/AdminGuard';
 import { useAuth } from '@/contexts/AuthContext';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { ShieldAlert } from 'lucide-react';
+import { Info, ShieldAlert } from 'lucide-react';
 import { ManageNews } from '@/components/admin/ManageNews';
 import { ManageQuickLinks } from '@/components/admin/ManageQuickLinks';
 import { ManageNewsletter } from '@/components/admin/ManageNewsletter';
@@ -16,7 +16,8 @@ import { ManageContacts } from '@/components/admin/ManageContacts';
 
 export default function AdminContentPage() {
     const [activeTab, setActiveTab] = useState("news");
-    const { isSuperAdmin } = useAuth();
+    const { isSuperAdmin, permissions } = useAuth();
+    const canManageContent = permissions.canManageContent === true;
 
     return (
         <AdminGuard>
@@ -25,18 +26,26 @@ export default function AdminContentPage() {
                     title="Gerenciamento de Conteúdo"
                     description="Gerencie as informações dinâmicas da intranet."
                 />
-                {!isSuperAdmin ? (
+                {!isSuperAdmin && !canManageContent ? (
                     <Alert variant="destructive" className="font-body">
                         <ShieldAlert className="h-4 w-4" />
-                        <AlertTitle>Alterações exigem super administrador</AlertTitle>
+                        <AlertTitle>Você não tem permissão para editar este painel</AlertTitle>
                         <AlertDescription>
-                            Ler o painel pode ser possível com permissões de colaborador, mas gravar no Firestore (documentos, links, etc.) só é permitido se o seu e-mail constar em
+                            Para gerenciar notícias é preciso a permissão
                             {" "}
-                            <code className="rounded bg-muted px-1 text-xs">superAdminEmails</code>
-                            {" "}no documento
-                            {" "}
-                            <code className="rounded bg-muted px-1 text-xs">systemSettings/config</code>
-                            , coincidindo com o e-mail da conta Google.
+                            <code className="rounded bg-muted px-1 text-xs">canManageContent</code>
+                            {" "}no seu cadastro de colaborador. Peça a um super administrador em
+                            {" "}<strong>Colaboradores</strong>. As demais abas exigem super administrador.
+                        </AlertDescription>
+                    </Alert>
+                ) : !isSuperAdmin ? (
+                    <Alert className="font-body">
+                        <Info className="h-4 w-4" />
+                        <AlertTitle>Você pode publicar notícias</AlertTitle>
+                        <AlertDescription>
+                            Sua permissão de conteúdo libera a aba <strong>Notícias</strong>, incluindo o
+                            envio de imagens e vídeos. As abas Documentos, Links Rápidos, Newsletter e
+                            Contatos continuam restritas a super administradores.
                         </AlertDescription>
                     </Alert>
                 ) : null}
