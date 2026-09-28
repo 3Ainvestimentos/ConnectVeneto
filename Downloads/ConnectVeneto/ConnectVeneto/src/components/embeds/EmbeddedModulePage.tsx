@@ -1,22 +1,48 @@
 'use client';
 
 import ModuleEmbed from '@/components/embeds/ModuleEmbed';
+import { PageHeader } from '@/components/layout/PageHeader';
+import type { EmbeddedHubModule } from '@/config/modules';
 
-export default function PortalRepasseEmbed() {
+/**
+ * Página de um módulo embarcado, montada a partir do registro `hubModules`.
+ * - layout 'framed': cabeçalho + cartão com borda (como o TrackFlow);
+ * - layout 'fullscreen': ocupa toda a área abaixo do header (como o Dados Estratégicos).
+ */
+export default function EmbeddedModulePage({ module: mod }: { module: EmbeddedHubModule }) {
+  const skeleton = mod.skeletonTheme === 'light' ? <LightSkeleton /> : undefined;
+
+  if (mod.layout === 'framed') {
+    return (
+      <div className="flex flex-col gap-4 p-6 md:p-8 h-full">
+        <PageHeader title={mod.label} description={mod.description ?? ''} />
+        <div className="flex-1 rounded-xl overflow-hidden border border-border bg-background shadow-sm min-h-[75vh]">
+          <ModuleEmbed
+            module={mod}
+            title={mod.label}
+            skeleton={skeleton}
+            className="relative w-full h-full min-h-[calc(100vh-12rem)]"
+            iframeClassName="rounded-lg"
+          />
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="relative w-full overflow-hidden" style={{ height: 'calc(100vh - 3.5rem)' }}>
       <ModuleEmbed
-        moduleId="portal-repasse"
-        title="Dados Estratégicos"
-        skeleton={<PortalRepasseSkeleton />}
+        module={mod}
+        title={mod.label}
+        skeleton={skeleton}
         className="relative w-full h-full"
       />
     </div>
   );
 }
 
-/** Skeleton com o tema claro do portal-repasse para evitar flash escuro. */
-function PortalRepasseSkeleton() {
+/** Skeleton claro (ex.: portal-repasse) para evitar flash escuro antes do módulo carregar. */
+function LightSkeleton() {
   return (
     <div className="flex flex-col w-full h-full" style={{ background: '#ffffff' }}>
       {/* Barra de topo simulada */}

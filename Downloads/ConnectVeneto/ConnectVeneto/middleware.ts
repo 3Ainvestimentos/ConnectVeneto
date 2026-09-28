@@ -16,28 +16,23 @@ const SESSION_COOKIE_NAME = "cv_session";
  */
 const LEGACY_COOKIE_NAME = "cv_auth";
 
-const PROTECTED_PREFIXES = [
-  "/dashboard",
-  "/applications",
-  "/documents",
-  "/consulta",
-  "/regras-comerciais",
-  "/requests",
-  "/area-logada",
-  "/bi",
-  "/opportunity-map",
-  "/personal-panel",
-  "/meet-analyses",
-  "/me",
-  "/bob-v2",
-  "/audit",
-  "/admin",
-];
+/**
+ * Allowlist do que é público. Todo o resto exige sessão — inclusive os módulos
+ * embarcados, cujas rotas (/{slug}) vêm do registro `hubModules` e não são
+ * conhecidas no build.
+ *
+ * `/api/*` fica de fora porque cada rota valida o próprio Bearer token (ou JWT do hub).
+ * Arquivos estáticos já são excluídos pelo `matcher` abaixo.
+ */
+const PUBLIC_PATHS = new Set(["/", "/login"]);
+const PUBLIC_PREFIXES = ["/api/", "/_next/"];
+
+/** Mesmo critério do `matcher`: caminho cujo último segmento tem extensão é arquivo estático. */
+const STATIC_FILE = /\.[^/]+$/;
 
 function isProtectedPath(pathname: string): boolean {
-  return PROTECTED_PREFIXES.some(
-    (prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`)
-  );
+  if (PUBLIC_PATHS.has(pathname) || STATIC_FILE.test(pathname)) return false;
+  return !PUBLIC_PREFIXES.some((prefix) => pathname.startsWith(prefix));
 }
 
 /**

@@ -99,6 +99,16 @@ service cloud.firestore {
     }
 
     // =========================
+    // hubModules — registro do menu lateral e dos módulos embarcados.
+    // Somente leitura pelo client; escrita só por /api/admin/modules (super admin, Admin SDK).
+    // Qualquer autenticado lê: nunca guardar segredos aqui.
+    // =========================
+    match /hubModules/{moduleId} {
+      allow read: if isAuthenticated();
+      allow write: if false;
+    }
+
+    // =========================
     // collaborators
     // (sem mudanca; Finding F-03 aceito como residual no curto prazo)
     // =========================

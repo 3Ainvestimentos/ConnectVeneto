@@ -1,63 +1,46 @@
 "use client";
 
-import type { ComponentType } from "react";
-import { FEATURE_FLAGS, type FeatureFlagKey } from "@/config/features";
 import type { CollaboratorPermissions } from "@/contexts/CollaboratorsContext";
 import {
-  Home,
-  Table2,
-  FolderOpen,
-  BookMarked,
-  BarChart,
-  Workflow,
-  ClipboardList,
-  LineChart,
-  Users,
-} from "lucide-react";
+  isEmbeddedModule,
+  resolveModuleAccess,
+  type EmbeddedHubModule,
+  type HubModule,
+} from "@/config/modules";
 
-export type AppNavItem = {
-  href: string;
-  label: string;
-  icon: ComponentType<{ className?: string }>;
-  external: boolean;
-  permission: string | null;
-  /** Permissões alternativas: qualquer uma delas também libera o item. */
-  altPermissions?: string[];
-  featureFlag?: FeatureFlagKey;
+/**
+ * O menu lateral vem da coleção `hubModules` (ver useHubModules). Este arquivo só
+ * guarda as regras de visibilidade.
+ */
+
+export type NavAccessContext = {
+  permissions: CollaboratorPermissions;
+  modulePermissions?: Record<string, string[]>;
+  isSuperAdmin: boolean;
 };
 
-const allNavItems: AppNavItem[] = [
-  { href: "/dashboard", label: "Painel Inicial", icon: Home, external: false, permission: null },
-  { href: "/trackflow", label: "TrackFlow", icon: ClipboardList, external: false, permission: null },
-  { href: "/consulta", label: "Consulta Pessoal", icon: Table2, external: false, permission: "canViewConsultaPessoal" },
-  { href: "/portal-cliente", label: "Portal do Cliente", icon: Users, external: false, permission: "canViewPortalCliente", featureFlag: "portalCliente" },
-  { href: "/applications", label: "Solicitações", icon: Workflow, external: false, permission: "canViewApplications" },
-  { href: "/documents", label: "Documentos", icon: FolderOpen, external: false, permission: "canViewDocuments", altPermissions: ["canViewBibliotecaComercial", "canManageBibliotecaComercial"] },
-  { href: "/regras-comerciais", label: "Regras Comerciais", icon: BookMarked, external: false, permission: "canViewRegrasComerciais", featureFlag: "regrasComerciais" },
-  { href: "/bi", label: "Painéis", icon: BarChart, external: false, permission: "canViewBI", featureFlag: "businessIntelligence" },
-  { href: "/dados-estrategicos", label: "Dados Estratégicos", icon: LineChart, external: false, permission: "canViewPortalRepasse", featureFlag: "portalRepasse" },
-];
-
-export const navItems: AppNavItem[] = allNavItems.filter((item) =>
-  item.featureFlag ? FEATURE_FLAGS[item.featureFlag] : true
-);
-
-/** Um item aparece no menu se a permissão principal ou qualquer alternativa estiver ligada. */
-export function canSeeNavItem(
-  item: AppNavItem,
-  permissions: CollaboratorPermissions
-): boolean {
-  if (!item.permission) return true;
-  const has = (key: string) => permissions[key as keyof CollaboratorPermissions] === true;
-  return has(item.permission) || (item.altPermissions ?? []).some(has);
+/** Acesso à página do módulo embarcado (independe de aparecer no menu). */
+export function canAccessEmbeddedModule(mod: EmbeddedHubModule, ctx: NavAccessContext): boolean {
+  if (!mod.enabled) return false;
+  if (ctx.isSuperAdmin) return true;
+  return resolveModuleAccess(mod, ctx.modulePermissions?.[mod.id]).hasAccess;
 }
 
-export const noZoomRoutes = [
-  "/admin/crm",
-  "/admin/strategic-panel",
-  "/bi",
-  "/personal-panel",
-  "/trackflow",
-  "/dados-estrategicos",
-  "/portal-cliente",
-];
+/** Um item aparece no menu se estiver ativo e o colaborador tiver acesso. */
+export function canSeeHubModule(mod: HubModule, ctx: NavAccessContext): boolean {
+  if (!mod.enabled || !mod.showInNav) return false;
+
+  if (isEmbeddedModule(mod)) return canAccessEmbeddedModule(mod, ctx);
+
+  if (!mod.permission) return true;
+  const has = (key: string) => ctx.permissions[key as keyof CollaboratorPermissions] === true;
+  return has(mod.permission) || mod.altPermissions.some(has);
+}
+
+/** Rotas sem zoom de conteúdo que não são itens do registro. */
+const STATIC_NO_ZOOM_ROUTES = ["/admin/crm", "/admin/strategic-panel", "/personal-panel"];
+
+export function isNoZoomPath(pathname: string, modules: HubModule[]): boolean {
+  const routes = [...STATIC_NO_ZOOM_ROUTES, ...modules.filter((m) => m.noZoom).map((m) => m.href)];
+  return routes.some((route) => pathname === route || pathname.startsWith(`${route}/`));
+}

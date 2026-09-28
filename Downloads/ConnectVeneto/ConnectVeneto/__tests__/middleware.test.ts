@@ -49,14 +49,17 @@ describe('Middleware', () => {
       '/audit',
       '/admin',
       '/admin/users',
+      // Módulos embarcados: slugs vêm do registro hubModules, não são conhecidos no build
+      '/trackflow',
+      '/dados-estrategicos',
+      '/dados-estrategicos/admin',
+      '/modulo-cadastrado-no-banco',
+      '/guides',
     ];
 
     const publicPaths = [
       '/',
       '/login',
-      '/register',
-      '/about',
-      '/contact',
       '/api/billing',
       '/api/calendar',
       '/api/holidays',
@@ -76,6 +79,17 @@ describe('Middleware', () => {
         
         expect(NextResponse.next).toHaveBeenCalled();
         expect(NextResponse.redirect).not.toHaveBeenCalled();
+        jest.clearAllMocks();
+      });
+    });
+
+    it('deve redirecionar rotas protegidas (inclusive slugs de módulo) sem autenticação', () => {
+      protectedPaths.forEach((path) => {
+        const request = createMockRequest(path, false);
+        middleware(request);
+
+        expect(NextResponse.redirect).toHaveBeenCalled();
+        expect(NextResponse.next).not.toHaveBeenCalled();
         jest.clearAllMocks();
       });
     });

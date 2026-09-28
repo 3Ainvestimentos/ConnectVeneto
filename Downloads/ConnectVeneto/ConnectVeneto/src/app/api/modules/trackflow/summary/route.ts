@@ -7,6 +7,7 @@ import { SignJWT } from 'jose';
 import { requireCorporateUser } from '@/lib/security';
 import { getFirestore } from 'firebase-admin/firestore';
 import { getFirebaseAdminApp } from '@/lib/firebase-admin';
+import { getHubModuleServer } from '@/lib/hub-modules/server';
 
 function getHubJwtSecret() {
   const raw = process.env.HUB_JWT_SECRET?.trim().replace(/^["']|["']$/g, '');
@@ -14,11 +15,16 @@ function getHubJwtSecret() {
   return new TextEncoder().encode(raw);
 }
 
-const TRACKFLOW_URL = (process.env.NEXT_PUBLIC_TRACKFLOW_URL ?? 'https://vnt-trackflow.azurewebsites.net').replace(/\/$/, '');
-
 export async function GET(request: Request) {
   try {
     const context = await requireCorporateUser(request.headers.get('Authorization'));
+
+    // URL vem do registro `hubModules` (aba Módulos do /admin), não mais de env.
+    const trackflow = await getHubModuleServer('trackflow');
+    if (!trackflow || trackflow.kind !== 'embedded' || !trackflow.enabled) {
+      return NextResponse.json({ error: 'TrackFlow indisponível' }, { status: 404 });
+    }
+    const TRACKFLOW_URL = trackflow.url;
 
     let displayName = context.email?.split('@')[0] ?? '';
     try {

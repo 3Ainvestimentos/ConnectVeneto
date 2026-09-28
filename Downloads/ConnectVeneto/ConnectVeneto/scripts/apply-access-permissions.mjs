@@ -6,7 +6,7 @@
  * Regras (validadas com o responsável):
  * - canViewCRM / canViewOpportunityMap: false para todos (feature não implementada).
  * - canViewAudit / canManageSystem: restritos a superadmin.
- * - canViewPortalCliente / canViewPortalRepasse (+ modulePermissions correspondente,
+ * - portal-cliente / portal-repasse (modulePermissions com `<id>:view`,
  *   só 'view'): comercial, admin e superadmin. normal não recebe.
  * - trackflow: todo mundo recebe view/create; admin e superadmin recebem o conjunto
  *   completo (manage/admin/export).
@@ -47,8 +47,6 @@ const BASE_PERMISSIONS = {
   canViewOpportunityMap: false,
   canViewMeetAnalyses: false,
   canViewDirectoria: false,
-  canViewPortalRepasse: false,
-  canViewPortalCliente: false,
 };
 
 const PERMISSIONS_BY_ACCESS_TYPE = {
@@ -57,13 +55,9 @@ const PERMISSIONS_BY_ACCESS_TYPE = {
   },
   comercial: {
     ...BASE_PERMISSIONS,
-    canViewPortalCliente: true,
-    canViewPortalRepasse: true,
   },
   admin: {
     ...BASE_PERMISSIONS,
-    canViewPortalCliente: true,
-    canViewPortalRepasse: true,
     canViewBI: true,
     canViewStrategicPanel: true,
     canViewMeetAnalyses: true,
