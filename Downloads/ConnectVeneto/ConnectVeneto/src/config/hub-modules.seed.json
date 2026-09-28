@@ -165,5 +165,28 @@
     ],
     "layout": "fullscreen",
     "skeletonTheme": "light"
+  },
+  {
+    "id": "atividade-comercial",
+    "kind": "embedded",
+    "label": "Atividade Comercial",
+    "description": "Reuniões comerciais gravadas, relatórios de R1, agenda e contatos",
+    "iconName": "Briefcase",
+    "order": 9,
+    "enabled": true,
+    "showInNav": true,
+    "slug": "atividade-comercial",
+    "href": "/atividade-comercial",
+    "noZoom": true,
+    "url": "https://vnt-debriefing-reunioes.azurewebsites.net",
+    "embedPath": "/embed",
+    "accessMode": "explicit",
+    "defaultPermissions": [],
+    "adminPermissions": ["atividade-comercial:view", "atividade-comercial:manage"],
+    "permissionCatalog": [
+      { "key": "atividade-comercial:manage", "label": "Admin Módulo" }
+    ],
+    "layout": "fullscreen",
+    "skeletonTheme": "light"
   }
 ]
