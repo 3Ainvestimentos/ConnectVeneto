@@ -4,15 +4,15 @@ import { useEffect, useRef, useCallback, useState } from 'react';
 import { getAuth } from 'firebase/auth';
 import { getFirebaseApp } from '@/lib/firebase';
 import { useAuth } from '@/contexts/AuthContext';
-import { getEmbeddedModule } from '@/config/modules';
+import type { EmbeddedHubModule } from '@/config/modules';
 
 // Se o módulo não emitir CV_MODULE_READY (versões antigas do protocolo),
 // revela o iframe mesmo assim em vez de deixar o skeleton eterno.
 const READY_FALLBACK_MS = 8000;
 
 type ModuleEmbedProps = {
-  /** Id do módulo em EMBEDDED_MODULES (config/modules.ts). */
-  moduleId: string;
+  /** Módulo do registro `hubModules` (ver useHubModules). */
+  module: EmbeddedHubModule;
   /** Título de acessibilidade do iframe. */
   title: string;
   /** Corpo extra enviado ao token route a cada emissão (ex: { simulateAs }). */
@@ -37,7 +37,7 @@ type ModuleEmbedProps = {
  * - mostra skeleton até CV_MODULE_READY, com fallback de 8s.
  */
 export default function ModuleEmbed({
-  moduleId,
+  module: config,
   title,
   tokenBody,
   reloadKey,
@@ -45,7 +45,7 @@ export default function ModuleEmbed({
   className,
   iframeClassName,
 }: ModuleEmbedProps) {
-  const config = getEmbeddedModule(moduleId);
+  const moduleId = config.id;
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const [isReady, setIsReady] = useState(false);
   const { user } = useAuth();
@@ -55,8 +55,8 @@ export default function ModuleEmbed({
   const tokenBodyRef = useRef(tokenBody);
   tokenBodyRef.current = tokenBody;
 
-  const moduleUrl = config?.url ?? '';
-  const embedSrc = config ? `${config.url}${config.embedPath}` : '';
+  const moduleUrl = config.url;
+  const embedSrc = `${config.url}${config.embedPath}`;
 
   const issueToken = useCallback(async (): Promise<string | null> => {
     const auth = getAuth(getFirebaseApp());
@@ -118,10 +118,6 @@ export default function ModuleEmbed({
     return () => clearTimeout(t);
   }, [isReady]);
 
-  if (!config) {
-    console.warn(`[ModuleEmbed] módulo não registrado em EMBEDDED_MODULES: ${moduleId}`);
-    return null;
-  }
 
   return (
     <div className={className ?? 'relative w-full h-full'}>

@@ -1,6 +1,6 @@
 
 "use client";
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { usePolls, type PollType, pollSchema } from '@/contexts/PollsContext';
 import { useCollaborators } from '@/contexts/CollaboratorsContext';
 import { Button } from '@/components/ui/button';
@@ -21,16 +21,20 @@ import { RecipientSelectionModal } from './RecipientSelectionModal';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { Switch } from '../ui/switch';
 import Link from 'next/link';
-import { navItems } from '@/components/layout/navigation';
+import { useHubModules } from '@/hooks/useHubModules';
 import { RadioGroup, RadioGroupItem } from '../ui/radio-group';
 
 type PollFormValues = z.infer<typeof pollSchema>;
 
-const pageOptions = navItems
-    .filter(item => !item.external && item.href !== '/chatbot' && item.href !== '/store')
-    .map(item => ({ label: item.label, value: item.href }));
 
 export function ManagePolls() {
+    const { modules: hubModules } = useHubModules();
+    const pageOptions = useMemo(
+        () => hubModules
+            .filter(item => item.enabled && !item.external)
+            .map(item => ({ label: item.label, value: item.href })),
+        [hubModules],
+    );
     const { polls, addPoll, updatePoll, deletePollMutation } = usePolls();
     const { collaborators } = useCollaborators();
     const [isFormOpen, setIsFormOpen] = useState(false);

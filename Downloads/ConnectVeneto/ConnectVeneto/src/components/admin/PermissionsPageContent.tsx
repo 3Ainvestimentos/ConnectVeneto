@@ -15,6 +15,8 @@ import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { FEATURE_FLAGS } from '@/config/features';
+import { useHubModules } from '@/hooks/useHubModules';
+import { isEmbeddedModule, moduleViewKey, resolveModuleAccess, type EmbeddedHubModule } from '@/config/modules';
 
 const allPermissionLabels: { key: keyof CollaboratorPermissions; label: string; featureFlag?: keyof typeof FEATURE_FLAGS }[] = [
     { key: 'canManageSystem', label: 'Sistema' },
@@ -30,8 +32,6 @@ const allPermissionLabels: { key: keyof CollaboratorPermissions; label: string; 
     { key: 'canViewBibliotecaComercial', label: 'Biblioteca Comercial', featureFlag: 'bibliotecaComercial' },
     { key: 'canManageBibliotecaComercial', label: 'Gerenciar Biblioteca Comercial', featureFlag: 'bibliotecaComercial' },
     { key: 'canViewBI', label: 'Painéis', featureFlag: 'businessIntelligence' },
-    { key: 'canViewPortalRepasse', label: 'Dados Estratégicos', featureFlag: 'portalRepasse' },
-    { key: 'canViewPortalCliente', label: 'Portal do Cliente', featureFlag: 'portalCliente' },
     { key: 'canManageTripsBirthdays', label: 'Viagens e Aniversários' },
     { key: 'canManageVacation', label: 'Férias' },
     { key: 'canViewCRM', label: 'CRM' },
@@ -46,8 +46,18 @@ const permissionLabels = allPermissionLabels.filter((item) =>
 );
 
 function PermissionsTable() {
-    const { collaborators, loading, updateCollaboratorPermissions } = useCollaborators();
+    const { collaborators, loading, updateCollaboratorPermissions, updateModulePermissions } = useCollaborators();
+    const { modules: hubModules } = useHubModules();
     const [updatingId, setUpdatingId] = useState<string | null>(null);
+
+    /**
+     * Uma coluna por módulo embarcado do registro `hubModules`. Módulo novo aparece
+     * aqui sozinho, sem deploy. O acesso mora em `modulePermissions[moduleId]`.
+     */
+    const moduleColumns = useMemo(
+        () => hubModules.filter((m): m is EmbeddedHubModule => isEmbeddedModule(m) && m.enabled),
+        [hubModules],
+    );
     const [searchTerm, setSearchTerm] = useState('');
     const [filters, setFilters] = useState<{ area: string[], position: string[] }>({ area: [], position: [] });
 
@@ -102,6 +112,33 @@ function PermissionsTable() {
         }
     };
     
+    const handleModuleToggle = async (collaborator: Collaborator, mod: EmbeddedHubModule) => {
+        const viewKey = moduleViewKey(mod.id);
+        const current = collaborator.modulePermissions?.[mod.id];
+        const hasAccess = resolveModuleAccess(mod, current).hasAccess;
+        // Lista vazia = sem acesso. Ao conceder, preserva sub-permissões já existentes.
+        const others = (current ?? []).filter(p => p !== viewKey);
+        const base = others.length ? others : mod.defaultPermissions.filter(p => p !== viewKey);
+        const next = hasAccess ? [] : [viewKey, ...base];
+
+        setUpdatingId(collaborator.id);
+        try {
+            await updateModulePermissions(collaborator.id, mod.id, next);
+            toast({
+                title: "Permissão Atualizada",
+                description: `${collaborator.name} ${hasAccess ? 'não tem mais acesso a' : 'agora tem acesso a'} '${mod.label}'.`,
+            });
+        } catch (error) {
+            toast({
+                title: "Erro ao atualizar permissão",
+                description: error instanceof Error ? error.message : "Ocorreu um erro desconhecido.",
+                variant: "destructive",
+            });
+        } finally {
+            setUpdatingId(null);
+        }
+    };
+
     const handleFilterChange = (filterKey: 'area' | 'position', value: string) => {
         setFilters(prev => {
             const currentValues = prev[filterKey];
@@ -195,6 +232,7 @@ function PermissionsTable() {
                                 <FilterableHeader fkey="area" label="Área" uniqueValues={uniqueAreas} />
                                 <FilterableHeader fkey="position" label="Cargo" uniqueValues={uniquePositions} />
                                 {permissionLabels.map(p => <TableHead key={p.key}>{p.label}</TableHead>)}
+                                {moduleColumns.map(m => <TableHead key={`module:${m.id}`}>{m.label}</TableHead>)}
                             </TableRow>
                         </TableHeader>
                         <TableBody>
@@ -218,6 +256,24 @@ function PermissionsTable() {
                                             )}
                                         </TableCell>
                                     ))}
+                                    {moduleColumns.map(m => {
+                                        const hasAccess = resolveModuleAccess(m, collaborator.modulePermissions?.[m.id]).hasAccess;
+                                        return (
+                                            <TableCell key={`module:${m.id}`}>
+                                                {updatingId === collaborator.id ? (
+                                                    <Loader2 className="h-4 w-4 animate-spin" />
+                                                ) : (
+                                                    <Switch
+                                                        checked={hasAccess}
+                                                        onCheckedChange={() => handleModuleToggle(collaborator, m)}
+                                                        disabled={updatingId === collaborator.id}
+                                                        aria-label={`Ativar/desativar acesso a ${m.label} para ${collaborator.name}`}
+                                                        className="data-[state=checked]:bg-[hsl(170,60%,50%)]"
+                                                    />
+                                                )}
+                                            </TableCell>
+                                        );
+                                    })}
                                 </TableRow>
                             ))}
                         </TableBody>

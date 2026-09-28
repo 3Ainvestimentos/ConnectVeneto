@@ -1,21 +1,18 @@
 'use client';
 
 import { useState, useMemo } from 'react';
-import { useAuth } from '@/contexts/AuthContext';
-import { useCollaborators, type Collaborator, type CollaboratorPermissions } from '@/contexts/CollaboratorsContext';
-import { Shield, Check, X, ChevronLeft, Search } from 'lucide-react';
+import { notFound, useParams } from 'next/navigation';
 import Link from 'next/link';
-
-const MODULE_ID = 'portal-repasse';
-
-const SUB_PERMISSIONS = [
-  { key: 'portal-repasse:tickets:view',   label: 'Ver Correções' },
-  { key: 'portal-repasse:tickets:create', label: 'Criar Correções' },
-  { key: 'portal-repasse:params:view',    label: 'Ver Parâmetros' },
-  { key: 'portal-repasse:params:edit',    label: 'Editar Parâmetros' },
-  { key: 'portal-repasse:export',         label: 'Exportar' },
-  { key: 'portal-repasse:manage',         label: 'Admin Módulo' },
-];
+import { Shield, Check, X, ChevronLeft, Search } from 'lucide-react';
+import { useAuth } from '@/contexts/AuthContext';
+import { useCollaborators, type Collaborator } from '@/contexts/CollaboratorsContext';
+import { useEmbeddedModuleRoute } from '@/hooks/useEmbeddedModuleRoute';
+import {
+  moduleManageKey,
+  moduleViewKey,
+  resolveModuleAccess,
+  type EmbeddedHubModule,
+} from '@/config/modules';
 
 function Toggle({ value, onChange, disabled }: { value: boolean; onChange: () => void; disabled: boolean }) {
   return (
@@ -38,11 +35,37 @@ function Toggle({ value, onChange, disabled }: { value: boolean; onChange: () =>
   );
 }
 
-export default function PortalRepasseAdminPage() {
-  const { user } = useAuth();
-  const { collaborators, loading, updateCollaboratorPermissions, updateModulePermissions } = useCollaborators();
+/**
+ * Gestão de acessos de um módulo embarcado (/{slug}/admin). As sub-permissões vêm do
+ * `permissionCatalog` do módulo no registro `hubModules`; tudo é gravado em
+ * `collaborator.modulePermissions[moduleId]`.
+ */
+export default function ModuleAdminPage() {
+  const { moduleSlug } = useParams<{ moduleSlug: string }>();
+  const state = useEmbeddedModuleRoute(moduleSlug);
+
+  if (state.status === 'not-found') notFound();
+  if (state.status === 'loading') return <Spinner />;
+
+  return <ModuleAdminTable module={state.module} />;
+}
+
+function Spinner() {
+  return (
+    <div className="flex items-center justify-center h-64" style={{ color: '#94A3B8' }}>
+      <div className="h-6 w-6 animate-spin rounded-full border-2" style={{ borderColor: '#1E2D4A', borderTopColor: '#3B82F6' }} />
+    </div>
+  );
+}
+
+function ModuleAdminTable({ module: mod }: { module: EmbeddedHubModule }) {
+  const { user, isSuperAdmin } = useAuth();
+  const { collaborators, loading, updateModulePermissions } = useCollaborators();
   const [saving, setSaving] = useState<string | null>(null);
   const [search, setSearch] = useState('');
+
+  const viewKey = moduleViewKey(mod.id);
+  const subPermissions = mod.permissionCatalog.filter((p) => p.key !== viewKey);
 
   const currentCollab = useMemo(
     () => collaborators.find(c => c.authUid === user?.uid || c.email === user?.email?.toLowerCase()),
@@ -50,10 +73,10 @@ export default function PortalRepasseAdminPage() {
   );
 
   const isAuthorized = useMemo(() => {
-    if (!currentCollab) return false;
-    const modPerms = currentCollab.modulePermissions?.[MODULE_ID] ?? [];
-    return modPerms.includes('portal-repasse:manage');
-  }, [currentCollab]);
+    if (isSuperAdmin) return true;
+    const modPerms = currentCollab?.modulePermissions?.[mod.id] ?? [];
+    return modPerms.includes(moduleManageKey(mod.id));
+  }, [currentCollab, isSuperAdmin, mod.id]);
 
   const filtered = useMemo(
     () => collaborators
@@ -66,16 +89,18 @@ export default function PortalRepasseAdminPage() {
     [collaborators, search],
   );
 
+  const accessOf = (collab: Collaborator) => resolveModuleAccess(mod, collab.modulePermissions?.[mod.id]);
+
   const handleAccessToggle = async (collab: Collaborator, hasAccess: boolean) => {
     setSaving(collab.id);
     try {
-      const newPerms: CollaboratorPermissions = { ...collab.permissions, canViewPortalRepasse: !hasAccess };
-      await updateCollaboratorPermissions(collab.id, newPerms);
-      if (!hasAccess) {
-        const existing = collab.modulePermissions?.[MODULE_ID] ?? [];
-        if (!existing.includes('portal-repasse:view')) {
-          await updateModulePermissions(collab.id, MODULE_ID, ['portal-repasse:view', ...existing]);
-        }
+      if (hasAccess) {
+        // Lista vazia = sem acesso, tanto em módulos 'explicit' quanto 'all'.
+        await updateModulePermissions(collab.id, mod.id, []);
+      } else {
+        const existing = (collab.modulePermissions?.[mod.id] ?? []).filter(p => p !== viewKey);
+        const base = existing.length ? existing : mod.defaultPermissions.filter(p => p !== viewKey);
+        await updateModulePermissions(collab.id, mod.id, [viewKey, ...base]);
       }
     } finally {
       setSaving(null);
@@ -83,34 +108,27 @@ export default function PortalRepasseAdminPage() {
   };
 
   const handlePermToggle = async (collab: Collaborator, permKey: string, currentValue: boolean) => {
-    const key = collab.id + permKey;
-    setSaving(key);
+    setSaving(collab.id + permKey);
     try {
-      const existing = collab.modulePermissions?.[MODULE_ID] ?? ['portal-repasse:view'];
-      const updated  = currentValue
+      const existing = accessOf(collab).permissions;
+      const updated = currentValue
         ? existing.filter(p => p !== permKey)
         : [...existing.filter(p => p !== permKey), permKey];
-      if (!updated.includes('portal-repasse:view')) updated.unshift('portal-repasse:view');
-      await updateModulePermissions(collab.id, MODULE_ID, updated);
+      if (!updated.includes(viewKey)) updated.unshift(viewKey);
+      await updateModulePermissions(collab.id, mod.id, updated);
     } finally {
       setSaving(null);
     }
   };
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center h-64" style={{ color: '#94A3B8' }}>
-        <div className="h-6 w-6 animate-spin rounded-full border-2" style={{ borderColor: '#1E2D4A', borderTopColor: '#3B82F6' }} />
-      </div>
-    );
-  }
+  if (loading) return <Spinner />;
 
   if (!isAuthorized) {
     return (
       <div className="flex flex-col items-center justify-center gap-4 h-64" style={{ color: '#94A3B8' }}>
         <Shield className="w-12 h-12" style={{ color: '#EF4444' }} />
         <p className="text-sm">Você não tem permissão de administrador neste módulo.</p>
-        <Link href="/dados-estrategicos" className="text-sm" style={{ color: '#3B82F6' }}>
+        <Link href={mod.href} className="text-sm" style={{ color: '#3B82F6' }}>
           ← Voltar
         </Link>
       </div>
@@ -122,12 +140,12 @@ export default function PortalRepasseAdminPage() {
       {/* Cabeçalho */}
       <div className="flex items-center gap-3 mb-6">
         <Link
-          href="/dados-estrategicos"
+          href={mod.href}
           className="flex items-center gap-1 text-sm transition-colors hover:opacity-80"
           style={{ color: '#94A3B8' }}
         >
           <ChevronLeft className="w-4 h-4" />
-          Dados Estratégicos
+          {mod.label}
         </Link>
         <span style={{ color: '#1E2D4A' }}>/</span>
         <div className="flex items-center gap-2">
@@ -137,7 +155,7 @@ export default function PortalRepasseAdminPage() {
       </div>
 
       <p className="text-sm mb-4" style={{ color: '#64748B' }}>
-        Controle quem pode acessar o Dados Estratégicos e quais abas cada usuário visualiza.
+        Controle quem pode acessar o {mod.label} e quais permissões cada usuário tem no módulo.
         Alterações entram em vigor no próximo login do colaborador.
       </p>
 
@@ -164,7 +182,7 @@ export default function PortalRepasseAdminPage() {
               <th className="px-4 py-3 font-medium text-center" style={{ color: '#94A3B8', minWidth: 80 }}>
                 Acesso
               </th>
-              {SUB_PERMISSIONS.map(p => (
+              {subPermissions.map(p => (
                 <th
                   key={p.key}
                   className="px-3 py-3 font-medium text-center"
@@ -177,8 +195,8 @@ export default function PortalRepasseAdminPage() {
           </thead>
           <tbody>
             {filtered.map((collab, i) => {
-              const hasAccess = collab.permissions.canViewPortalRepasse;
-              const modPerms  = collab.modulePermissions?.[MODULE_ID] ?? [];
+              const access    = accessOf(collab);
+              const hasAccess = access.hasAccess;
               const isSaving  = saving === collab.id;
 
               return (
@@ -202,8 +220,8 @@ export default function PortalRepasseAdminPage() {
                     />
                   </td>
 
-                  {SUB_PERMISSIONS.map(perm => {
-                    const isActive = modPerms.includes(perm.key);
+                  {subPermissions.map(perm => {
+                    const isActive = access.permissions.includes(perm.key);
                     const savingThis = saving === collab.id + perm.key;
                     return (
                       <td key={perm.key} className="px-3 py-3">

@@ -34,7 +34,9 @@ import { findCollaboratorByEmail } from '@/lib/email-utils';
 import { getCollaboratorUserId } from '@/contexts/CollaboratorsContext';
 import logoSidebar from '../../../docs/PNG/logotipo_vênetoPrancheta 1.png';
 import { UserNav } from './UserNav';
-import { canSeeNavItem, navItems, noZoomRoutes } from './navigation';
+import { canSeeHubModule, isNoZoomPath } from './navigation';
+import { getModuleIcon } from './module-icons';
+import { useHubModules } from '@/hooks/useHubModules';
 import { bootstrapTrace } from '@/lib/bootstrap-trace';
 
 
@@ -49,7 +51,8 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
   const { setOpen: setSidebarOpen } = useSidebar();
   
   const isFullscreenPage = false;
-  const shouldApplyContentZoom = !noZoomRoutes.some((route) => pathname === route || pathname.startsWith(`${route}/`));
+  const { modules: hubModules } = useHubModules();
+  const shouldApplyContentZoom = !isNoZoomPath(pathname, hubModules);
   
   const [isFaqModalOpen, setIsFaqModalOpen] = useState(false);
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
@@ -232,12 +235,17 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                 </Link>
               </div>
               <SidebarMenu>
-                {navItems.map((item) => {
-                  if (!canSeeNavItem(item, permissions)) {
+                {hubModules.map((item) => {
+                  if (!canSeeHubModule(item, {
+                    permissions,
+                    modulePermissions: currentUserCollab?.modulePermissions,
+                    isSuperAdmin,
+                  })) {
                     return null;
                   }
+                  const ItemIcon = getModuleIcon(item.iconName);
                   return (
-                    <SidebarMenuItem key={item.href}>
+                    <SidebarMenuItem key={item.id}>
                       <SidebarMenuButton
                         asChild
                         isActive={!item.external && (pathname === item.href || (item.href !== '/dashboard' && pathname.startsWith(item.href)))}
@@ -249,7 +257,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                           href={item.href}
                           {...(item.external ? { target: '_blank', rel: 'noopener noreferrer' } : {})}
                         >
-                          <item.icon />
+                          <ItemIcon />
                           <span>{item.label}</span>
                         </Link>
                       </SidebarMenuButton>

@@ -32,8 +32,6 @@ export interface CollaboratorPermissions {
   canViewOpportunityMap: boolean;
   canViewMeetAnalyses: boolean;
   canViewDirectoria: boolean;
-  canViewPortalRepasse: boolean;
-  canViewPortalCliente: boolean;
 }
 
 export interface ConsultaLinks {
@@ -109,8 +107,6 @@ const defaultPermissions: CollaboratorPermissions = {
   canViewOpportunityMap: false,
   canViewMeetAnalyses: false,
   canViewDirectoria: false,
-  canViewPortalRepasse: false,
-  canViewPortalCliente: false,
 };
 
 export const CollaboratorsProvider = ({ children }: { children: ReactNode }) => {

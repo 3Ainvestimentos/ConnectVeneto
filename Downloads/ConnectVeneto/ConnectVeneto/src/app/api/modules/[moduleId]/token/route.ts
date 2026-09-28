@@ -1,7 +1,7 @@
 /**
- * Emite um Module Token JWT para um módulo registrado no ConnectVeneto.
- * Chamado pelo TrackFlowEmbed quando recebe CV_REQUEST_AUTH ou CV_TOKEN_EXPIRED do iframe.
- * Ref: CONNECTVENETO_MODULE_PROTOCOL.md §10
+ * Emite um Module Token JWT para um módulo registrado em `hubModules`.
+ * Chamado pelo ModuleEmbed quando recebe CV_REQUEST_AUTH ou CV_TOKEN_EXPIRED do iframe.
+ * Ref: CONNECTVENETO_MODULE_PROTOCOL.md §10 e §14
  */
 import { NextResponse } from 'next/server';
 import { SignJWT } from 'jose';
@@ -9,7 +9,8 @@ import { requireCorporateUser } from '@/lib/security';
 import { getFirestore } from 'firebase-admin/firestore';
 import { getFirebaseAdminApp } from '@/lib/firebase-admin';
 import { normalizeEmail } from '@/lib/email-utils';
-import { getEmbeddedModule } from '@/config/modules';
+import { moduleViewKey, resolveModuleAccess } from '@/config/modules';
+import { getHubModuleServer } from '@/lib/hub-modules/server';
 
 function getHubJwtSecret() {
   const raw = process.env.HUB_JWT_SECRET?.trim().replace(/^["']|["']$/g, '');
@@ -43,9 +44,12 @@ export async function POST(
 ) {
   try {
     const { moduleId } = await params;
-    const moduleConfig = getEmbeddedModule(moduleId);
-    if (!moduleConfig) {
+    const moduleConfig = await getHubModuleServer(moduleId);
+    if (!moduleConfig || moduleConfig.kind !== 'embedded') {
       return NextResponse.json({ error: 'Módulo não registrado' }, { status: 404 });
+    }
+    if (!moduleConfig.enabled) {
+      return NextResponse.json({ error: 'Módulo desativado' }, { status: 404 });
     }
 
     const context = await requireCorporateUser(request.headers.get('Authorization'));
@@ -88,26 +92,26 @@ export async function POST(
       // Falha silenciosa — usa fallback
     }
 
-    // Permissões da identidade efetiva
+    // Permissões da identidade efetiva — regra única em resolveModuleAccess (config/modules.ts).
     let permissions: string[];
     if (superAdmin && !simulateAs) {
       permissions = moduleConfig.adminPermissions;
-    } else if (moduleConfig.id === 'portal-repasse') {
-      const collabPerms = (collabData?.permissions as Record<string, unknown> | undefined) ?? {};
-      if (!simulateAs && !collabPerms['canViewPortalRepasse']) {
-        return NextResponse.json({ error: 'Acesso ao Dados Estratégicos não autorizado' }, { status: 403 });
-      }
-      const modulePerms = (collabData?.modulePermissions as Record<string, string[]> | undefined)?.['portal-repasse'];
-      permissions = modulePerms?.length ? modulePerms : ['portal-repasse:view'];
-    } else if (moduleConfig.id === 'portal-cliente') {
-      const collabPerms = (collabData?.permissions as Record<string, unknown> | undefined) ?? {};
-      if (!simulateAs && !collabPerms['canViewPortalCliente']) {
-        return NextResponse.json({ error: 'Acesso ao Portal do Cliente não autorizado' }, { status: 403 });
-      }
-      const modulePerms = (collabData?.modulePermissions as Record<string, string[]> | undefined)?.['portal-cliente'];
-      permissions = modulePerms?.length ? modulePerms : ['portal-cliente:view'];
     } else {
-      permissions = moduleConfig.defaultPermissions;
+      const modulePerms = (collabData?.modulePermissions as Record<string, string[]> | undefined)?.[moduleConfig.id];
+      const access = resolveModuleAccess(moduleConfig, modulePerms);
+      if (access.hasAccess) {
+        permissions = access.permissions;
+      } else if (simulateAs) {
+        // Super admin simulando alguém sem acesso: vê o módulo com o mínimo.
+        permissions = moduleConfig.accessMode === 'explicit'
+          ? [moduleViewKey(moduleConfig.id)]
+          : moduleConfig.defaultPermissions;
+      } else {
+        return NextResponse.json(
+          { error: `Acesso ao ${moduleConfig.label} não autorizado` },
+          { status: 403 },
+        );
+      }
     }
 
     const now = Math.floor(Date.now() / 1000);

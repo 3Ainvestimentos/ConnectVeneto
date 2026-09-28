@@ -10,6 +10,8 @@ import { NextResponse } from 'next/server';
 import { jwtVerify } from 'jose';
 import { getFirestore } from 'firebase-admin/firestore';
 import { getFirebaseAdminApp } from '@/lib/firebase-admin';
+import { resolveModuleAccess } from '@/config/modules';
+import { getHubModuleServer } from '@/lib/hub-modules/server';
 
 function getHubJwtSecret() {
   const raw = process.env.HUB_JWT_SECRET?.trim().replace(/^["']|["']$/g, '');
@@ -48,6 +50,11 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: 'Token inválido ou expirado' }, { status: 401 });
   }
 
+  const moduleConfig = await getHubModuleServer(moduleId);
+  if (!moduleConfig || moduleConfig.kind !== 'embedded') {
+    return NextResponse.json({ error: 'Módulo não registrado' }, { status: 404 });
+  }
+
   try {
     const db = getFirestore(getFirebaseAdminApp());
     const snapshot = await db.collection('collaborators').get();
@@ -57,14 +64,9 @@ export async function GET(request: Request) {
     snapshot.forEach((doc) => {
       const data = doc.data();
 
-      // Inclui colaboradores que têm permissões explícitas para o módulo
-      // OU que não têm modulePermissions definidas (acesso geral — padrão para trackflow)
+      // Mesma regra do token route e do menu (resolveModuleAccess).
       const modulePerms: string[] | undefined = data.modulePermissions?.[moduleId];
-      const hasAccess =
-        modulePerms === undefined          // sem restrição por módulo — acesso geral
-        || (Array.isArray(modulePerms) && modulePerms.length > 0);
-
-      if (!hasAccess) return;
+      if (!resolveModuleAccess(moduleConfig, modulePerms).hasAccess) return;
       if (!data.email || !data.name) return;
 
       members.push({

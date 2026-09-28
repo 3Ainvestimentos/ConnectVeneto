@@ -7,6 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ManageCollaborators } from '@/components/admin/ManageCollaborators';
 import PermissionsPageContent from '@/components/admin/PermissionsPageContent';
 import { MaintenanceMode } from '@/components/admin/MaintenanceMode';
+import { ManageModules } from '@/components/admin/ManageModules';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
@@ -47,9 +48,10 @@ export default function AdminPage() {
                 description="Gerencie colaboradores, permissões de acesso e o estado da plataforma."
             />
             <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-                <TabsList className="grid w-full grid-cols-3">
+                <TabsList className="grid w-full grid-cols-4">
                     <TabsTrigger value="collaborators">Colaboradores</TabsTrigger>
                     <TabsTrigger value="permissions">Permissões</TabsTrigger>
+                    <TabsTrigger value="modules">Módulos</TabsTrigger>
                     <TabsTrigger value="maintenance">Configurações</TabsTrigger>
                 </TabsList>
                 <TabsContent value="collaborators">
@@ -57,6 +59,9 @@ export default function AdminPage() {
                 </TabsContent>
                 <TabsContent value="permissions">
                     <PermissionsPageContent />
+                </TabsContent>
+                <TabsContent value="modules">
+                    <ManageModules />
                 </TabsContent>
                 <TabsContent value="maintenance">
                     <MaintenanceMode />
