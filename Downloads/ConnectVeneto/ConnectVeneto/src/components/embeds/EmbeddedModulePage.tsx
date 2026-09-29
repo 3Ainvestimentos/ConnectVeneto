@@ -1,5 +1,6 @@
 'use client';
 
+import { useSearchParams } from 'next/navigation';
 import ModuleEmbed from '@/components/embeds/ModuleEmbed';
 import { PageHeader } from '@/components/layout/PageHeader';
 import type { EmbeddedHubModule } from '@/config/modules';
@@ -11,6 +12,8 @@ import type { EmbeddedHubModule } from '@/config/modules';
  */
 export default function EmbeddedModulePage({ module: mod }: { module: EmbeddedHubModule }) {
   const skeleton = mod.skeletonTheme === 'light' ? <LightSkeleton /> : undefined;
+  // Deep link: /<slug>?to=/caminho/no/modulo (ex.: clique numa notificação).
+  const initialPath = useSearchParams().get('to');
 
   if (mod.layout === 'framed') {
     return (
@@ -23,6 +26,7 @@ export default function EmbeddedModulePage({ module: mod }: { module: EmbeddedHu
             skeleton={skeleton}
             className="relative w-full h-full min-h-[calc(100vh-12rem)]"
             iframeClassName="rounded-lg"
+            initialPath={initialPath}
           />
         </div>
       </div>
@@ -36,6 +40,7 @@ export default function EmbeddedModulePage({ module: mod }: { module: EmbeddedHu
         title={mod.label}
         skeleton={skeleton}
         className="relative w-full h-full"
+        initialPath={initialPath}
       />
     </div>
   );

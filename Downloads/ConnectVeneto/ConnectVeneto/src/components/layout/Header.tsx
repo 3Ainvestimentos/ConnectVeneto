@@ -11,11 +11,13 @@ import logoHeaderMobile from '../../../docs/PNG/logotipo_vênetoPrancheta 9.png'
 
 interface HeaderProps {
   userNav?: React.ReactNode;
+  /** Sino da Central de Notificações, exibido à esquerda do avatar. */
+  notifications?: React.ReactNode;
   showSidebarTrigger?: boolean;
   showDashboardButton?: boolean;
 }
 
-export function Header({ userNav, showSidebarTrigger = true, showDashboardButton = false }: HeaderProps) {
+export function Header({ userNav, notifications, showSidebarTrigger = true, showDashboardButton = false }: HeaderProps) {
   return (
     <header className={cn("sticky top-0 z-50 flex h-[var(--header-height)] w-full items-center gap-x-4 bg-header text-header-foreground border-b border-border px-4 md:px-6")}>
       {/* Sidebar Trigger for mobile, hidden on md+ */}
@@ -55,6 +57,7 @@ export function Header({ userNav, showSidebarTrigger = true, showDashboardButton
             <Link href="/dashboard">Voltar ao Painel Inicial</Link>
           </Button>
         )}
+        {notifications}
         {userNav}
       </div>
     </header>

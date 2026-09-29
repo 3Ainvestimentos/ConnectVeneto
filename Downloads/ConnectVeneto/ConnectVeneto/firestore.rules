@@ -109,6 +109,23 @@ service cloud.firestore {
     }
 
     // =========================
+    // notifications — Central de Notificações (um doc por destinatário).
+    // Criação/resolução só pelo Admin SDK (/api/hub/notifications*).
+    // O usuário lê as suas e só pode marcar como lida as de readPolicy 'on_open';
+    // as 'on_resolve' (ex.: TrackFlow) só o módulo emissor resolve.
+    // =========================
+    match /notifications/{notificationId} {
+      allow read: if isAuthenticated()
+        && resource.data.recipientEmail == request.auth.token.email.lower();
+      allow update: if isAuthenticated()
+        && resource.data.recipientEmail == request.auth.token.email.lower()
+        && resource.data.readPolicy == 'on_open'
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['read', 'readAt'])
+        && request.resource.data.read == true;
+      allow create, delete: if false;
+    }
+
+    // =========================
     // collaborators
     // (sem mudanca; Finding F-03 aceito como residual no curto prazo)
     // =========================

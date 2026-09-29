@@ -7,17 +7,11 @@
  * Authorization: Bearer <jwt>
  */
 import { NextResponse } from 'next/server';
-import { jwtVerify } from 'jose';
 import { getFirestore } from 'firebase-admin/firestore';
 import { getFirebaseAdminApp } from '@/lib/firebase-admin';
 import { resolveModuleAccess } from '@/config/modules';
 import { getHubModuleServer } from '@/lib/hub-modules/server';
-
-function getHubJwtSecret() {
-  const raw = process.env.HUB_JWT_SECRET?.trim().replace(/^["']|["']$/g, '');
-  if (!raw) throw new Error('HUB_JWT_SECRET ausente');
-  return new TextEncoder().encode(raw);
-}
+import { verifyModuleRequest } from '@/lib/hub-jwt';
 
 export type HubMember = {
   uid: string;
@@ -36,17 +30,7 @@ export async function GET(request: Request) {
   }
 
   // Verifica JWT do módulo: issuer=moduleId, audience='connect-veneto'
-  const auth = request.headers.get('Authorization');
-  if (!auth?.startsWith('Bearer ')) {
-    return NextResponse.json({ error: 'Token obrigatório' }, { status: 401 });
-  }
-
-  try {
-    await jwtVerify(auth.slice(7), getHubJwtSecret(), {
-      issuer:   moduleId,
-      audience: 'connect-veneto',
-    });
-  } catch {
+  if (!(await verifyModuleRequest(request, moduleId))) {
     return NextResponse.json({ error: 'Token inválido ou expirado' }, { status: 401 });
   }
 

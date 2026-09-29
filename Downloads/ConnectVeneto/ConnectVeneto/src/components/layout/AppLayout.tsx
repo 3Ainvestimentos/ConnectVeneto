@@ -34,6 +34,8 @@ import { findCollaboratorByEmail } from '@/lib/email-utils';
 import { getCollaboratorUserId } from '@/contexts/CollaboratorsContext';
 import logoSidebar from '../../../docs/PNG/logotipo_vênetoPrancheta 1.png';
 import { UserNav } from './UserNav';
+import { NotificationBell } from './NotificationBell';
+import { NotificationsProvider } from '@/contexts/NotificationsContext';
 import { canSeeHubModule, isNoZoomPath } from './navigation';
 import { getModuleIcon } from './module-icons';
 import { useHubModules } from '@/hooks/useHubModules';
@@ -224,7 +226,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="flex min-h-screen flex-col">
-      <Header userNav={<UserNav onProfileClick={() => setIsProfileModalOpen(true)} hasPendingRequests={hasPendingRequests} hasPendingTasks={hasPendingTasks} />} showSidebarTrigger={!isFullscreenPage} showDashboardButton={isFullscreenPage} />
+      <Header notifications={<NotificationBell />} userNav={<UserNav onProfileClick={() => setIsProfileModalOpen(true)} hasPendingRequests={hasPendingRequests} hasPendingTasks={hasPendingTasks} />} showSidebarTrigger={!isFullscreenPage} showDashboardButton={isFullscreenPage} />
       <div className="flex flex-1"> 
         {!isFullscreenPage && (
           <Sidebar collapsible="icon" variant="sidebar"> 
@@ -322,7 +324,9 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
 export default function AppLayoutWrapper({ children }: { children: React.ReactNode }) {
   return (
     <SidebarProvider defaultOpen={false}> 
-      <AppLayout>{children}</AppLayout>
+      <NotificationsProvider>
+        <AppLayout>{children}</AppLayout>
+      </NotificationsProvider>
     </SidebarProvider>
   )
 }
