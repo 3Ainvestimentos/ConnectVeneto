@@ -4,16 +4,11 @@
  */
 import { NextResponse } from 'next/server';
 import { SignJWT } from 'jose';
+import { getHubJwtSecret } from '@/lib/hub-jwt';
 import { requireCorporateUser } from '@/lib/security';
 import { getFirestore } from 'firebase-admin/firestore';
 import { getFirebaseAdminApp } from '@/lib/firebase-admin';
 import { getHubModuleServer } from '@/lib/hub-modules/server';
-
-function getHubJwtSecret() {
-  const raw = process.env.HUB_JWT_SECRET?.trim().replace(/^["']|["']$/g, '');
-  if (!raw) throw new Error('HUB_JWT_SECRET ausente');
-  return new TextEncoder().encode(raw);
-}
 
 export async function GET(request: Request) {
   try {

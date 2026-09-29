@@ -5,6 +5,7 @@ import { getAuth } from 'firebase/auth';
 import { getFirebaseApp } from '@/lib/firebase';
 import { useAuth } from '@/contexts/AuthContext';
 import type { EmbeddedHubModule } from '@/config/modules';
+import { isSafeRelativePath } from '@/lib/notifications/types';
 
 // Se o módulo não emitir CV_MODULE_READY (versões antigas do protocolo),
 // revela o iframe mesmo assim em vez de deixar o skeleton eterno.
@@ -25,6 +26,11 @@ type ModuleEmbedProps = {
   className?: string;
   /** Classes extras do iframe (ex: rounded-lg). */
   iframeClassName?: string;
+  /**
+   * Caminho interno do módulo a abrir após o login (deep link, ex.: vindo de uma
+   * notificação). Repassado ao embedPath como `?next=`; o módulo decide se honra.
+   */
+  initialPath?: string | null;
 };
 
 /**
@@ -44,6 +50,7 @@ export default function ModuleEmbed({
   skeleton,
   className,
   iframeClassName,
+  initialPath,
 }: ModuleEmbedProps) {
   const moduleId = config.id;
   const iframeRef = useRef<HTMLIFrameElement>(null);
@@ -56,7 +63,9 @@ export default function ModuleEmbed({
   tokenBodyRef.current = tokenBody;
 
   const moduleUrl = config.url;
-  const embedSrc = `${config.url}${config.embedPath}`;
+  const embedSrc = isSafeRelativePath(initialPath)
+    ? `${config.url}${config.embedPath}?next=${encodeURIComponent(initialPath)}`
+    : `${config.url}${config.embedPath}`;
 
   const issueToken = useCallback(async (): Promise<string | null> => {
     const auth = getAuth(getFirebaseApp());
@@ -109,7 +118,7 @@ export default function ModuleEmbed({
   // Re-arma o skeleton quando o consumidor pede recarga do iframe.
   useEffect(() => {
     setIsReady(false);
-  }, [reloadKey]);
+  }, [reloadKey, embedSrc]);
 
   // Fallback do skeleton eterno.
   useEffect(() => {
@@ -133,7 +142,7 @@ export default function ModuleEmbed({
           Se renderizar antes, auth.currentUser é null e o token nunca é emitido. */}
       {user && (
         <iframe
-          key={reloadKey}
+          key={`${reloadKey ?? ''}|${embedSrc}`}
           ref={iframeRef}
           src={embedSrc}
           onLoad={() => sendToken()}
