@@ -4,9 +4,7 @@ import React, { createContext, useCallback, useContext, useEffect, useMemo, useR
 import {
   collection,
   doc,
-  limit,
   onSnapshot,
-  orderBy,
   query,
   serverTimestamp,
   where,
@@ -90,17 +88,18 @@ export function NotificationsProvider({ children }: { children: React.ReactNode 
     setLoading(true);
     seenIdsRef.current = null;
 
+    // Só igualdade: usa o índice de campo único automático do Firestore. Um
+    // orderBy/limit exigiria índice composto, e a service account do app não tem
+    // permissão para criá-lo. A ordenação é feita aqui, e o volume por pessoa é pequeno.
     const q = query(
       collection(getClientFirestore(), NOTIFICATIONS_COLLECTION),
       where('recipientEmail', '==', email),
-      orderBy('createdAt', 'desc'),
-      limit(MAX_ITEMS),
     );
 
     const unsubscribe = onSnapshot(
       q,
       (snapshot) => {
-        const items: HubNotification[] = snapshot.docs.map((d) => {
+        const all: HubNotification[] = snapshot.docs.map((d) => {
           const data = d.data();
           return {
             id: d.id,
@@ -118,10 +117,14 @@ export function NotificationsProvider({ children }: { children: React.ReactNode 
           };
         });
 
+        all.sort((a, b) => b.createdAt - a.createdAt);
+        // Lista mostra as mais recentes + todas as não lidas (o contador nunca "esconde" pendência).
+        const items = all.filter((n, i) => i < MAX_ITEMS || !n.read);
+
         // Som: só para notificações não lidas que surgiram (ou reabriram) depois
         // do primeiro snapshot — o carregamento inicial nunca toca.
         const seen = seenIdsRef.current;
-        const unreadIds = items.filter((n) => !n.read).map((n) => n.id);
+        const unreadIds = all.filter((n) => !n.read).map((n) => n.id);
         if (seen) {
           const fresh = unreadIds.find((id) => !seen.has(id));
           if (fresh) playSound(fresh);
