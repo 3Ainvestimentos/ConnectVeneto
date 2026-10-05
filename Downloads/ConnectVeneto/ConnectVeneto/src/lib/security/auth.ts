@@ -27,11 +27,14 @@ export async function requireCorporateUser(
 }
 
 /**
- * Lê `systemSettings/config.superAdminEmails` e diz se o e-mail está lá.
+ * Lê uma lista de e-mails de `systemSettings/config` e diz se o e-mail está nela.
  * Lança `SYSTEM_SETTINGS_NOT_FOUND` se a configuração não existir — decisão de
  * privilégio nunca é tomada com base em configuração ausente (fail-closed).
  */
-async function isSuperAdminEmail(email: string | null): Promise<boolean> {
+async function isEmailInSettingsList(
+  email: string | null,
+  listKey: 'superAdminEmails' | 'collaboratorAdminEmails'
+): Promise<boolean> {
   const app = getFirebaseAdminApp();
   const db = getFirestore(app);
   const settingsDoc = await db.collection('systemSettings').doc('config').get();
@@ -41,15 +44,19 @@ async function isSuperAdminEmail(email: string | null): Promise<boolean> {
   }
 
   const settingsData = settingsDoc.data();
-  const superAdminEmails = Array.isArray(settingsData?.superAdminEmails)
-    ? settingsData.superAdminEmails
+  const listedEmails = Array.isArray(settingsData?.[listKey])
+    ? settingsData[listKey]
     : [];
 
-  const normalizedAdminEmails = superAdminEmails
-    .map((candidate) => normalizeEmail(candidate))
-    .filter((candidate): candidate is string => candidate !== null);
+  const normalizedEmails = listedEmails
+    .map((candidate: unknown) => normalizeEmail(typeof candidate === 'string' ? candidate : null))
+    .filter((candidate: string | null): candidate is string => candidate !== null);
 
-  return !!email && normalizedAdminEmails.includes(email);
+  return !!email && normalizedEmails.includes(email);
+}
+
+async function isSuperAdminEmail(email: string | null): Promise<boolean> {
+  return isEmailInSettingsList(email, 'superAdminEmails');
 }
 
 export async function requireSuperAdmin(
@@ -62,6 +69,26 @@ export async function requireSuperAdmin(
   }
 
   return context;
+}
+
+/**
+ * Autoriza o RH a cadastrar colaboradores — mesmo critério da rule de create em
+ * `collaborators`: super admin ou e-mail em `collaboratorAdminEmails`.
+ */
+export async function requireCollaboratorAdmin(
+  authorizationHeader: string | null
+): Promise<AuthenticatedRequestContext> {
+  const context = await requireCorporateUser(authorizationHeader);
+
+  if (await isSuperAdminEmail(context.email)) {
+    return context;
+  }
+
+  if (await isEmailInSettingsList(context.email, 'collaboratorAdminEmails')) {
+    return context;
+  }
+
+  throw new Error('FORBIDDEN_COLLABORATOR_ADMIN_REQUIRED');
 }
 
 /**

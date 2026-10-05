@@ -2,10 +2,11 @@
 "use client";
 
 import React, { createContext, useContext, ReactNode, useMemo } from 'react';
+import { getAuth } from 'firebase/auth';
 import { useQuery, useMutation, useQueryClient, UseMutationResult } from '@tanstack/react-query';
+import { getFirebaseApp } from '@/lib/firebase';
 import { addDocumentToCollection, updateDocumentInCollection, deleteDocumentFromCollection, WithId, addMultipleDocumentsToCollection, listenToCollection, getCollection } from '@/lib/firestore-service';
 import { useAuth } from './AuthContext';
-import { useSystemSettings } from './SystemSettingsContext';
 
 export interface CollaboratorPermissions {
   canManageWorkflows: boolean;
@@ -83,6 +84,31 @@ const CollaboratorsContext = createContext<CollaboratorsContextType | undefined>
 const COLLECTION_NAME = 'collaborators';
 const LOG_COLLECTION_NAME = 'collaborator_logs';
 
+/**
+ * Incrementa `collaboratorTableVersion` pela API: `systemSettings/config` só aceita
+ * escrita de super admin nas rules, e o RH (`collaboratorAdminEmails`) também cadastra.
+ *
+ * Best-effort de propósito: roda depois do colaborador já gravado. Se lançasse, a
+ * tela mostraria erro de um cadastro salvo e o RH repetiria — duplicando o registro.
+ */
+const bumpCollaboratorTableVersion = async (): Promise<void> => {
+  try {
+    const currentUser = getAuth(getFirebaseApp()).currentUser;
+    if (!currentUser) return;
+
+    const token = await currentUser.getIdToken();
+    const response = await fetch('/api/admin/collaborators/table-version', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (!response.ok) {
+      console.warn('Falha ao atualizar a versão da tabela de colaboradores:', response.status);
+    }
+  } catch (error) {
+    console.warn('Falha ao atualizar a versão da tabela de colaboradores:', error);
+  }
+};
+
 const defaultPermissions: CollaboratorPermissions = {
   canManageWorkflows: false,
   canManageRequests: false,
@@ -112,7 +138,6 @@ const defaultPermissions: CollaboratorPermissions = {
 export const CollaboratorsProvider = ({ children }: { children: ReactNode }) => {
   const queryClient = useQueryClient();
   const { user } = useAuth();
-  const { settings, updateSystemSettings } = useSystemSettings();
 
   const { data: collaborators = [], isFetching } = useQuery<Collaborator[]>({
     queryKey: [COLLECTION_NAME],
@@ -142,7 +167,7 @@ export const CollaboratorsProvider = ({ children }: { children: ReactNode }) => 
   const addCollaboratorMutation = useMutation<WithId<Omit<Collaborator, 'id'>>, Error, Omit<Collaborator, 'id'>>({
     mutationFn: async (collaboratorData: Omit<Collaborator, 'id'>) => {
         const newCollaborator = await addDocumentToCollection(COLLECTION_NAME, { ...collaboratorData, createdAt: new Date().toISOString() });
-        await updateSystemSettings({ collaboratorTableVersion: (settings.collaboratorTableVersion || 1) + 1 });
+        await bumpCollaboratorTableVersion();
         return newCollaborator;
     },
     onSuccess: () => {
@@ -155,7 +180,7 @@ export const CollaboratorsProvider = ({ children }: { children: ReactNode }) => 
     mutationFn: async (collaboratorsData: Omit<Collaborator, 'id'>[]) => {
         const dataWithTimestamp = collaboratorsData.map(c => ({ ...c, createdAt: new Date().toISOString() }));
         await addMultipleDocumentsToCollection(COLLECTION_NAME, dataWithTimestamp);
-        await updateSystemSettings({ collaboratorTableVersion: (settings.collaboratorTableVersion || 1) + 1 });
+        await bumpCollaboratorTableVersion();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [COLLECTION_NAME] });
@@ -242,7 +267,7 @@ export const CollaboratorsProvider = ({ children }: { children: ReactNode }) => 
   const deleteCollaboratorMutation = useMutation<void, Error, string>({
     mutationFn: async (id: string) => {
         await deleteDocumentFromCollection(COLLECTION_NAME, id);
-        await updateSystemSettings({ collaboratorTableVersion: (settings.collaboratorTableVersion || 1) + 1 });
+        await bumpCollaboratorTableVersion();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [COLLECTION_NAME] });
