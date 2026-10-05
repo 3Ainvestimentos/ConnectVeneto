@@ -5,7 +5,7 @@ import React, { createContext, useContext, ReactNode, useMemo } from 'react';
 import { getAuth } from 'firebase/auth';
 import { useQuery, useMutation, useQueryClient, UseMutationResult } from '@tanstack/react-query';
 import { getFirebaseApp } from '@/lib/firebase';
-import { addDocumentToCollection, updateDocumentInCollection, deleteDocumentFromCollection, WithId, addMultipleDocumentsToCollection, listenToCollection, getCollection } from '@/lib/firestore-service';
+import { addDocumentToCollection, updateDocumentInCollection, WithId, addMultipleDocumentsToCollection, listenToCollection, getCollection } from '@/lib/firestore-service';
 import { useAuth } from './AuthContext';
 
 export interface CollaboratorPermissions {
@@ -84,6 +84,29 @@ const CollaboratorsContext = createContext<CollaboratorsContextType | undefined>
 const COLLECTION_NAME = 'collaborators';
 const LOG_COLLECTION_NAME = 'collaborator_logs';
 
+const API_PATH = '/api/admin/collaborators';
+
+/** Chamada autenticada às rotas de colaboradores (Admin SDK no servidor). */
+const authorizedRequest = async (url: string, init: { method: string; body?: unknown }): Promise<void> => {
+  const currentUser = getAuth(getFirebaseApp()).currentUser;
+  if (!currentUser) throw new Error('Sessão expirada. Entre novamente para continuar.');
+
+  const token = await currentUser.getIdToken();
+  const response = await fetch(url, {
+    method: init.method,
+    headers: {
+      Authorization: `Bearer ${token}`,
+      ...(init.body !== undefined ? { 'Content-Type': 'application/json' } : {}),
+    },
+    ...(init.body !== undefined ? { body: JSON.stringify(init.body) } : {}),
+  });
+
+  if (!response.ok) {
+    const payload = (await response.json().catch(() => null)) as { error?: string } | null;
+    throw new Error(payload?.error ?? 'Não foi possível concluir a operação.');
+  }
+};
+
 /**
  * Incrementa `collaboratorTableVersion` pela API: `systemSettings/config` só aceita
  * escrita de super admin nas rules, e o RH (`collaboratorAdminEmails`) também cadastra.
@@ -93,21 +116,21 @@ const LOG_COLLECTION_NAME = 'collaborator_logs';
  */
 const bumpCollaboratorTableVersion = async (): Promise<void> => {
   try {
-    const currentUser = getAuth(getFirebaseApp()).currentUser;
-    if (!currentUser) return;
-
-    const token = await currentUser.getIdToken();
-    const response = await fetch('/api/admin/collaborators/table-version', {
-      method: 'POST',
-      headers: { Authorization: `Bearer ${token}` },
-    });
-    if (!response.ok) {
-      console.warn('Falha ao atualizar a versão da tabela de colaboradores:', response.status);
-    }
+    await authorizedRequest(`${API_PATH}/table-version`, { method: 'POST' });
   } catch (error) {
     console.warn('Falha ao atualizar a versão da tabela de colaboradores:', error);
   }
 };
+
+/**
+ * Campos que o formulário de cadastro edita. Edição e exclusão passam pela API
+ * (as rules só deixam super admin escrever em `collaborators` de terceiros), que
+ * aceita apenas estes campos — permissões continuam na tela de permissões.
+ */
+const PROFILE_FIELDS = [
+  'idVeneto', 'name', 'email', 'photoURL', 'axis', 'area', 'position',
+  'segment', 'leader', 'lideranca', 'city', 'consultaLinks',
+] as const satisfies ReadonlyArray<keyof Collaborator>;
 
 const defaultPermissions: CollaboratorPermissions = {
   canManageWorkflows: false,
@@ -190,34 +213,18 @@ export const CollaboratorsProvider = ({ children }: { children: ReactNode }) => 
 
   const updateCollaboratorMutation = useMutation<void, Error, { currentData: Collaborator, newData: Omit<Collaborator, 'id'> }>({
     mutationFn: async ({ currentData, newData }) => {
-        const { id, ...originalData } = currentData;
-        const changes: Array<{
-          field: keyof Omit<Collaborator, 'id'>;
-          oldValue: unknown;
-          newValue: unknown;
-        }> = [];
-        
-        for (const key in newData) {
-            const typedKey = key as keyof typeof newData;
-            if (JSON.stringify(originalData[typedKey]) !== JSON.stringify(newData[typedKey])) {
-                changes.push({
-                    field: typedKey,
-                    oldValue: originalData[typedKey],
-                    newValue: newData[typedKey]
-                });
-            }
-        }
-        
-        if (changes.length > 0) {
-            const logEntry = {
-                collaboratorId: id,
-                collaboratorName: newData.name,
-                updatedBy: user?.displayName || 'Sistema',
-                updatedAt: new Date().toISOString(),
-                changes: changes
-            };
-            await addDocumentToCollection(LOG_COLLECTION_NAME, logEntry);
-            await updateDocumentInCollection(COLLECTION_NAME, id, newData);
+        const changedFields = Object.fromEntries(
+          PROFILE_FIELDS
+            .filter((field) => newData[field] !== undefined)
+            .filter((field) => JSON.stringify(currentData[field]) !== JSON.stringify(newData[field]))
+            .map((field) => [field, newData[field]])
+        );
+
+        if (Object.keys(changedFields).length > 0) {
+            await authorizedRequest(`${API_PATH}?id=${encodeURIComponent(currentData.id)}`, {
+              method: 'PATCH',
+              body: changedFields,
+            });
         }
     },
     onSuccess: () => {
@@ -266,8 +273,7 @@ export const CollaboratorsProvider = ({ children }: { children: ReactNode }) => 
 
   const deleteCollaboratorMutation = useMutation<void, Error, string>({
     mutationFn: async (id: string) => {
-        await deleteDocumentFromCollection(COLLECTION_NAME, id);
-        await bumpCollaboratorTableVersion();
+        await authorizedRequest(`${API_PATH}?id=${encodeURIComponent(id)}`, { method: 'DELETE' });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [COLLECTION_NAME] });

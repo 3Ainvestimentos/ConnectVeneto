@@ -77,18 +77,23 @@ export async function requireSuperAdmin(
  */
 export async function requireCollaboratorAdmin(
   authorizationHeader: string | null
-): Promise<AuthenticatedRequestContext> {
+): Promise<AuthenticatedRequestContext & { isSuperAdmin: boolean }> {
   const context = await requireCorporateUser(authorizationHeader);
 
   if (await isSuperAdminEmail(context.email)) {
-    return context;
+    return { ...context, isSuperAdmin: true };
   }
 
   if (await isEmailInSettingsList(context.email, 'collaboratorAdminEmails')) {
-    return context;
+    return { ...context, isSuperAdmin: false };
   }
 
   throw new Error('FORBIDDEN_COLLABORATOR_ADMIN_REQUIRED');
+}
+
+/** Diz se um e-mail qualquer (não o do requisitante) está em `superAdminEmails`. */
+export async function isSuperAdminAddress(email: string | null | undefined): Promise<boolean> {
+  return isSuperAdminEmail(normalizeEmail(email));
 }
 
 /**
