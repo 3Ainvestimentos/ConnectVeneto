@@ -38,7 +38,7 @@ export function canSeeHubModule(mod: HubModule, ctx: NavAccessContext): boolean 
 }
 
 /** Rotas sem zoom de conteúdo que não são itens do registro. */
-const STATIC_NO_ZOOM_ROUTES = ["/admin/crm", "/admin/strategic-panel", "/personal-panel"];
+const STATIC_NO_ZOOM_ROUTES = ["/admin/crm", "/admin/strategic-panel", "/personal-panel", "/inicio", "/pessoas"];
 
 export function isNoZoomPath(pathname: string, modules: HubModule[]): boolean {
   const routes = [...STATIC_NO_ZOOM_ROUTES, ...modules.filter((m) => m.noZoom).map((m) => m.href)];

@@ -95,17 +95,17 @@ export default function TrackFlowSummary() {
         <div className="flex flex-col items-center rounded-lg bg-red-50 dark:bg-red-950/30 p-2">
           <AlertCircle className="w-4 h-4 text-red-500 mb-1" />
           <span className="text-xl font-bold text-red-600 dark:text-red-400 leading-none">{counts.overdue}</span>
-          <span className="text-[10px] text-red-500 mt-0.5">Atrasadas</span>
+          <span className="text-xs text-red-500 mt-0.5">Atrasadas</span>
         </div>
         <div className="flex flex-col items-center rounded-lg bg-amber-50 dark:bg-amber-950/30 p-2">
           <Clock className="w-4 h-4 text-amber-500 mb-1" />
           <span className="text-xl font-bold text-amber-600 dark:text-amber-400 leading-none">{counts.dueSoon}</span>
-          <span className="text-[10px] text-amber-500 mt-0.5">Em breve</span>
+          <span className="text-xs text-amber-500 mt-0.5">Em breve</span>
         </div>
         <div className="flex flex-col items-center rounded-lg bg-emerald-50 dark:bg-emerald-950/30 p-2">
           <CheckCircle className="w-4 h-4 text-emerald-500 mb-1" />
           <span className="text-xl font-bold text-emerald-600 dark:text-emerald-400 leading-none">{counts.open}</span>
-          <span className="text-[10px] text-emerald-500 mt-0.5">Abertas</span>
+          <span className="text-xs text-emerald-500 mt-0.5">Abertas</span>
         </div>
       </div>
 

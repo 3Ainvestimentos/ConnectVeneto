@@ -7,6 +7,8 @@ import {
   Sidebar,
   SidebarContent,
   SidebarFooter,
+  SidebarGroup,
+  SidebarGroupLabel,
   SidebarMenu,
   SidebarMenuItem,
   SidebarMenuButton,
@@ -14,7 +16,8 @@ import {
 } from '@/components/ui/sidebar';
 import { Header } from './Header';
 import Link from 'next/link';
-import { LogOut, HelpCircle } from 'lucide-react';
+import { ChevronsLeft, ChevronsRight, LogOut, HelpCircle, Newspaper, Users } from 'lucide-react';
+import { useQuickLinks } from '@/contexts/QuickLinksContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRouter, usePathname } from 'next/navigation';
 import Image from 'next/image';
@@ -32,7 +35,6 @@ import { TermsOfUseModal } from '../auth/TermsOfUseModal';
 import { DailyRssModal } from '../rss/DailyRssModal';
 import { findCollaboratorByEmail } from '@/lib/email-utils';
 import { getCollaboratorUserId } from '@/contexts/CollaboratorsContext';
-import logoSidebar from '../../../docs/PNG/logotipo_vênetoPrancheta 1.png';
 import { UserNav } from './UserNav';
 import { NotificationBell } from './NotificationBell';
 import { NotificationsProvider } from '@/contexts/NotificationsContext';
@@ -42,6 +44,11 @@ import { useHubModules } from '@/hooks/useHubModules';
 import { bootstrapTrace } from '@/lib/bootstrap-trace';
 
 
+const HUB_WIREFRAME_NAV = [
+  { href: '/inicio', label: 'Início (novo)', icon: Newspaper },
+  { href: '/pessoas', label: 'Pessoas e equipes', icon: Users },
+];
+
 export function AppLayout({ children }: { children: React.ReactNode }) {
   const { user, loading, signOut, permissions, isSuperAdmin } = useAuth();
   const { collaborators, loading: collaboratorsLoading } = useCollaborators();
@@ -50,7 +57,8 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
   const { workflowDefinitions } = useApplications();
   const router = useRouter();
   const pathname = usePathname();
-  const { setOpen: setSidebarOpen } = useSidebar();
+  const { setOpen: setSidebarOpen, state: sidebarState, toggleSidebar } = useSidebar();
+  const { getVisibleLinksForUser } = useQuickLinks();
   
   const isFullscreenPage = false;
   const { modules: hubModules } = useHubModules();
@@ -64,6 +72,12 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
     if (!user) return null;
     return findCollaboratorByEmail(collaborators, user.email) || null;
   }, [user, collaborators]);
+
+  // Links rápidos no menu lateral (mesma regra de visibilidade da Home).
+  const quickLinks = useMemo(
+    () => getVisibleLinksForUser(currentUserCollab, collaborators),
+    [currentUserCollab, collaborators, getVisibleLinksForUser],
+  );
 
   useEffect(() => {
     if (loading || collaboratorsLoading || settingsLoading || isSuperAdmin) return;
@@ -231,12 +245,35 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
         {!isFullscreenPage && (
           <Sidebar collapsible="icon" variant="sidebar"> 
             <SidebarContent className="flex-1 p-2">
-              <div className="mb-4 px-2 py-1 group-data-[state=collapsed]/sidebar-wrapper:hidden">
-                <Link href="/dashboard" onClick={handleLinkClick} className="flex items-center justify-center rounded-md p-2 hover:bg-muted">
-                  <Image src={logoSidebar} alt="Logo Veneto Family Office" width={140} height={36} className="h-auto w-auto max-h-8" priority />
-                </Link>
-              </div>
               <SidebarMenu>
+                <SidebarMenuItem className="hidden md:block">
+                  <SidebarMenuButton
+                    onClick={toggleSidebar}
+                    tooltip={{ children: sidebarState === 'collapsed' ? 'Expandir menu' : 'Recolher menu', className: 'font-body' }}
+                    className="font-body text-sidebar-foreground/70"
+                    aria-label={sidebarState === 'collapsed' ? 'Expandir menu' : 'Recolher menu'}
+                  >
+                    {sidebarState === 'collapsed' ? <ChevronsRight /> : <ChevronsLeft />}
+                    <span>Recolher menu</span>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+                {/* Wireframe do Hub de Comunicação: entradas fixas até virarem módulos em `hubModules`. */}
+                {HUB_WIREFRAME_NAV.map((item) => (
+                  <SidebarMenuItem key={item.href}>
+                    <SidebarMenuButton
+                      asChild
+                      isActive={pathname === item.href || pathname.startsWith(`${item.href}/`)}
+                      tooltip={{ children: item.label, className: 'font-body' }}
+                      onClick={handleLinkClick}
+                      className="font-body"
+                    >
+                      <Link href={item.href}>
+                        <item.icon />
+                        <span>{item.label}</span>
+                      </Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                ))}
                 {hubModules.map((item) => {
                   if (!canSeeHubModule(item, {
                     permissions,
@@ -267,6 +304,31 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                   );
                 })}
               </SidebarMenu>
+
+              {quickLinks.length > 0 && (
+                <SidebarGroup className="mt-2 p-0">
+                  <SidebarGroupLabel className="font-body">Links rápidos</SidebarGroupLabel>
+                  <SidebarMenu>
+                    {quickLinks.map((link) => (
+                      <SidebarMenuItem key={link.id}>
+                        <SidebarMenuButton
+                          asChild
+                          tooltip={{ children: link.name || 'Link rápido', className: 'font-body' }}
+                          onClick={handleLinkClick}
+                          className="font-body"
+                        >
+                          <a href={link.link} target="_blank" rel="noopener noreferrer">
+                            <span className="relative h-4 w-4 shrink-0 overflow-hidden rounded-sm bg-white">
+                              <Image src={link.imageUrl} alt="" fill sizes="16px" className="object-contain" />
+                            </span>
+                            <span>{link.name || 'Link rápido'}</span>
+                          </a>
+                        </SidebarMenuButton>
+                      </SidebarMenuItem>
+                    ))}
+                  </SidebarMenu>
+                </SidebarGroup>
+              )}
             </SidebarContent>
 
             <SidebarFooter className="p-2 mt-auto">
@@ -295,7 +357,13 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
             </SidebarFooter>
           </Sidebar>
         )}
-        <main className={cn("flex-1", !isFullscreenPage && "md:ml-[var(--sidebar-width-icon)]")}>
+        {/* O conteúdo acompanha a largura do menu: recolhido (ícones) ou expandido. */}
+        <main
+          className={cn(
+            "min-w-0 flex-1 transition-[margin] duration-200 ease-linear",
+            !isFullscreenPage && (sidebarState === 'expanded' ? "md:ml-[var(--sidebar-width)]" : "md:ml-[var(--sidebar-width-icon)]"),
+          )}
+        >
           {shouldApplyContentZoom ? (
             <div style={{ zoom: "0.85" }}>
               {children}
