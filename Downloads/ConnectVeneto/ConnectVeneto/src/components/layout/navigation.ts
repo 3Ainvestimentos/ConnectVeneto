@@ -32,13 +32,18 @@ export function canSeeHubModule(mod: HubModule, ctx: NavAccessContext): boolean 
 
   if (isEmbeddedModule(mod)) return canAccessEmbeddedModule(mod, ctx);
 
+  // Interno com acesso por pessoa (ex.: piloto da nova Home): mesma regra dos embarcados.
+  if (mod.accessMode === 'explicit') {
+    return ctx.isSuperAdmin || resolveModuleAccess(mod, ctx.modulePermissions?.[mod.id]).hasAccess;
+  }
+
   if (!mod.permission) return true;
   const has = (key: string) => ctx.permissions[key as keyof CollaboratorPermissions] === true;
   return has(mod.permission) || mod.altPermissions.some(has);
 }
 
 /** Rotas sem zoom de conteúdo que não são itens do registro. */
-const STATIC_NO_ZOOM_ROUTES = ["/admin/crm", "/admin/strategic-panel", "/personal-panel"];
+const STATIC_NO_ZOOM_ROUTES = ["/admin/crm", "/admin/strategic-panel", "/personal-panel", "/inicio", "/pessoas"];
 
 export function isNoZoomPath(pathname: string, modules: HubModule[]): boolean {
   const routes = [...STATIC_NO_ZOOM_ROUTES, ...modules.filter((m) => m.noZoom).map((m) => m.href)];

@@ -24,12 +24,14 @@ const EXACT_APP_PAGE_PATHS = new Set<string>([
   "/documents",
   "/documents/glossario",
   "/guides",
+  "/inicio",
   "/login",
   "/me/tasks",
   "/meet-analyses",
   "/news",
   "/opportunity-map",
   "/personal-panel",
+  "/pessoas",
   "/requests",
   "/regras-comerciais",
   "/test-sheet",
@@ -37,6 +39,7 @@ const EXACT_APP_PAGE_PATHS = new Set<string>([
 
 const DYNAMIC_PAGE_PATTERNS: RegExp[] = [
   /^\/meet-analyses\/[^/]+$/,
+  /^\/pessoas\/[^/]+$/,
   /^\/admin\/polls\/[^/]+\/results$/,
 ];
 

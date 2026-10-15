@@ -89,6 +89,13 @@ export const internalModuleSchema = z.object({
   permission: z.string().nullable().default(null),
   /** Permissões alternativas: qualquer uma delas também libera o item. */
   altPermissions: z.array(z.string()).default([]),
+  /**
+   * 'all' (padrão): vale `permission`/`altPermissions`.
+   * 'explicit': só quem tem `${id}:view` em modulePermissions[id] (ex.: piloto da nova Home),
+   * concedido na mesma tela de permissões dos módulos embarcados.
+   */
+  accessMode: z.enum(['all', 'explicit']).default('all'),
+  defaultPermissions: z.array(permissionKeySchema).default([]),
 });
 
 export const embeddedModuleSchema = z.object({
@@ -172,8 +179,14 @@ export type ModuleAccess = { hasAccess: boolean; permissions: string[] };
  *
  * `modulePerms` é `collaborator.modulePermissions?.[mod.id]`.
  */
+/** O que a regra de acesso por pessoa precisa saber do módulo (embarcado ou interno explícito). */
+export type ModuleAccessConfig = Pick<EmbeddedHubModule, 'id' | 'accessMode' | 'defaultPermissions'>;
+
+/** Módulos com acesso concedido por pessoa: todos os embarcados e os internos em modo 'explicit'. */
+export const hasPerPersonAccess = (mod: HubModule): boolean => isEmbeddedModule(mod) || mod.accessMode === 'explicit';
+
 export function resolveModuleAccess(
-  mod: EmbeddedHubModule,
+  mod: ModuleAccessConfig,
   modulePerms: string[] | undefined,
 ): ModuleAccess {
   const perms = Array.isArray(modulePerms) ? modulePerms.filter((p) => typeof p === 'string') : undefined;
