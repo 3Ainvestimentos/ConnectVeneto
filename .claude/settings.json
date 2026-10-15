@@ -1,0 +1,35 @@
+{
+  "_comentario": "Tier MÉDIO — ConnectVeneto. Código livre; deploy, Firebase (rules, índices, dados de produção) e infra são aprovados.",
+  "permissions": {
+    "allow": [
+      "Bash(git status:*)",
+      "Bash(git log:*)",
+      "Bash(git diff:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git push:*)",
+      "Bash(npm run:*)",
+      "Bash(npm test:*)",
+      "Bash(npx tsc:*)",
+      "Bash(pytest:*)"
+    ],
+    "ask": [
+      "Bash(npm publish:*)",
+      "Bash(vercel:*)",
+      "Bash(firebase:*)",
+      "Bash(docker push:*)",
+      "Bash(az:*)",
+      "Bash(sqlcmd:*)",
+      "Bash(npx firebase:*)",
+      "Bash(gcloud:*)"
+    ],
+    "deny": [
+      "Read(./.env)",
+      "Read(.env)",
+      "Read(./**/.env)",
+      "Read(./**/*.env)",
+      "Read(./**/.env.local)",
+      "Read(./**/.env.production)"
+    ]
+  }
+}

@@ -1,0 +1,8 @@
+{
+  "_comentario": "hub = caminho do CLONE VIVO do repo veneto-agentes nesta maquina (fonte do registro). Numa maquina sem esse clone (ex.: dev da equipe), o caminho nao existe e as skills caem para ${CLAUDE_PLUGIN_ROOT} - a copia da versao instalada do plugin, cujo registro pode estar defasado.",
+  "dominio": "connect",
+  "tier": "medio",
+  "vault": "vault",
+  "hub": "C:\Users\victor.santos\Documents\Programação\Vêneto\veneto-agentes",
+  "gatilhosEscrita": []
+}
