@@ -215,6 +215,7 @@ export function FeedPost({
 }) {
   const { react, updatePost } = useHubFeedActions();
   const [showComments, setShowComments] = useState(false);
+  const [pickerOpen, setPickerOpen] = useState(false);
   const highlighted = isHighlighted(post);
   const reactions = Object.entries(post.reactionCounts).filter(([, n]) => n > 0);
   const commentLabel = post.canManage
@@ -224,6 +225,7 @@ export function FeedPost({
       : 'Comentar';
 
   const toggleReaction = (emoji: string) => {
+    setPickerOpen(false);
     if (preview) return;
     react.mutateAsync({ postId: post.id, emoji: post.myReaction === emoji ? null : emoji }).catch(fail);
   };
@@ -337,7 +339,7 @@ export function FeedPost({
             <span className="tabular-nums">{count}</span>
           </button>
         ))}
-        <Popover>
+        <Popover open={pickerOpen} onOpenChange={setPickerOpen}>
           <PopoverTrigger asChild>
             <button
               type="button"
