@@ -16,7 +16,7 @@ import {
 } from '@/components/ui/sidebar';
 import { Header } from './Header';
 import Link from 'next/link';
-import { ChevronsLeft, ChevronsRight, LogOut, HelpCircle, Newspaper, Users } from 'lucide-react';
+import { ChevronsLeft, ChevronsRight, LogOut, HelpCircle } from 'lucide-react';
 import { useQuickLinks } from '@/contexts/QuickLinksContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRouter, usePathname } from 'next/navigation';
@@ -44,10 +44,6 @@ import { useHubModules } from '@/hooks/useHubModules';
 import { bootstrapTrace } from '@/lib/bootstrap-trace';
 
 
-const HUB_WIREFRAME_NAV = [
-  { href: '/inicio', label: 'Início (novo)', icon: Newspaper },
-  { href: '/pessoas', label: 'Pessoas e equipes', icon: Users },
-];
 
 export function AppLayout({ children }: { children: React.ReactNode }) {
   const { user, loading, signOut, permissions, isSuperAdmin } = useAuth();
@@ -257,23 +253,6 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                     <span>Recolher menu</span>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
-                {/* Wireframe do Hub de Comunicação: entradas fixas até virarem módulos em `hubModules`. */}
-                {HUB_WIREFRAME_NAV.map((item) => (
-                  <SidebarMenuItem key={item.href}>
-                    <SidebarMenuButton
-                      asChild
-                      isActive={pathname === item.href || pathname.startsWith(`${item.href}/`)}
-                      tooltip={{ children: item.label, className: 'font-body' }}
-                      onClick={handleLinkClick}
-                      className="font-body"
-                    >
-                      <Link href={item.href}>
-                        <item.icon />
-                        <span>{item.label}</span>
-                      </Link>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                ))}
                 {hubModules.map((item) => {
                   if (!canSeeHubModule(item, {
                     permissions,

@@ -6,13 +6,13 @@ import { Download, ExternalLink, FileText, PlayCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 import { cn } from '@/lib/utils';
-import { formatBytes } from '@/lib/hub-mock/media';
-import type { Post, PostImage } from '@/lib/hub-mock/types';
+import { formatBytes } from '@/lib/hub/media';
+import type { HubButton, HubFile, HubImage, HubVideo } from '@/lib/hub/model';
 
 /** Imagens enviadas na hora (blob:) não passam pelo otimizador do Next. */
 const isLocal = (url: string) => url.startsWith('blob:') || url.startsWith('data:');
 
-function Img({ image, className, sizes }: { image: PostImage; className?: string; sizes: string }) {
+function Img({ image, className, sizes }: { image: HubImage; className?: string; sizes: string }) {
   return isLocal(image.url) ? (
     // eslint-disable-next-line @next/next/no-img-element
     <img src={image.url} alt={image.name ?? ''} className={cn('absolute inset-0 h-full w-full object-cover', className)} />
@@ -22,7 +22,7 @@ function Img({ image, className, sizes }: { image: PostImage; className?: string
 }
 
 /** 1 imagem: faixa larga; 2: lado a lado; 3+: grade com "+N". Clique abre em tela cheia. */
-export function ImageGallery({ images }: { images: PostImage[] }) {
+export function ImageGallery({ images }: { images: HubImage[] }) {
   const [open, setOpen] = useState<number | null>(null);
   if (images.length === 0) return null;
   const shown = images.slice(0, 4);
@@ -67,7 +67,7 @@ export function ImageGallery({ images }: { images: PostImage[] }) {
   );
 }
 
-export function VideoBlock({ video }: { video: NonNullable<Post['video']> }) {
+export function VideoBlock({ video }: { video: HubVideo }) {
   if (video.kind === 'upload') {
     return <video src={video.url} controls preload="metadata" className="max-h-72 w-full max-w-xl rounded-lg bg-black" />;
   }
@@ -87,7 +87,7 @@ export function VideoBlock({ video }: { video: NonNullable<Post['video']> }) {
   );
 }
 
-export function FileList({ files }: { files: NonNullable<Post['files']> }) {
+export function FileList({ files }: { files: HubFile[] }) {
   return (
     <ul className="grid gap-1.5">
       {files.map((f) => (
@@ -104,7 +104,7 @@ export function FileList({ files }: { files: NonNullable<Post['files']> }) {
   );
 }
 
-export function ButtonRow({ buttons }: { buttons: NonNullable<Post['buttons']> }) {
+export function ButtonRow({ buttons }: { buttons: HubButton[] }) {
   return (
     <div className="flex flex-wrap gap-2">
       {buttons.map((b, i) => (

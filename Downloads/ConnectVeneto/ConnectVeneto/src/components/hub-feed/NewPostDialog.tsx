@@ -27,10 +27,10 @@ import { Textarea } from '@/components/ui/textarea';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
-import { daysFromNow } from '@/lib/hub-mock/data';
-import { formatBytes, parseVideoUrl } from '@/lib/hub-mock/media';
-import { useHubMock } from '@/lib/hub-mock/store';
-import type { Importance, Post, PostButton, PostFile, PostImage, PostVideo } from '@/lib/hub-mock/types';
+import { useHubFeedActions } from '@/hooks/useHubFeed';
+import { formatBytes, parseVideoUrl } from '@/lib/hub/media';
+import type { CreatePostInput, FeedChannel, FeedPost as FeedPostData, HubButton, HubVideo, Importance } from '@/lib/hub/model';
+import { ACCEPT_ATTR, uploadHubFile, validateUpload, type UploadKind } from '@/lib/hub/upload';
 import { FeedPost } from './FeedPost';
 import { shortDate, toDateInput } from './format';
 
@@ -52,6 +52,18 @@ interface CalendarItem {
   start: { dateTime?: string; date?: string };
   end?: { dateTime?: string; date?: string };
 }
+
+const DAY = 24 * 60 * 60 * 1000;
+const daysFromNow = (days: number) => new Date(Date.now() + days * DAY).toISOString();
+
+/** Arquivo escolhido no formulário: prévia local (blob:) até subir para o Storage ao publicar. */
+interface LocalFile {
+  previewUrl: string;
+  name: string;
+  size: number;
+  file: File;
+}
+type VideoDraft = (HubVideo & { file?: File }) | null;
 
 const toTime = (iso: string) => new Date(iso).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', hour12: false });
 const atLocal = (date: string, time: string) => new Date(`${date}T${time || '09:00'}:00`).toISOString();
@@ -167,19 +179,32 @@ function CalendarImport({ onPick }: { onPick: (item: CalendarItem) => void }) {
   );
 }
 
-export function NewPostDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (open: boolean) => void }) {
-  const { publishableChannels, addPost, meId } = useHubMock();
+export function NewPostDialog({
+  open,
+  onOpenChange,
+  channels,
+  viewer,
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  channels: FeedChannel[];
+  viewer: { email: string; name: string };
+}) {
+  const { user } = useAuth();
+  const { createPost } = useHubFeedActions();
+  const publishableChannels = channels.filter((c) => c.canPublish);
   const [channelId, setChannelId] = useState(publishableChannels[0]?.id ?? '');
+  const [sending, setSending] = useState<string | null>(null);
   const [title, setTitle] = useState('');
   const [body, setBody] = useState('');
   const [importance, setImportance] = useState<Importance>('normal');
   const [highlightUntil, setHighlightUntil] = useState(toDateInput(daysFromNow(7)));
-  const [images, setImages] = useState<PostImage[]>([]);
-  const [video, setVideo] = useState<PostVideo | null>(null);
+  const [images, setImages] = useState<LocalFile[]>([]);
+  const [video, setVideo] = useState<VideoDraft>(null);
   const [videoMode, setVideoMode] = useState<'upload' | 'link' | null>(null);
   const [videoLink, setVideoLink] = useState('');
-  const [files, setFiles] = useState<PostFile[]>([]);
-  const [buttons, setButtons] = useState<PostButton[] | null>(null);
+  const [files, setFiles] = useState<LocalFile[]>([]);
+  const [buttons, setButtons] = useState<HubButton[] | null>(null);
   const [event, setEvent] = useState<EventDraft | null>(null);
   const [poll, setPoll] = useState<string[] | null>(null);
   const [mobileTab, setMobileTab] = useState<'editar' | 'previa'>('editar');
@@ -204,74 +229,132 @@ export function NewPostDialog({ open, onOpenChange }: { open: boolean; onOpenCha
     setMobileTab('editar');
   };
 
-  // Wireframe: arquivos ficam em URLs locais (blob:). Na versão real sobem para o Storage (pasta publicacoes/).
-  const pickImages = (list: FileList | null) => {
-    if (!list) return;
-    setImages((prev) => [...prev, ...Array.from(list).map((f) => ({ url: URL.createObjectURL(f), name: f.name }))]);
+  // Valida na escolha (erro legível já aqui) e guarda prévia local; o upload acontece ao publicar.
+  const accept = (list: FileList | null, kind: UploadKind): LocalFile[] => {
+    const ok: LocalFile[] = [];
+    for (const file of Array.from(list ?? [])) {
+      const error = validateUpload(file, kind);
+      if (error) toast({ title: file.name, description: error, variant: 'destructive' });
+      else ok.push({ previewUrl: URL.createObjectURL(file), name: file.name, size: file.size, file });
+    }
+    return ok;
   };
-  const pickFiles = (list: FileList | null) => {
-    if (!list) return;
-    setFiles((prev) => [...prev, ...Array.from(list).map((f) => ({ url: URL.createObjectURL(f), name: f.name, size: f.size }))]);
-  };
+  const pickImages = (list: FileList | null) => setImages((prev) => [...prev, ...accept(list, 'image')].slice(0, 10));
+  const pickFiles = (list: FileList | null) => setFiles((prev) => [...prev, ...accept(list, 'file')].slice(0, 10));
   const pickVideo = (list: FileList | null) => {
-    const f = list?.[0];
-    if (!f) return;
-    setVideo({ kind: 'upload', url: URL.createObjectURL(f), name: f.name });
+    const [f] = accept(list, 'video');
+    if (f) setVideo({ kind: 'upload', url: f.previewUrl, name: f.name, file: f.file });
   };
 
   const validButtons = (buttons ?? []).filter((b) => b.label.trim() && /^https?:\/\//i.test(b.href.trim()));
   const pollOptions = (poll ?? []).map((o) => o.trim()).filter(Boolean);
 
-  const draft: Post = {
+  const eventInput = event
+    ? {
+        start: atLocal(event.date, event.start),
+        ...(event.end ? { end: atLocal(event.date, event.end) } : {}),
+        place: event.place.trim(),
+        audience: event.audience,
+        ...(event.calendarEventId ? { calendarEventId: event.calendarEventId } : {}),
+      }
+    : undefined;
+  const pollInput = pollOptions.length >= 2 ? { options: pollOptions, closesAt: daysFromNow(7) } : undefined;
+  const highlightIso = importance === 'importante' ? atLocal(highlightUntil, '23:59') : undefined;
+
+  // Prévia no mesmo formato que o feed recebe da API.
+  const draft: FeedPostData = {
     id: 'preview',
     channelId: channelId || publishableChannels[0]?.id || 'institucional',
-    authorId: meId,
+    authorEmail: viewer.email,
+    authorName: viewer.name,
     title: title.trim() || 'Título da publicação',
     body: body.trim() || 'O texto da publicação aparece aqui.',
-    createdAt: new Date().toISOString(),
     importance,
-    highlightUntil: importance === 'importante' ? atLocal(highlightUntil, '23:59') : undefined,
-    expiresAt: event ? atLocal(event.date, '23:59') : undefined,
-    images: images.length ? images : undefined,
+    highlightUntil: highlightIso,
+    images: images.map((i) => ({ url: i.previewUrl, name: i.name })),
     video: video ?? undefined,
-    files: files.length ? files : undefined,
-    buttons: validButtons.length ? validButtons.map((b) => ({ label: b.label.trim(), href: b.href.trim() })) : undefined,
-    event: event
-      ? {
-          date: atLocal(event.date, event.start),
-          end: event.end ? atLocal(event.date, event.end) : undefined,
-          place: event.place || 'Local a definir',
-          audience: event.audience,
-          going: 0,
-          calendarEventId: event.calendarEventId,
-        }
-      : undefined,
-    poll: pollOptions.length >= 2 ? { options: pollOptions.map((label) => ({ label, votes: 0 })), closesAt: daysFromNow(7) } : undefined,
-    reactions: {},
-    comments: [],
+    files: files.map((x) => ({ url: x.previewUrl, name: x.name, size: x.size })),
+    buttons: validButtons.map((b) => ({ label: b.label.trim(), href: b.href.trim() })),
+    event: eventInput,
+    poll: pollInput,
+    status: 'published',
+    source: 'hub',
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+    commentCount: 0,
+    relevantCommentCount: 0,
+    reactionCounts: {},
+    rsvpCounts: { vou: 0, talvez: 0, nao: 0 },
+    pollCounts: pollInput ? pollInput.options.map(() => 0) : [],
+    myReaction: null,
+    myRsvp: null,
+    myVote: null,
+    canManage: true,
   };
 
   const missing = !title.trim() || !body.trim() || !channelId;
+  const channelName = publishableChannels.find((c) => c.id === draft.channelId)?.name ?? '';
 
-  const publish = () => {
+  const publish = async () => {
     setSubmitted(true);
     if (missing) {
       setMobileTab('editar');
       return;
     }
-    const { id: _id, authorId: _a, createdAt: _c, reactions: _r, comments: _cm, ...input } = draft;
-    addPost(input);
-    toast({
-      title: 'Publicado',
-      description:
-        event?.addToCompanyCalendar && !event.calendarEventId
-          ? 'Na versão real, o evento também entra no Google Agenda da Vêneto.'
-          : importance === 'importante'
-            ? `Fica no topo do feed até ${shortDate(draft.highlightUntil!)}.`
-            : 'A publicação já aparece no feed.',
-    });
-    reset();
-    onOpenChange(false);
+    if (!user) return;
+    try {
+      // 1. Sobe imagens, vídeo e anexos (em sequência, com progresso).
+      const up = async (local: LocalFile, kind: UploadKind) => {
+        const r = await uploadHubFile(local.file, kind, user.uid, (pct) => setSending(`Enviando ${local.name} (${pct}%)`));
+        return { url: r.url, storagePath: r.storagePath, name: r.name, size: r.size };
+      };
+      const uploadedImages = [];
+      for (const img of images) {
+        const { size: _s, ...rest } = await up(img, 'image');
+        uploadedImages.push(rest);
+      }
+      const uploadedFiles = [];
+      for (const file of files) uploadedFiles.push(await up(file, 'file'));
+      let uploadedVideo: HubVideo | undefined;
+      if (video?.kind === 'upload' && video.file) {
+        const r = await up({ previewUrl: video.url, name: video.name ?? 'video', size: video.file.size, file: video.file }, 'video');
+        uploadedVideo = { kind: 'upload', url: r.url, storagePath: r.storagePath, name: r.name };
+      } else if (video && video.kind !== 'upload') {
+        uploadedVideo = { kind: video.kind, url: video.url };
+      }
+
+      // 2. Grava a publicação (o servidor confere se a pessoa pode publicar no canal).
+      setSending('Publicando…');
+      const input: CreatePostInput = {
+        channelId,
+        title: title.trim(),
+        body: body.trim(),
+        importance,
+        ...(highlightIso ? { highlightUntil: highlightIso } : {}),
+        images: uploadedImages,
+        ...(uploadedVideo ? { video: uploadedVideo } : {}),
+        files: uploadedFiles,
+        buttons: draft.buttons,
+        ...(eventInput ? { event: eventInput } : {}),
+        ...(pollInput ? { poll: pollInput } : {}),
+      };
+      await createPost.mutateAsync(input);
+      toast({
+        title: 'Publicado',
+        description:
+          event?.addToCompanyCalendar && !event.calendarEventId
+            ? 'O evento ainda não vai para o Google Agenda da Vêneto: essa integração entra numa próxima etapa.'
+            : highlightIso
+              ? `Fica no topo do feed até ${shortDate(highlightIso)}.`
+              : 'A publicação já aparece no feed.',
+      });
+      reset();
+      onOpenChange(false);
+    } catch (e) {
+      toast({ title: 'Não foi possível publicar', description: e instanceof Error ? e.message : 'Tente de novo.', variant: 'destructive' });
+    } finally {
+      setSending(null);
+    }
   };
 
   const fromCalendar = (it: CalendarItem) => {
@@ -348,9 +431,9 @@ export function NewPostDialog({ open, onOpenChange }: { open: boolean; onOpenCha
         <Block icon={ImagePlus} title={`Imagens (${images.length})`} onRemove={() => setImages([])}>
           <div className="grid grid-cols-4 gap-2">
             {images.map((img, i) => (
-              <div key={img.url} className="group relative aspect-square overflow-hidden rounded-md bg-muted">
+              <div key={img.previewUrl} className="group relative aspect-square overflow-hidden rounded-md bg-muted">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={img.url} alt={img.name ?? ''} className="h-full w-full object-cover" />
+                <img src={img.previewUrl} alt={img.name} className="h-full w-full object-cover" />
                 <button
                   type="button"
                   onClick={() => setImages((prev) => prev.filter((_, j) => j !== i))}
@@ -411,7 +494,7 @@ export function NewPostDialog({ open, onOpenChange }: { open: boolean; onOpenCha
         <Block icon={FileText} title={`Arquivos (${files.length})`} onRemove={() => setFiles([])}>
           <ul className="grid gap-1.5">
             {files.map((f, i) => (
-              <li key={f.url} className="flex items-center gap-2 rounded-md border bg-card px-3 py-1.5 text-sm">
+              <li key={f.previewUrl} className="flex items-center gap-2 rounded-md border bg-card px-3 py-1.5 text-sm">
                 <FileText className="h-4 w-4 shrink-0 text-muted-foreground" />
                 <span className="min-w-0 flex-1 truncate">{f.name}</span>
                 <span className="text-xs text-muted-foreground">{formatBytes(f.size)}</span>
@@ -486,9 +569,9 @@ export function NewPostDialog({ open, onOpenChange }: { open: boolean; onOpenCha
             <label className="flex items-center justify-between gap-3 rounded-md border bg-card px-3 py-2 text-sm">
               <span>
                 <span className="block font-medium">Criar também no Google Agenda da Vêneto</span>
-                <span className="text-xs text-muted-foreground">Aparece no calendário da empresa. Cada pessoa ainda pode adicionar à própria agenda.</span>
+                <span className="text-xs text-muted-foreground">Em breve: hoje cada pessoa adiciona à própria agenda pelo botão do evento.</span>
               </span>
-              <Switch checked={event.addToCompanyCalendar} onCheckedChange={(v) => setEvent({ ...event, addToCompanyCalendar: v })} />
+              <Switch checked={event.addToCompanyCalendar} onCheckedChange={(v) => setEvent({ ...event, addToCompanyCalendar: v })} disabled />
             </label>
           )}
         </Block>
@@ -525,15 +608,15 @@ export function NewPostDialog({ open, onOpenChange }: { open: boolean; onOpenCha
             icon={CalendarDays}
             label="Evento"
             disabled={!!event}
-            onClick={() => setEvent({ date: toDateInput(daysFromNow(14)), start: '09:00', end: '', place: '', audience: 'Interno', addToCompanyCalendar: true })}
+            onClick={() => setEvent({ date: toDateInput(daysFromNow(14)), start: '09:00', end: '', place: '', audience: 'Interno', addToCompanyCalendar: false })}
           />
           <AddButton icon={BarChart3} label="Enquete" disabled={!!poll} onClick={() => setPoll(['', ''])} />
         </div>
       </div>
 
-      <input ref={imageInput} type="file" accept="image/*" multiple hidden onChange={(e) => { pickImages(e.target.files); e.target.value = ''; }} />
-      <input ref={fileInput} type="file" multiple hidden onChange={(e) => { pickFiles(e.target.files); e.target.value = ''; }} />
-      <input ref={videoInput} type="file" accept="video/*" hidden onChange={(e) => { pickVideo(e.target.files); e.target.value = ''; }} />
+      <input ref={imageInput} type="file" accept={ACCEPT_ATTR.image} multiple hidden onChange={(e) => { pickImages(e.target.files); e.target.value = ''; }} />
+      <input ref={fileInput} type="file" accept={ACCEPT_ATTR.file} multiple hidden onChange={(e) => { pickFiles(e.target.files); e.target.value = ''; }} />
+      <input ref={videoInput} type="file" accept={ACCEPT_ATTR.video} hidden onChange={(e) => { pickVideo(e.target.files); e.target.value = ''; }} />
     </div>
   );
 
@@ -541,7 +624,7 @@ export function NewPostDialog({ open, onOpenChange }: { open: boolean; onOpenCha
     <div className="grid content-start gap-2">
       <span className="text-sm font-medium text-muted-foreground">Pré-visualização</span>
       <div className="pointer-events-none select-none">
-        <FeedPost post={draft} />
+        <FeedPost post={draft} channelName={channelName} viewerEmail={viewer.email} preview />
       </div>
     </div>
   );
@@ -573,10 +656,14 @@ export function NewPostDialog({ open, onOpenChange }: { open: boolean; onOpenCha
         </div>
 
         <DialogFooter className="border-t px-6 py-4">
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
+          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={!!sending}>
             Cancelar
           </Button>
-          <Button onClick={publish}>Publicar</Button>
+          <span className="mr-auto truncate text-sm text-muted-foreground" aria-live="polite">{sending}</span>
+          <Button onClick={() => void publish()} disabled={!!sending}>
+            {sending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+            Publicar
+          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

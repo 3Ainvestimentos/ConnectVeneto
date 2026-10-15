@@ -42,6 +42,26 @@ const ERROR_MAP: Record<string, ErrorDescriptor> = {
     status: 403,
     body: { error: 'Acesso negado: requer permissao para gerenciar a Biblioteca Comercial.' },
   },
+  FORBIDDEN_NO_EMAIL: {
+    status: 403,
+    body: { error: 'Acesso negado: conta sem e-mail.' },
+  },
+  FORBIDDEN_HUB_PILOT: {
+    status: 403,
+    body: { error: 'A nova Home ainda esta em piloto e nao foi liberada para voce.' },
+  },
+  FORBIDDEN_HUB_PUBLISHER: {
+    status: 403,
+    body: { error: 'Voce nao pode publicar neste canal.' },
+  },
+  FORBIDDEN_HUB_POST_OWNER: {
+    status: 403,
+    body: { error: 'So o autor da publicacao (ou a Comunicacao) pode fazer isso.' },
+  },
+  HUB_NOT_FOUND: {
+    status: 404,
+    body: { error: 'Publicacao nao encontrada.' },
+  },
   SYSTEM_SETTINGS_NOT_FOUND: {
     status: 503,
     body: { error: 'Configuracao do sistema indisponivel.' },

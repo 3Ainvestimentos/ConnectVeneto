@@ -2,13 +2,24 @@
 
 import { Plus } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { useHubMock } from '@/lib/hub-mock/store';
+import type { FeedChannel } from '@/lib/hub/model';
 
-/** Filtro de canais em linha, para telas em que a coluna esquerda não cabe. */
-export function ChannelChips({ channelFilter, onChannelFilter, className }: { channelFilter: string; onChannelFilter: (id: string) => void; className?: string }) {
-  const { channels, following, toggleFollow } = useHubMock();
-  const followed = channels.filter((c) => following.includes(c.id));
-  const others = channels.filter((c) => !following.includes(c.id));
+/** Filtro de canais em linha. Canais não seguidos aparecem tracejados: clicar passa a seguir. */
+export function ChannelChips({
+  channels,
+  channelFilter,
+  onChannelFilter,
+  onFollow,
+  className,
+}: {
+  channels: FeedChannel[];
+  channelFilter: string;
+  onChannelFilter: (id: string) => void;
+  onFollow: (channelId: string, following: boolean) => void;
+  className?: string;
+}) {
+  const followed = channels.filter((c) => c.following);
+  const others = channels.filter((c) => !c.following);
   const chip = (active: boolean) =>
     cn(
       'inline-flex shrink-0 items-center gap-1.5 rounded-full border px-4 py-1.5 text-sm font-medium transition-colors',
@@ -25,7 +36,7 @@ export function ChannelChips({ channelFilter, onChannelFilter, className }: { ch
         </button>
       ))}
       {others.map((c) => (
-        <button key={c.id} type="button" className={cn(chip(false), 'border-dashed text-muted-foreground')} onClick={() => toggleFollow(c.id)} title="Seguir canal">
+        <button key={c.id} type="button" className={cn(chip(false), 'border-dashed text-muted-foreground')} onClick={() => onFollow(c.id, true)} title="Seguir canal">
           <Plus className="h-3.5 w-3.5" /> {c.name}
         </button>
       ))}

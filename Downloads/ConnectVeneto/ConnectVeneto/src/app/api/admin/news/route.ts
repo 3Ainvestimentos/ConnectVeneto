@@ -13,6 +13,7 @@ import {
   NEWS_STORAGE_FOLDER,
   isNewsStoragePath,
 } from '@/config/news-media';
+import { syncNewsItemToHub } from '@/lib/hub/news-sync';
 
 const httpsUrlSchema = z
   .string()
@@ -136,6 +137,9 @@ export async function POST(request: Request) {
       newsId: docRef.id,
     });
 
+    // Piloto da nova Home: a notícia também aparece no feed (hubPosts).
+    await syncNewsItemToHub(docRef.id);
+
     return jsonOk({ ok: true, id: docRef.id });
   } catch (error) {
     return handleError(error, 'POST');
@@ -201,6 +205,8 @@ export async function PATCH(request: Request) {
       newsId: id,
     });
 
+    await syncNewsItemToHub(id);
+
     return jsonOk({ ok: true });
   } catch (error) {
     return handleError(error, 'PATCH');
@@ -236,6 +242,9 @@ export async function DELETE(request: Request) {
       email: authContext.email,
       newsId: id,
     });
+
+    // Notícia excluída sai do feed (a publicação é arquivada, não apagada).
+    await syncNewsItemToHub(id);
 
     return jsonOk({ ok: true });
   } catch (error) {

@@ -1,4 +1,4 @@
-import type { PostEvent, PostVideo } from './types';
+import type { HubEvent, HubVideo } from './model';
 
 const HOUR = 60 * 60 * 1000;
 
@@ -9,12 +9,12 @@ const gcalDate = (iso: string) => new Date(iso).toISOString().replace(/[-:]/g, '
  * Link "Adicionar ao Google Agenda" (template do Google; funciona sem API nem login extra).
  * Abre a agenda da própria pessoa com o evento preenchido.
  */
-export function googleCalendarUrl(title: string, event: PostEvent, details?: string): string {
-  const end = event.end ?? new Date(new Date(event.date).getTime() + HOUR).toISOString();
+export function googleCalendarUrl(title: string, event: Pick<HubEvent, 'start' | 'end' | 'place'>, details?: string): string {
+  const end = event.end ?? new Date(new Date(event.start).getTime() + HOUR).toISOString();
   const params = new URLSearchParams({
     action: 'TEMPLATE',
     text: title,
-    dates: `${gcalDate(event.date)}/${gcalDate(end)}`,
+    dates: `${gcalDate(event.start)}/${gcalDate(end)}`,
     location: event.place,
     details: details ?? '',
     ctz: 'America/Sao_Paulo',
@@ -23,7 +23,7 @@ export function googleCalendarUrl(title: string, event: PostEvent, details?: str
 }
 
 /** Reconhece o link colado e devolve como o vídeo deve ser exibido. */
-export function parseVideoUrl(raw: string): PostVideo | null {
+export function parseVideoUrl(raw: string): HubVideo | null {
   const url = raw.trim();
   if (!/^https?:\/\//i.test(url)) return null;
   const yt = url.match(/(?:youtube\.com\/(?:watch\?v=|shorts\/|embed\/)|youtu\.be\/)([\w-]{11})/i);

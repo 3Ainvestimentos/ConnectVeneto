@@ -16,7 +16,7 @@ import { DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMe
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { FEATURE_FLAGS } from '@/config/features';
 import { useHubModules } from '@/hooks/useHubModules';
-import { isEmbeddedModule, moduleViewKey, resolveModuleAccess, type EmbeddedHubModule } from '@/config/modules';
+import { hasPerPersonAccess, moduleViewKey, resolveModuleAccess, type HubModule } from '@/config/modules';
 
 const allPermissionLabels: { key: keyof CollaboratorPermissions; label: string; featureFlag?: keyof typeof FEATURE_FLAGS }[] = [
     { key: 'canManageSystem', label: 'Sistema' },
@@ -51,11 +51,12 @@ function PermissionsTable() {
     const [updatingId, setUpdatingId] = useState<string | null>(null);
 
     /**
-     * Uma coluna por módulo embarcado do registro `hubModules`. Módulo novo aparece
+     * Uma coluna por módulo com acesso por pessoa (embarcados e internos em modo 'explicit',
+     * como o piloto da nova Home) do registro `hubModules`. Módulo novo aparece
      * aqui sozinho, sem deploy. O acesso mora em `modulePermissions[moduleId]`.
      */
     const moduleColumns = useMemo(
-        () => hubModules.filter((m): m is EmbeddedHubModule => isEmbeddedModule(m) && m.enabled),
+        () => hubModules.filter((m) => m.enabled && hasPerPersonAccess(m)),
         [hubModules],
     );
     const [searchTerm, setSearchTerm] = useState('');
@@ -112,7 +113,7 @@ function PermissionsTable() {
         }
     };
     
-    const handleModuleToggle = async (collaborator: Collaborator, mod: EmbeddedHubModule) => {
+    const handleModuleToggle = async (collaborator: Collaborator, mod: HubModule) => {
         const viewKey = moduleViewKey(mod.id);
         const current = collaborator.modulePermissions?.[mod.id];
         const hasAccess = resolveModuleAccess(mod, current).hasAccess;

@@ -32,6 +32,11 @@ export function canSeeHubModule(mod: HubModule, ctx: NavAccessContext): boolean 
 
   if (isEmbeddedModule(mod)) return canAccessEmbeddedModule(mod, ctx);
 
+  // Interno com acesso por pessoa (ex.: piloto da nova Home): mesma regra dos embarcados.
+  if (mod.accessMode === 'explicit') {
+    return ctx.isSuperAdmin || resolveModuleAccess(mod, ctx.modulePermissions?.[mod.id]).hasAccess;
+  }
+
   if (!mod.permission) return true;
   const has = (key: string) => ctx.permissions[key as keyof CollaboratorPermissions] === true;
   return has(mod.permission) || mod.altPermissions.some(has);

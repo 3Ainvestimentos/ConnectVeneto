@@ -14,6 +14,23 @@
     "altPermissions": []
   },
   {
+    "id": "inicio",
+    "kind": "internal",
+    "label": "Início (piloto)",
+    "description": "Nova Home: feed de comunicação interna. Em piloto: só quem tem inicio:view.",
+    "iconName": "Newspaper",
+    "order": 0,
+    "enabled": true,
+    "showInNav": true,
+    "href": "/inicio",
+    "noZoom": true,
+    "external": false,
+    "permission": null,
+    "altPermissions": [],
+    "accessMode": "explicit",
+    "defaultPermissions": []
+  },
+  {
     "id": "trackflow",
     "kind": "embedded",
     "label": "TrackFlow",
@@ -28,13 +45,34 @@
     "url": "https://vnt-trackflow.azurewebsites.net",
     "embedPath": "/embed",
     "accessMode": "all",
-    "defaultPermissions": ["trackflow:view", "trackflow:create"],
-    "adminPermissions": ["trackflow:view", "trackflow:create", "trackflow:manage", "trackflow:admin", "trackflow:export"],
+    "defaultPermissions": [
+      "trackflow:view",
+      "trackflow:create"
+    ],
+    "adminPermissions": [
+      "trackflow:view",
+      "trackflow:create",
+      "trackflow:manage",
+      "trackflow:admin",
+      "trackflow:export"
+    ],
     "permissionCatalog": [
-      { "key": "trackflow:create", "label": "Criar" },
-      { "key": "trackflow:manage", "label": "Gerenciar" },
-      { "key": "trackflow:admin", "label": "Admin Módulo" },
-      { "key": "trackflow:export", "label": "Exportar" }
+      {
+        "key": "trackflow:create",
+        "label": "Criar"
+      },
+      {
+        "key": "trackflow:manage",
+        "label": "Gerenciar"
+      },
+      {
+        "key": "trackflow:admin",
+        "label": "Admin Módulo"
+      },
+      {
+        "key": "trackflow:export",
+        "label": "Exportar"
+      }
     ],
     "layout": "framed"
   },
@@ -68,9 +106,15 @@
     "embedPath": "/embed",
     "accessMode": "explicit",
     "defaultPermissions": [],
-    "adminPermissions": ["portal-cliente:view", "portal-cliente:manage"],
+    "adminPermissions": [
+      "portal-cliente:view",
+      "portal-cliente:manage"
+    ],
     "permissionCatalog": [
-      { "key": "portal-cliente:manage", "label": "Admin Módulo" }
+      {
+        "key": "portal-cliente:manage",
+        "label": "Admin Módulo"
+      }
     ],
     "layout": "fullscreen"
   },
@@ -100,7 +144,10 @@
     "href": "/documents",
     "noZoom": false,
     "permission": "canViewDocuments",
-    "altPermissions": ["canViewBibliotecaComercial", "canManageBibliotecaComercial"]
+    "altPermissions": [
+      "canViewBibliotecaComercial",
+      "canManageBibliotecaComercial"
+    ]
   },
   {
     "id": "regras-comerciais",
@@ -156,12 +203,30 @@
       "portal-repasse:params:edit"
     ],
     "permissionCatalog": [
-      { "key": "portal-repasse:tickets:view", "label": "Ver Correções" },
-      { "key": "portal-repasse:tickets:create", "label": "Criar Correções" },
-      { "key": "portal-repasse:params:view", "label": "Ver Parâmetros" },
-      { "key": "portal-repasse:params:edit", "label": "Editar Parâmetros" },
-      { "key": "portal-repasse:export", "label": "Exportar" },
-      { "key": "portal-repasse:manage", "label": "Admin Módulo" }
+      {
+        "key": "portal-repasse:tickets:view",
+        "label": "Ver Correções"
+      },
+      {
+        "key": "portal-repasse:tickets:create",
+        "label": "Criar Correções"
+      },
+      {
+        "key": "portal-repasse:params:view",
+        "label": "Ver Parâmetros"
+      },
+      {
+        "key": "portal-repasse:params:edit",
+        "label": "Editar Parâmetros"
+      },
+      {
+        "key": "portal-repasse:export",
+        "label": "Exportar"
+      },
+      {
+        "key": "portal-repasse:manage",
+        "label": "Admin Módulo"
+      }
     ],
     "layout": "fullscreen",
     "skeletonTheme": "light"
@@ -182,9 +247,15 @@
     "embedPath": "/embed",
     "accessMode": "explicit",
     "defaultPermissions": [],
-    "adminPermissions": ["atividade-comercial:view", "atividade-comercial:manage"],
+    "adminPermissions": [
+      "atividade-comercial:view",
+      "atividade-comercial:manage"
+    ],
     "permissionCatalog": [
-      { "key": "atividade-comercial:manage", "label": "Admin Módulo" }
+      {
+        "key": "atividade-comercial:manage",
+        "label": "Admin Módulo"
+      }
     ],
     "layout": "fullscreen",
     "skeletonTheme": "light"
