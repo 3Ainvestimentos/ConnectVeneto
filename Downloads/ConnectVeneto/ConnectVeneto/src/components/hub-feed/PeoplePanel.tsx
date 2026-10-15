@@ -6,6 +6,7 @@ import { ArrowRight, Cake, CalendarDays, Plane, Plus, TreePalm, Users, type Luci
 import { Card } from '@/components/ui/card';
 import { BIRTHDAYS, UPCOMING_EVENTS } from '@/lib/hub-mock/data';
 import { useHubMock } from '@/lib/hub-mock/store';
+import { ExampleDataBadge } from './HubPilotGate';
 import { PersonAvatar } from './PersonAvatar';
 import { TripDialog } from './TripDialog';
 import { VacationDialog } from './VacationDialog';
@@ -88,6 +89,7 @@ export function PeoplePanel() {
           <h3 className="inline-flex items-center gap-2 font-headline text-lg font-semibold">
             <Users className="h-5 w-5 text-primary" aria-hidden /> Pessoas e equipes
           </h3>
+          <ExampleDataBadge />
           <Link href="/pessoas" className="inline-flex items-center gap-1 text-sm font-medium text-primary hover:underline">
             ver organograma <ArrowRight className="h-4 w-4" />
           </Link>

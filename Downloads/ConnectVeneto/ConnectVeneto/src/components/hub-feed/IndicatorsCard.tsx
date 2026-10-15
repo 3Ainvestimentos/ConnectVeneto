@@ -6,6 +6,7 @@ import { Card } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
 import { MARKET_INDICATORS, STRATEGIC_INDICATORS } from '@/lib/hub-mock/data';
 import type { Indicator } from '@/lib/hub-mock/types';
+import { ExampleDataBadge } from './HubPilotGate';
 
 const TONE = {
   positive: 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300',
@@ -49,7 +50,9 @@ export function IndicatorsCard({ canSeeStrategic }: { canSeeStrategic: boolean }
   return (
     <Card className="shadow-sm">
       <div className="flex items-center justify-between gap-2 px-5 pt-5">
-        <h3 className="font-headline text-lg font-semibold">Indicadores</h3>
+        <h3 className="inline-flex flex-wrap items-center gap-2 font-headline text-lg font-semibold">
+          Indicadores <ExampleDataBadge />
+        </h3>
         {canSeeStrategic && (
           <div className="inline-flex rounded-lg bg-muted p-1 text-sm" role="tablist" aria-label="Tipo de indicador">
             {(

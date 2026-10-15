@@ -1,6 +1,14 @@
+import { HubPilotGate } from '@/components/hub-feed/HubPilotGate';
 import { HubMockProvider } from '@/lib/hub-mock/store';
 
-/** Rotas do wireframe do Hub de Comunicação (/inicio, /pessoas). Estado local, sem Firestore. */
-export default function HubWireframeLayout({ children }: { children: React.ReactNode }) {
-  return <HubMockProvider>{children}</HubMockProvider>;
+/**
+ * Rotas do Hub de Comunicação (/inicio, /pessoas). Só para quem está no piloto.
+ * O feed usa dados reais (/api/feed); pessoas, viagens e férias ainda vêm do mock local.
+ */
+export default function HubLayout({ children }: { children: React.ReactNode }) {
+  return (
+    <HubPilotGate>
+      <HubMockProvider>{children}</HubMockProvider>
+    </HubPilotGate>
+  );
 }
