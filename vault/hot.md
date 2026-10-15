@@ -12,7 +12,10 @@ tags: [hot-cache]
   ConnectVeneto" (cadastro de módulo, `HUB_JWT_SECRET`, Sandbox, notificações) eram só por canal
   humano. Os do `projeto-trader-rf` (itens A e B do pedido de 15/10 ao db-guardian) seguem com o
   Victor.
-- 2026-10-15 — 🟡 **Hub de Comunicação Interna** (nova Home): wireframe na branch
-  `feat/home-hub-wireframe` (`/inicio`, `/pessoas`). Plano em
-  `Downloads/ConnectVeneto/ConnectVeneto/docs/hub-comunicacao-integracao.md`. Dados novos no
-  **Firestore**, atrás de uma camada de repositório. A Azure fica para a migração do Connect.
+- 2026-10-15 — 🟡 **Hub de Comunicação Interna** (nova Home): Fase 1 pronta na branch
+  `feat/hub-fase1` (local, não publicada). Feed real no Firestore (`hub*`), API `/api/feed`, piloto
+  pelo módulo `inicio` (accessMode explicit), espelho Notícias→feed. Já gravado em produção: regra
+  `publicacoes/` no Storage, módulo `inicio`, 7 canais, 8 Notícias migradas (ver changelog). Falta:
+  PR/deploy, escolher as pessoas do piloto, pessoas/viagens/férias reais. Plano em
+  `Downloads/ConnectVeneto/ConnectVeneto/docs/hub-comunicacao-integracao.md`. Azure fica para a
+  migração do Connect.
