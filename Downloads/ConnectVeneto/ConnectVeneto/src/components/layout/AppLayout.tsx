@@ -33,6 +33,8 @@ import PollTrigger from '@/components/polls/PollTrigger';
 import { useSystemSettings } from '@/contexts/SystemSettingsContext';
 import { TermsOfUseModal } from '../auth/TermsOfUseModal';
 import { DailyRssModal } from '../rss/DailyRssModal';
+import { HubDigestModal } from '@/components/hub-feed/HubDigestModal';
+import { useHubPilotAccess } from '@/hooks/useHubPilotAccess';
 import { findCollaboratorByEmail } from '@/lib/email-utils';
 import { getCollaboratorUserId } from '@/contexts/CollaboratorsContext';
 import { UserNav } from './UserNav';
@@ -55,6 +57,13 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const { setOpen: setSidebarOpen, state: sidebarState, toggleSidebar } = useSidebar();
   const { getVisibleLinksForUser } = useQuickLinks();
+  const hubPilot = useHubPilotAccess();
+
+  // O menu abre expandido; quem recolheu antes (cookie gravado pelo próprio sidebar) volta recolhido.
+  useEffect(() => {
+    if (/(?:^|;\s*)sidebar_state=false(?:;|$)/.test(document.cookie)) setSidebarOpen(false);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   
   const isFullscreenPage = false;
   const { modules: hubModules } = useHubModules();
@@ -242,17 +251,6 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
           <Sidebar collapsible="icon" variant="sidebar"> 
             <SidebarContent className="flex-1 p-2">
               <SidebarMenu>
-                <SidebarMenuItem className="hidden md:block">
-                  <SidebarMenuButton
-                    onClick={toggleSidebar}
-                    tooltip={{ children: sidebarState === 'collapsed' ? 'Expandir menu' : 'Recolher menu', className: 'font-body' }}
-                    className="font-body text-sidebar-foreground/70"
-                    aria-label={sidebarState === 'collapsed' ? 'Expandir menu' : 'Recolher menu'}
-                  >
-                    {sidebarState === 'collapsed' ? <ChevronsRight /> : <ChevronsLeft />}
-                    <span>Recolher menu</span>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
                 {hubModules.map((item) => {
                   if (!canSeeHubModule(item, {
                     permissions,
@@ -332,6 +330,18 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                     <span>Sair</span>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
+
+                <SidebarMenuItem className="hidden md:block">
+                  <SidebarMenuButton
+                    onClick={toggleSidebar}
+                    tooltip={{ children: sidebarState === 'collapsed' ? 'Expandir menu' : 'Recolher menu', className: 'font-body' }}
+                    className="font-body text-sidebar-foreground/70"
+                    aria-label={sidebarState === 'collapsed' ? 'Expandir menu' : 'Recolher menu'}
+                  >
+                    {sidebarState === 'collapsed' ? <ChevronsRight /> : <ChevronsLeft />}
+                    <span>{sidebarState === 'collapsed' ? 'Expandir menu' : 'Recolher menu'}</span>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
               </SidebarMenu>
             </SidebarFooter>
           </Sidebar>
@@ -353,7 +363,8 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
         </main>
       </div>
       <PollTrigger />
-      <DailyRssModal forceOpen={false} />
+      {/* Piloto da nova Home: o Resumo diário substitui o Daily Fin. Sem decidir ainda, nenhum dos dois. */}
+      {!hubPilot.loading && (hubPilot.allowed ? <HubDigestModal /> : <DailyRssModal forceOpen={false} />)}
       <FAQModal open={isFaqModalOpen} onOpenChange={setIsFaqModalOpen} />
       <ProfileModal open={isProfileModalOpen} onOpenChange={setIsProfileModalOpen} />
       <TermsOfUseModal
@@ -370,7 +381,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
 // Main AppLayout component that wraps SidebarProvider
 export default function AppLayoutWrapper({ children }: { children: React.ReactNode }) {
   return (
-    <SidebarProvider defaultOpen={false}> 
+    <SidebarProvider defaultOpen>
       <NotificationsProvider>
         <AppLayout>{children}</AppLayout>
       </NotificationsProvider>

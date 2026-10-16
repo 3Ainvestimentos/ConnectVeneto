@@ -42,8 +42,16 @@ _Avoid_: comentário aprovado, destaque
 ### Consumo
 
 **Feed**:
-Fluxo pessoal de Publicações: as Importantes em destaque e as dos Canais que o colaborador segue.
+Fluxo de Publicações da Home. Abre em **Destaques** (só as Importantes); escolher um Canal mostra tudo dele, inclusive as Normais.
 _Avoid_: mural, timeline
+
+**Resumo diário**:
+Pop-up da primeira visita do dia com as Publicações Normais dos Canais seguidos que saíram desde o último Resumo que a pessoa viu. Não abre se não houver nada novo. No piloto, substitui o Daily Fin.
+_Avoid_: newsletter, digest, e-mail diário
+
+**Janela de tempo**:
+Filtro "Acontece em" (esta semana, próxima semana, este mês, próximo mês) que recorta o Feed para Eventos, pela data do evento, e enquetes, pelo encerramento.
+_Avoid_: filtro de data de publicação
 
 **Seguir canal**:
 Escolha do colaborador de ver no Feed as Publicações de um Canal.

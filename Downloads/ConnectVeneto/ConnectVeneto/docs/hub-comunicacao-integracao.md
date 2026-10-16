@@ -34,6 +34,8 @@ Objetivo: um grupo pequeno usa a nova Home com dados reais, sem afetar ninguém.
 7. **Notificações** pela Central existente (`src/lib/notifications/server.ts`): Importante publicado, menção, comentário marcado como relevante (para quem comentou).
 8. **Pessoas** (pode correr em paralelo): campos `team`, `leaderId` (ADR 0001), dados pessoais e Google Chat em `collaborators`; viagens em `trips` (autosserviço, substitui `leaderTrips`); férias aprovadas de `vacation_requests`; aniversários ligados ao colaborador.
 
+9. **Resumo diário no lugar do Daily Fin (só piloto).** O `AppLayout` monta `HubDigestModal` para quem tem o módulo `inicio` e `DailyRssModal` para os demais. O "visto" fica em `hubDigestState/<email>` (`lastSeenAt`), então vale entre dispositivos; o "uma vez por dia" é local (`hubDigestShownDate`). Desligar o Daily Fin para todos fica para a Fase 2.
+
 **Sai do piloto quando:** o grupo usa por 2–4 semanas, o RH publicou só pelo feed por pelo menos 2 semanas e não há diferença entre `newsItems` e `hubPosts`.
 
 ## Fase 2 — Troca da Home

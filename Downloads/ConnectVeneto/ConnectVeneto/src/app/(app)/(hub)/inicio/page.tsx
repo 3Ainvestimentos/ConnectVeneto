@@ -1,9 +1,9 @@
 "use client";
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
-import { Loader2, Lock, PenSquare } from 'lucide-react';
+import { FlaskConical, Loader2, Lock, PenSquare } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { VenetoMarketingFooter } from '@/components/layout/VenetoMarketingFooter';
@@ -12,10 +12,12 @@ import TrackFlowSummary from '@/components/dashboard-v2/TrackFlowSummary';
 import { WidgetErrorBoundary } from '@/components/error/WidgetErrorBoundary';
 import { ChannelChips } from '@/components/hub-feed/ChannelChips';
 import { FeedPost } from '@/components/hub-feed/FeedPost';
+import { HubDigestModal } from '@/components/hub-feed/HubDigestModal';
 import { HubPage } from '@/components/hub-feed/HubPage';
 import { IndicatorsCard } from '@/components/hub-feed/IndicatorsCard';
 import { NewPostDialog } from '@/components/hub-feed/NewPostDialog';
 import { PeoplePanel } from '@/components/hub-feed/PeoplePanel';
+import { PeriodFilter } from '@/components/hub-feed/PeriodFilter';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCollaborators } from '@/contexts/CollaboratorsContext';
 import { isEmbeddedModule } from '@/config/modules';
@@ -23,6 +25,7 @@ import { HubApiError, useHubFeed, useHubFeedActions } from '@/hooks/useHubFeed';
 import { useHubModules } from '@/hooks/useHubModules';
 import { toast } from '@/hooks/use-toast';
 import { findCollaboratorByEmail } from '@/lib/email-utils';
+import { happeningAt, happensIn, periodRange, type Period } from '@/lib/hub/periods';
 import { rankFeed } from '@/lib/hub/ranking';
 
 /** Módulo "Dados Estratégicos" (id histórico: portal-repasse). */
@@ -44,7 +47,9 @@ export default function InicioPage() {
   const { data, isLoading, error } = useHubFeed();
   const { follow } = useHubFeedActions();
   const [channelFilter, setChannelFilter] = useState('all');
+  const [period, setPeriod] = useState<Period>('all');
   const [newPostOpen, setNewPostOpen] = useState(false);
+  const [digestTestOpen, setDigestTestOpen] = useState(false);
   const greeting = useGreeting();
   const focusPostId = useSearchParams().get('p');
 
@@ -60,19 +65,51 @@ export default function InicioPage() {
   const channels = useMemo(() => data?.channels ?? [], [data]);
   const channelName = (id: string) => channels.find((c) => c.id === id)?.name ?? '';
 
-  // Importantes aparecem para todos; as demais, só dos canais que a pessoa segue.
+  // Feed principal ("Destaques"): só Importantes. Num canal: tudo dele, inclusive as Normais, que
+  // fora dali chegam pelo Resumo diário.
+  // Com "Acontece em": eventos e enquetes da janela (Importantes + canais seguidos), por data.
   const feed = useMemo(() => {
     const ranked = rankFeed(data?.posts ?? []);
+    if (period !== 'all') {
+      const range = periodRange(period);
+      const followed = new Set(channels.filter((c) => c.following).map((c) => c.id));
+      return ranked
+        .filter((p) => (channelFilter !== 'all' ? p.channelId === channelFilter : p.importance === 'importante' || followed.has(p.channelId)))
+        .filter((p) => happensIn(p, range))
+        .sort((a, b) => (happeningAt(a)?.getTime() ?? 0) - (happeningAt(b)?.getTime() ?? 0));
+    }
     if (channelFilter !== 'all') return ranked.filter((p) => p.channelId === channelFilter);
-    const followed = new Set(channels.filter((c) => c.following).map((c) => c.id));
-    return ranked.filter((p) => p.importance === 'importante' || followed.has(p.channelId));
-  }, [data, channels, channelFilter]);
+    return ranked.filter((p) => p.importance === 'importante');
+  }, [data, channels, channelFilter, period]);
 
-  // Link direto (/inicio?p=<id>), usado pelas notificações e pelo "Copiar link".
+  // Normais que chegaram nos canais seguidos depois do último Resumo diário.
+  const newCounts = useMemo(() => {
+    const counts: Record<string, number> = {};
+    if (!data?.digestSeenAt) return counts;
+    for (const p of data.posts) {
+      if (p.importance === 'normal' && p.createdAt > data.digestSeenAt && p.authorEmail !== data.viewer.email) {
+        counts[p.channelId] = (counts[p.channelId] ?? 0) + 1;
+      }
+    }
+    return counts;
+  }, [data]);
+
+  // Link direto (/inicio?p=<id>), usado pelas notificações, pelo Resumo e pelo "Copiar link".
+  // Uma Normal não está em "Destaques": abre o canal dela antes de rolar.
+  const focusHandled = useRef<string | null>(null);
   useEffect(() => {
-    if (!focusPostId || !data) return;
-    document.getElementById(`post-${focusPostId}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-  }, [focusPostId, data]);
+    if (!focusPostId || !data || focusHandled.current === focusPostId) return;
+    const target = data.posts.find((p) => p.id === focusPostId);
+    if (target && !feed.some((p) => p.id === focusPostId)) {
+      setPeriod('all');
+      setChannelFilter(target.channelId);
+      return;
+    }
+    focusHandled.current = focusPostId;
+    // Espera o Resumo/notificações fecharem: o Dialog restaura o scroll ao sair e cortaria a rolagem.
+    // Sem cleanup de propósito: um refetch do feed não pode cancelar a rolagem já decidida.
+    setTimeout(() => document.getElementById(`post-${focusPostId}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 350);
+  }, [focusPostId, data, feed]);
 
   const onFollow = (channelId: string, following: boolean) =>
     follow.mutateAsync({ channelId, following }).catch(() => toast({ title: 'Não foi possível atualizar o canal', variant: 'destructive' }));
@@ -91,11 +128,19 @@ export default function InicioPage() {
             <h1 className="font-headline text-3xl font-bold sm:text-4xl">{greeting && firstName ? `${greeting}, ${firstName}!` : 'Bem-vindo(a)!'}</h1>
             <p className="mt-1 text-base text-muted-foreground">{today}</p>
           </div>
-          {canPublish && (
-            <Button onClick={() => setNewPostOpen(true)} size="lg" className="text-base shadow-sm">
-              <PenSquare className="mr-2 h-5 w-5" /> Nova publicação
-            </Button>
-          )}
+          <div className="flex flex-wrap gap-2">
+            {/* Só para quem gerencia conteúdo: simula o Resumo diário sem marcar como visto. */}
+            {data?.viewer.isContentManager && (
+              <Button onClick={() => setDigestTestOpen(true)} size="lg" variant="outline" className="text-base">
+                <FlaskConical className="mr-2 h-5 w-5" /> Testar resumo
+              </Button>
+            )}
+            {canPublish && (
+              <Button onClick={() => setNewPostOpen(true)} size="lg" className="text-base shadow-sm">
+                <PenSquare className="mr-2 h-5 w-5" /> Nova publicação
+              </Button>
+            )}
+          </div>
         </header>
 
         {notInPilot ? (
@@ -110,7 +155,15 @@ export default function InicioPage() {
         ) : (
           <section className="grid grid-cols-1 gap-8 lg:grid-cols-[minmax(0,1fr)_340px] xl:grid-cols-[minmax(0,1fr)_380px] 2xl:gap-10">
             <main className="flex min-w-0 flex-col gap-5">
-              <ChannelChips channels={channels} channelFilter={channelFilter} onChannelFilter={setChannelFilter} onFollow={onFollow} />
+              <div className="grid gap-3">
+                <ChannelChips channels={channels} channelFilter={channelFilter} onChannelFilter={setChannelFilter} onFollow={onFollow} newCounts={newCounts} />
+                <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
+                  {channelFilter === 'all' && (
+                    <p className="text-sm text-muted-foreground">Mostrando as publicações importantes. Escolha um canal para ver tudo dele.</p>
+                  )}
+                  <PeriodFilter value={period} onChange={setPeriod} className="ml-auto" />
+                </div>
+              </div>
               {channelFilter !== 'all' && (
                 <div className="flex items-center justify-between gap-3 rounded-lg bg-muted/60 px-4 py-3 text-base">
                   <span>
@@ -128,7 +181,7 @@ export default function InicioPage() {
                       deixar de seguir
                     </button>
                     <button type="button" onClick={() => setChannelFilter('all')} className="font-medium text-primary hover:underline">
-                      ver tudo
+                      voltar aos destaques
                     </button>
                   </span>
                 </div>
@@ -144,7 +197,7 @@ export default function InicioPage() {
               )}
               {data && feed.length === 0 && (
                 <div className="rounded-xl border border-dashed p-8 text-center text-sm text-muted-foreground">
-                  {channelFilter === 'all' ? 'Nenhuma publicação ainda.' : 'Nada publicado neste canal ainda.'}
+                  {period !== 'all' ? 'Nada marcado para este período.' : channelFilter === 'all' ? 'Nenhum destaque no momento.' : 'Nada publicado neste canal ainda.'}
                 </div>
               )}
               {data &&
@@ -153,26 +206,24 @@ export default function InicioPage() {
 
             <aside className="grid min-w-0 content-start gap-6 md:grid-cols-2 lg:grid-cols-1">
               <Card className="shadow-sm">
-                <CardHeader className="flex-row items-center justify-between space-y-0 px-5 pb-4 pt-5">
+                <CardHeader className="px-5 pb-3 pt-5">
                   <CardTitle className="font-headline text-lg font-semibold">TrackFlow</CardTitle>
-                  <Link href="/trackflow" className="text-sm font-medium text-primary hover:underline">
-                    abrir
-                  </Link>
                 </CardHeader>
-                <CardContent className="px-5 pb-5">
+                <CardContent className="px-5 pb-4">
                   <WidgetErrorBoundary title="TrackFlow indisponível">
-                    <TrackFlowSummary />
+                    <TrackFlowSummary variant="compact" />
                   </WidgetErrorBoundary>
                 </CardContent>
               </Card>
-              <IndicatorsCard canSeeStrategic={canSeeStrategic} />
               {/* Ainda com dados de exemplo: pessoas, viagens e férias entram numa etapa seguinte. */}
               <PeoplePanel />
+              <IndicatorsCard canSeeStrategic={canSeeStrategic} />
             </aside>
           </section>
         )}
       </HubPage>
       {canPublish && data && <NewPostDialog open={newPostOpen} onOpenChange={setNewPostOpen} channels={channels} viewer={data.viewer} />}
+      {digestTestOpen && <HubDigestModal forceOpen onOpenChange={setDigestTestOpen} />}
       <VenetoMarketingFooter variant="flow" />
     </>
   );

@@ -7,7 +7,7 @@
 import { useCallback } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/contexts/AuthContext';
-import type { CreatePostInput, FeedChannel, FeedComment, FeedPost, RsvpAnswer } from '@/lib/hub/model';
+import type { CreatePostInput, DigestResponse, FeedChannel, FeedComment, FeedPost, RsvpAnswer } from '@/lib/hub/model';
 
 export const FEED_QUERY_KEY = ['hub-feed'] as const;
 const commentsKey = (postId: string) => ['hub-feed', 'comments', postId] as const;
@@ -15,6 +15,8 @@ const commentsKey = (postId: string) => ['hub-feed', 'comments', postId] as cons
 export interface FeedResponse {
   posts: FeedPost[];
   channels: FeedChannel[];
+  /** Último Resumo diário visto (null = nunca). */
+  digestSeenAt: string | null;
   viewer: { email: string; name: string; isContentManager: boolean };
 }
 
@@ -56,6 +58,19 @@ export function useHubFeed() {
     staleTime: 30_000,
     retry: (count, error) => !(error instanceof HubApiError && error.status === 403) && count < 2,
   });
+}
+
+/** Busca o Resumo diário. `since` força a janela (botão "Testar resumo"). */
+export function useHubDigestApi() {
+  const api = useApi();
+  const qc = useQueryClient();
+  return {
+    fetchDigest: (since?: string) => api<DigestResponse>(`/digest${since ? `?since=${encodeURIComponent(since)}` : ''}`),
+    markSeen: async () => {
+      await api<{ lastSeenAt: string }>('/digest/seen', { method: 'POST' });
+      qc.invalidateQueries({ queryKey: FEED_QUERY_KEY });
+    },
+  };
 }
 
 export function useHubComments(postId: string, enabled: boolean) {

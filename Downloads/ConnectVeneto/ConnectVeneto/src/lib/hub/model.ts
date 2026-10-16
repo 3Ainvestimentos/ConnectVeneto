@@ -17,6 +17,7 @@ export const HUB_COLLECTIONS = {
   rsvps: 'hubEventRsvps',
   pollVotes: 'hubPollVotes',
   follows: 'hubChannelFollows',
+  digestState: 'hubDigestState',
 } as const;
 
 /** Módulo interno que libera a nova Home durante o piloto (accessMode 'explicit'). */
@@ -164,6 +165,13 @@ export interface HubChannelFollow {
   updatedAt: string;
 }
 
+/** Quando a pessoa viu o Resumo diário pela última vez. id = e-mail. */
+export interface HubDigestState {
+  email: string;
+  lastSeenAt: string;
+  updatedAt: string;
+}
+
 export const pairId = (a: string, b: string) => `${a}__${b}`;
 
 // ---------- Entradas da API ----------
@@ -247,4 +255,20 @@ export interface FeedChannel {
   following: boolean;
   notify: 'feed' | 'bell';
   canPublish: boolean;
+}
+
+export interface DigestItem {
+  id: string;
+  title: string;
+  excerpt: string;
+  authorName: string;
+  createdAt: string;
+  hasEvent: boolean;
+  hasPoll: boolean;
+}
+
+/** Resumo diário: Normais dos canais seguidos publicadas desde `since`. */
+export interface DigestResponse {
+  since: string;
+  channels: { id: string; name: string; posts: DigestItem[] }[];
 }
