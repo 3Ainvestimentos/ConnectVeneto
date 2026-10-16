@@ -26,7 +26,7 @@ import { useHubModules } from '@/hooks/useHubModules';
 import { toast } from '@/hooks/use-toast';
 import { findCollaboratorByEmail } from '@/lib/email-utils';
 import { happeningAt, happensIn, periodRange, type Period } from '@/lib/hub/periods';
-import { rankFeed } from '@/lib/hub/ranking';
+import { isHighlighted, rankFeed } from '@/lib/hub/ranking';
 
 /** Módulo "Dados Estratégicos" (id histórico: portal-repasse). */
 const STRATEGIC_MODULE_ID = 'portal-repasse';
@@ -65,21 +65,21 @@ export default function InicioPage() {
   const channels = useMemo(() => data?.channels ?? [], [data]);
   const channelName = (id: string) => channels.find((c) => c.id === id)?.name ?? '';
 
-  // Feed principal ("Destaques"): só Importantes. Num canal: tudo dele, inclusive as Normais, que
-  // fora dali chegam pelo Resumo diário.
-  // Com "Acontece em": eventos e enquetes da janela (Importantes + canais seguidos), por data.
+  // Feed principal ("Destaques"): só Importantes ainda no período de destaque; depois da data elas
+  // ficam só no canal. Num canal: tudo dele, inclusive as Normais (que chegam pelo Resumo diário).
+  // Com "Acontece em": eventos e enquetes da janela (destaques + canais seguidos), por data.
   const feed = useMemo(() => {
     const ranked = rankFeed(data?.posts ?? []);
     if (period !== 'all') {
       const range = periodRange(period);
       const followed = new Set(channels.filter((c) => c.following).map((c) => c.id));
       return ranked
-        .filter((p) => (channelFilter !== 'all' ? p.channelId === channelFilter : p.importance === 'importante' || followed.has(p.channelId)))
+        .filter((p) => (channelFilter !== 'all' ? p.channelId === channelFilter : isHighlighted(p) || followed.has(p.channelId)))
         .filter((p) => happensIn(p, range))
         .sort((a, b) => (happeningAt(a)?.getTime() ?? 0) - (happeningAt(b)?.getTime() ?? 0));
     }
     if (channelFilter !== 'all') return ranked.filter((p) => p.channelId === channelFilter);
-    return ranked.filter((p) => p.importance === 'importante');
+    return ranked.filter((p) => isHighlighted(p));
   }, [data, channels, channelFilter, period]);
 
   // Normais que chegaram nos canais seguidos depois do último Resumo diário.
@@ -121,8 +121,8 @@ export default function InicioPage() {
 
   return (
     <>
-      {/* Largura total limitada: o feed fica com ~760px, tamanho confortável de leitura. */}
-      <HubPage className="max-w-[1260px]">
+      {/* Alinhada ao menu (sem centralizar): em telas largas a sobra fica à direita, não entre o menu e o feed. */}
+      <HubPage className="max-w-[1320px] md:mx-0">
         <header className="flex flex-wrap items-end justify-between gap-3">
           <div>
             <h1 className="font-headline text-3xl font-bold sm:text-4xl">{greeting && firstName ? `${greeting}, ${firstName}!` : 'Bem-vindo(a)!'}</h1>
@@ -159,7 +159,7 @@ export default function InicioPage() {
                 <ChannelChips channels={channels} channelFilter={channelFilter} onChannelFilter={setChannelFilter} onFollow={onFollow} newCounts={newCounts} />
                 <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
                   {channelFilter === 'all' && (
-                    <p className="text-sm text-muted-foreground">Mostrando as publicações importantes. Escolha um canal para ver tudo dele.</p>
+                    <p className="text-sm text-muted-foreground">Mostrando as publicações em destaque. Escolha um canal para ver tudo dele.</p>
                   )}
                   <PeriodFilter value={period} onChange={setPeriod} className="ml-auto" />
                 </div>
