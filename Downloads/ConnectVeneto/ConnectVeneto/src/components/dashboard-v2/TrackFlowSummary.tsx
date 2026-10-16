@@ -23,7 +23,9 @@ function formatDue(iso: string): string {
   return d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
 }
 
-export default function TrackFlowSummary() {
+/** `compact` (nova Home): só os contadores e o link, sem a lista de urgentes. */
+export default function TrackFlowSummary({ variant = 'full' }: { variant?: 'full' | 'compact' } = {}) {
+  const compact = variant === 'compact';
   const { user, loading: authLoading } = useAuth();
   const [data, setData] = useState<SummaryData | null>(null);
   const [error, setError] = useState(false);
@@ -61,8 +63,8 @@ export default function TrackFlowSummary() {
   if (loading) {
     return (
       <div className="flex flex-col gap-3 animate-pulse">
-        {[1, 2, 3].map((i) => (
-          <div key={i} className="h-12 rounded-lg bg-muted" />
+        {(compact ? [1] : [1, 2, 3]).map((i) => (
+          <div key={i} className={compact ? 'h-16 rounded-lg bg-muted' : 'h-12 rounded-lg bg-muted'} />
         ))}
       </div>
     );
@@ -110,7 +112,7 @@ export default function TrackFlowSummary() {
       </div>
 
       {/* Urgent items */}
-      {urgentItems.length > 0 ? (
+      {compact ? null : urgentItems.length > 0 ? (
         <div className="flex flex-col gap-1.5">
           {urgentItems.map((item) => {
             const isLate = item.status === 'atrasada' || new Date(item.dueAt) < new Date();

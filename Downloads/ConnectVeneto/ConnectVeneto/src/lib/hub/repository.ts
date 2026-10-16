@@ -12,12 +12,14 @@ import {
   HUB_COLLECTIONS as C,
   pairId,
   type CreatePostInput,
+  type DigestResponse,
   type FeedChannel,
   type FeedComment,
   type FeedPost,
   type HubChannel,
   type HubChannelFollow,
   type HubComment,
+  type HubDigestState,
   type HubPost,
   type RsvpAnswer,
 } from './model';
@@ -275,6 +277,77 @@ export async function vote(viewer: HubViewer, postId: string, optionIndex: numbe
     tx.set(ref, { id: ref.id, postId, email: viewer.email, optionIndex, createdAt: nowIso() });
     tx.update(postRef, { pollCounts: counts });
   });
+}
+
+// ---------- Resumo diário ----------
+
+/** Sem histórico (primeira vez), o resumo cobre as últimas 72 horas. */
+const DIGEST_DEFAULT_HOURS = 72;
+const DIGEST_LIMIT = 30;
+
+export async function getDigestLastSeen(email: string): Promise<string | null> {
+  const snap = await db().collection(C.digestState).doc(email).get();
+  return snap.exists ? ((snap.data() as HubDigestState).lastSeenAt ?? null) : null;
+}
+
+export async function markDigestSeen(email: string): Promise<string> {
+  const at = nowIso();
+  const doc: HubDigestState = { email, lastSeenAt: at, updatedAt: at };
+  await db().collection(C.digestState).doc(email).set(doc);
+  return at;
+}
+
+/**
+ * Publicações Normais dos canais seguidos criadas depois de `since` (padrão: o último resumo
+ * visto ou, sem histórico, as últimas 72h). Agrupadas por canal, na ordem dos canais.
+ */
+export async function listDigest(viewer: HubViewer, sinceOverride?: string): Promise<DigestResponse> {
+  const since =
+    sinceOverride ?? (await getDigestLastSeen(viewer.email)) ?? new Date(Date.now() - DIGEST_DEFAULT_HOURS * 3600 * 1000).toISOString();
+  const [channels, snap] = await Promise.all([
+    listChannelsFor(viewer),
+    db().collection(C.posts).where('createdAt', '>', since).orderBy('createdAt', 'desc').limit(FEED_LIMIT).get(),
+  ]);
+  const followed = channels.filter((c) => c.following);
+  const followedIds = new Set(followed.map((c) => c.id));
+  const now = Date.now();
+  const posts = snap.docs
+    .map((d) => d.data() as HubPost)
+    .filter(
+      (p) =>
+        p.status === 'published' &&
+        p.importance === 'normal' &&
+        followedIds.has(p.channelId) &&
+        p.authorEmail !== viewer.email &&
+        (!p.expiresAt || Date.parse(p.expiresAt) >= now),
+    )
+    .slice(0, DIGEST_LIMIT);
+
+  const excerpt = (text: string) => {
+    const flat = text.replace(/\s+/g, ' ').trim();
+    return flat.length > 160 ? `${flat.slice(0, 157).trimEnd()}…` : flat;
+  };
+
+  return {
+    since,
+    channels: followed
+      .map((c) => ({
+        id: c.id,
+        name: c.name,
+        posts: posts
+          .filter((p) => p.channelId === c.id)
+          .map((p) => ({
+            id: p.id,
+            title: p.title,
+            excerpt: excerpt(p.body),
+            authorName: p.authorName,
+            createdAt: p.createdAt,
+            hasEvent: !!p.event,
+            hasPoll: !!p.poll,
+          })),
+      }))
+      .filter((c) => c.posts.length > 0),
+  };
 }
 
 // ---------- Utilidades ----------
