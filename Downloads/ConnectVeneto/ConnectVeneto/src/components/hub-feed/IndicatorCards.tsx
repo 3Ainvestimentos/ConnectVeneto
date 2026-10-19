@@ -2,7 +2,9 @@
 
 import { ArrowDownRight, ArrowUpRight, Building2, LineChart, Lock, Minus, type LucideIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { MARKET_INDICATORS, STRATEGIC_INDICATORS } from '@/lib/hub-mock/data';
+import TradingViewWidget from '@/components/dashboard-v2/TradingViewWidget';
+import { WidgetErrorBoundary } from '@/components/error/WidgetErrorBoundary';
+import { STRATEGIC_INDICATORS } from '@/lib/hub-mock/data';
 import type { Indicator } from '@/lib/hub-mock/types';
 import { ExampleDataBadge } from './HubPilotGate';
 
@@ -66,17 +68,25 @@ function IndicatorGroup({
   );
 }
 
-/** Mercado: cotações de referência. Fica na coluna principal da Home, na largura do To-do. */
+/**
+ * Mercado: o mesmo painel do TradingView do Painel Inicial (moedas, índices, futuros, com gráfico).
+ * Fica no fim da Home, em largura total: é a informação menos urgente da página.
+ */
 export function MarketIndicators() {
   return (
-    <IndicatorGroup
-      icon={LineChart}
-      title="Mercado"
-      note="Cotações com atraso"
-      items={MARKET_INDICATORS}
-      className="bg-muted/40"
-      gridClassName="grid-cols-2 sm:grid-cols-3 md:grid-cols-5"
-    />
+    <section className="grid min-w-0 gap-3 rounded-xl border bg-card p-5 shadow-sm" aria-label="Indicadores de mercado">
+      <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
+        <h2 className="inline-flex items-center gap-2 font-headline text-lg font-semibold">
+          <LineChart className="h-5 w-5 text-primary" aria-hidden /> Mercado
+        </h2>
+        <span className="text-xs text-muted-foreground">Cotações com atraso · TradingView</span>
+      </div>
+      <div className="h-[420px] min-w-0">
+        <WidgetErrorBoundary title="Mercado indisponível">
+          <TradingViewWidget />
+        </WidgetErrorBoundary>
+      </div>
+    </section>
   );
 }
 

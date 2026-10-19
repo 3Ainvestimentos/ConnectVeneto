@@ -79,8 +79,8 @@ const ActionLink = ({ onClick, children }: { onClick: () => void; children: Reac
 
 /**
  * Pessoas e equipes: o que está acontecendo com os colegas. `stack` empilha viagens, férias, eventos
- * e aniversários; `columns` (Home) põe viagens, férias e aniversários lado a lado: os eventos ficam
- * na Agenda.
+ * e aniversários; `columns` (Home) põe viagens e férias lado a lado: os eventos ficam na Agenda e os
+ * aniversários num card próprio (`BirthdaysCard`).
  */
 export function PeoplePanel({ variant = 'stack' }: { variant?: 'stack' | 'columns' }) {
   const columns = variant === 'columns';
@@ -120,7 +120,7 @@ export function PeoplePanel({ variant = 'stack' }: { variant?: 'stack' | 'column
         </div>
       </div>
 
-      <div className={columns ? 'grid gap-4 px-5 pb-5 md:grid-cols-3' : 'divide-y'}>
+      <div className={columns ? 'grid gap-4 px-5 pb-5 md:grid-cols-2' : 'divide-y'}>
         <Section boxed={columns} icon={Plane} title="Viagens" action={<ActionLink onClick={() => setTripOpen(true)}>viagem</ActionLink>}>
           {trips30.length === 0 && <Empty>Nenhuma viagem nos próximos 30 dias.</Empty>}
           {trips30.map((t) => {
@@ -167,22 +167,23 @@ export function PeoplePanel({ variant = 'stack' }: { variant?: 'stack' | 'column
           </Section>
         )}
 
-        <Section boxed={columns} icon={Cake} title="Aniversários">
-          {BIRTHDAYS.map((b) => {
-            const p = personById(b.personId);
-            const today = relativeDay(b.date) === 'hoje';
-            return (
-              <Row
-                stacked={columns}
-                key={b.personId}
-                left={<PersonAvatar person={p} size="md" link />}
-                title={p.name}
-                subtitle={p.area}
-                right={today ? <span className="rounded-full bg-primary/10 px-2 py-0.5 font-semibold text-primary">hoje</span> : shortDate(b.date)}
-              />
-            );
-          })}
-        </Section>
+        {!columns && (
+          <Section icon={Cake} title="Aniversários">
+            {BIRTHDAYS.map((b) => {
+              const p = personById(b.personId);
+              const today = relativeDay(b.date) === 'hoje';
+              return (
+                <Row
+                  key={b.personId}
+                  left={<PersonAvatar person={p} size="md" link />}
+                  title={p.name}
+                  subtitle={p.area}
+                  right={today ? <span className="rounded-full bg-primary/10 px-2 py-0.5 font-semibold text-primary">hoje</span> : shortDate(b.date)}
+                />
+              );
+            })}
+          </Section>
+        )}
       </div>
 
       <TripDialog open={tripOpen} onOpenChange={setTripOpen} />
