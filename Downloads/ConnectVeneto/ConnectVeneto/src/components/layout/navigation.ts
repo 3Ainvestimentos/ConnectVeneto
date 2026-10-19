@@ -43,7 +43,19 @@ export function canSeeHubModule(mod: HubModule, ctx: NavAccessContext): boolean 
 }
 
 /** Rotas sem zoom de conteúdo que não são itens do registro. */
-const STATIC_NO_ZOOM_ROUTES = ["/admin/crm", "/admin/strategic-panel", "/personal-panel", "/inicio", "/pessoas"];
+const STATIC_NO_ZOOM_ROUTES = ["/admin/crm", "/admin/strategic-panel", "/personal-panel", "/inicio", "/pessoas", "/publicacoes"];
+
+/** Páginas que pertencem a um item do menu sem estar sob o href dele. */
+const NAV_CHILD_ROUTES: Record<string, string[]> = { "/inicio": ["/publicacoes", "/pessoas"] };
+
+const under = (pathname: string, route: string) => pathname === route || pathname.startsWith(`${route}/`);
+
+/** O item do menu fica ativo na própria rota, nas subrotas e nas páginas filhas declaradas acima. */
+export function isModuleActive(mod: Pick<HubModule, "href" | "external">, pathname: string): boolean {
+  if (mod.external) return false;
+  if (mod.href === "/dashboard") return pathname === mod.href;
+  return under(pathname, mod.href) || (NAV_CHILD_ROUTES[mod.href] ?? []).some((r) => under(pathname, r));
+}
 
 export function isNoZoomPath(pathname: string, modules: HubModule[]): boolean {
   const routes = [...STATIC_NO_ZOOM_ROUTES, ...modules.filter((m) => m.noZoom).map((m) => m.href)];

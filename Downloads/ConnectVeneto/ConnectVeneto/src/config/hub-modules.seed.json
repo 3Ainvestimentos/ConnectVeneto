@@ -17,7 +17,7 @@
     "id": "inicio",
     "kind": "internal",
     "label": "Início (piloto)",
-    "description": "Nova Home: feed de comunicação interna. Em piloto: só quem tem inicio:view.",
+    "description": "Nova Home: avisos, pendências, agenda e pessoas; publicações em /publicacoes. Em piloto: só quem tem inicio:view.",
     "iconName": "Newspaper",
     "order": 0,
     "enabled": true,

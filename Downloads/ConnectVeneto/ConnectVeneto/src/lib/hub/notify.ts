@@ -10,7 +10,7 @@ import { createNotifications } from '@/lib/notifications/server';
 import type { HubComment, HubPost } from './model';
 
 const SOURCE = 'hub-feed';
-const postLink = (postId: string) => ({ path: `/inicio?p=${postId}` });
+const postLink = (postId: string) => ({ path: `/publicacoes?p=${postId}` });
 const firstName = (name: string) => name.split(' ')[0];
 
 async function send(input: Parameters<typeof createNotifications>[0]) {

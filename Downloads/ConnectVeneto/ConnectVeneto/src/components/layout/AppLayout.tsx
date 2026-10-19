@@ -40,7 +40,7 @@ import { getCollaboratorUserId } from '@/contexts/CollaboratorsContext';
 import { UserNav } from './UserNav';
 import { NotificationBell } from './NotificationBell';
 import { NotificationsProvider } from '@/contexts/NotificationsContext';
-import { canSeeHubModule, isNoZoomPath } from './navigation';
+import { canSeeHubModule, isModuleActive, isNoZoomPath } from './navigation';
 import { getModuleIcon } from './module-icons';
 import { useHubModules } from '@/hooks/useHubModules';
 import { bootstrapTrace } from '@/lib/bootstrap-trace';
@@ -264,7 +264,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                     <SidebarMenuItem key={item.id}>
                       <SidebarMenuButton
                         asChild
-                        isActive={!item.external && (pathname === item.href || (item.href !== '/dashboard' && pathname.startsWith(item.href)))}
+                        isActive={isModuleActive(item, pathname)}
                         tooltip={{children: item.label, className: "font-body"}}
                         onClick={handleLinkClick}
                         className="font-body"
