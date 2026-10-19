@@ -5,7 +5,6 @@ import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { Loader2, Lock, Newspaper, PenSquare } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { VenetoMarketingFooter } from '@/components/layout/VenetoMarketingFooter';
 import { ChannelChips } from '@/components/hub-feed/ChannelChips';
 import { FeedPost } from '@/components/hub-feed/FeedPost';
 import { HubDigestModal } from '@/components/hub-feed/HubDigestModal';
@@ -155,7 +154,6 @@ export default function PublicacoesPage() {
       </HubPage>
       {canPublish && data && <NewPostDialog open={newPostOpen} onOpenChange={setNewPostOpen} channels={channels} viewer={data.viewer} />}
       {digestOpen && <HubDigestModal onDemand since={data?.digestSeenAt} onOpenChange={setDigestOpen} />}
-      <VenetoMarketingFooter variant="flow" />
     </>
   );
 }
