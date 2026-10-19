@@ -176,11 +176,14 @@ export function NewPostDialog({
   onOpenChange,
   channels,
   viewer,
+  initialImportance = 'normal',
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   channels: FeedChannel[];
   viewer: { email: string; name: string };
+  /** Tipo já marcado ao abrir: "Novo aviso" (Home) abre como Aviso. */
+  initialImportance?: Importance;
 }) {
   const { user } = useAuth();
   const { createPost } = useHubFeedActions();
@@ -189,7 +192,7 @@ export function NewPostDialog({
   const [sending, setSending] = useState<string | null>(null);
   const [title, setTitle] = useState('');
   const [body, setBody] = useState('');
-  const [importance, setImportance] = useState<Importance>('normal');
+  const [importance, setImportance] = useState<Importance>(initialImportance);
   const [highlightUntil, setHighlightUntil] = useState(toDateInput(daysFromNow(7)));
   const [images, setImages] = useState<LocalFile[]>([]);
   const [video, setVideo] = useState<VideoDraft>(null);
@@ -208,7 +211,7 @@ export function NewPostDialog({
   const reset = () => {
     setTitle('');
     setBody('');
-    setImportance('normal');
+    setImportance(initialImportance);
     setImages([]);
     setVideo(null);
     setVideoMode(null);
@@ -634,7 +637,7 @@ export function NewPostDialog({
     >
       <DialogContent className="flex max-h-[92vh] flex-col gap-0 p-0 sm:max-w-5xl">
         <DialogHeader className="border-b px-6 py-4">
-          <DialogTitle>Nova publicação</DialogTitle>
+          <DialogTitle>{importance === 'importante' ? 'Novo aviso' : 'Nova publicação'}</DialogTitle>
           <DialogDescription>Escreva, adicione o que precisar e confira a prévia antes de publicar.</DialogDescription>
           <div className="mt-2 inline-flex self-start rounded-md bg-muted p-1 text-sm lg:hidden">
             {(['editar', 'previa'] as const).map((t) => (

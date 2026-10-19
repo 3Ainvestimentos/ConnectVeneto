@@ -1,13 +1,15 @@
 "use client";
 
 import { useState } from 'react';
-import { ArrowUpRight, BellRing, CalendarDays, Clock } from 'lucide-react';
+import { ArrowUpRight, BellRing, CalendarDays, Clock, Plus } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { toast } from '@/hooks/use-toast';
 import { useHubFeed, useHubFeedActions } from '@/hooks/useHubFeed';
 import { activeAvisos } from '@/lib/hub/home';
 import { RSVP_ANSWERS, type FeedPost, type RsvpAnswer } from '@/lib/hub/model';
 import { cn } from '@/lib/utils';
+import { NewPostDialog } from './NewPostDialog';
 import { PostDialog } from './PostDialog';
 import { shortDate } from './format';
 
@@ -84,10 +86,15 @@ function AvisoItem({ post, channelName, onOpen }: { post: FeedPost; channelName:
   );
 }
 
-/** Avisos: recados com prazo (publicações Importantes dentro da validade), do mais urgente ao mais distante. */
+/**
+ * Avisos: recados com prazo (publicações Importantes dentro da validade), do mais urgente ao mais
+ * distante. "Novo aviso" só para quem publica em algum canal.
+ */
 export function AvisosCard() {
   const { data, isLoading } = useHubFeed();
   const [openId, setOpenId] = useState<string | null>(null);
+  const [newOpen, setNewOpen] = useState(false);
+  const canPublish = !!data?.channels.some((c) => c.canPublish);
   const avisos = activeAvisos(data?.posts ?? []);
   const channelName = (id: string) => data?.channels.find((c) => c.id === id)?.name ?? '';
 
@@ -97,7 +104,14 @@ export function AvisosCard() {
         <h2 className="inline-flex items-center gap-2 font-headline text-lg font-semibold">
           <BellRing className="h-5 w-5 text-primary" aria-hidden /> Avisos
         </h2>
-        {avisos.length > 0 && <span className="rounded-full bg-primary/10 px-2.5 py-0.5 text-sm font-semibold text-primary">{avisos.length}</span>}
+        <div className="flex items-center gap-2">
+          {avisos.length > 0 && <span className="rounded-full bg-primary/10 px-2.5 py-0.5 text-sm font-semibold text-primary">{avisos.length}</span>}
+          {canPublish && (
+            <Button size="sm" variant="outline" onClick={() => setNewOpen(true)}>
+              <Plus className="mr-1 h-4 w-4" /> Novo aviso
+            </Button>
+          )}
+        </div>
       </div>
       <div className="px-5 pb-5 pt-4">
         {isLoading && <div className="h-24 animate-pulse rounded-lg bg-muted" />}
@@ -111,6 +125,9 @@ export function AvisosCard() {
         )}
       </div>
       <PostDialog postId={openId} onOpenChange={(o) => !o && setOpenId(null)} />
+      {canPublish && data && (
+        <NewPostDialog open={newOpen} onOpenChange={setNewOpen} channels={data.channels} viewer={data.viewer} initialImportance="importante" />
+      )}
     </Card>
   );
 }

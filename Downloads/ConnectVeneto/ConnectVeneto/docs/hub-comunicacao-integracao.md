@@ -11,7 +11,7 @@ Vocabulário em [CONTEXT.md](../CONTEXT.md). Decisões de 2026-10-15, revistas e
 | Lançamento | Piloto em `/inicio` só para algumas pessoas, convivendo com a Home atual. |
 | Notícias existentes | Migrar para Publicações já no piloto; **congelar `newsItems` só depois** dos testes e da transição. |
 | Onde publicar | Só no feed ("Nova publicação"). A aba Notícias do admin vira **Publicações** (gestão: editar, arquivar, listar). |
-| Home × feed (2026-10-18) | A Home não tem feed: mostra Avisos, Pendências, Agenda, Pessoas e Indicadores. As Notícias vão para o Resumo diário e para `/publicacoes`. |
+| Home × feed (2026-10-18) | A Home não tem feed: mostra Avisos, To-do, Agenda, Pessoas e Indicadores. As Notícias vão para o Resumo diário e para `/publicacoes`. |
 
 ## Hoje (o que depende do que)
 
@@ -37,7 +37,7 @@ Objetivo: um grupo pequeno usa a nova Home com dados reais, sem afetar ninguém.
 
 9. **Resumo diário no lugar do Daily Fin (só piloto).** O `AppLayout` monta `HubDigestModal` para quem tem o módulo `inicio` e `DailyRssModal` para os demais. O "visto" fica em `hubDigestState/<email>` (`lastSeenAt`), então vale entre dispositivos; o "uma vez por dia" é local (`hubDigestShownDate`). Desligar o Daily Fin para todos fica para a Fase 2.
 
-10. **Home sem feed (2026-10-18).** `/inicio`: faixa de Indicadores; Pendências (`TrackFlowSummary variant="wide"`), Agenda (publicações com evento + `/api/calendar`, filtro "Acontece em"), Pessoas e equipes em colunas; à direita Avisos (`isHighlighted`, por prazo) e Publicações (novas desde o último Resumo + 3 últimas). O feed foi para `/publicacoes` (chip "Todos" = seguidos + Avisos). Resumo com imagem e modo sob demanda (`?since` aceito de qualquer pessoa do piloto, até 30 dias).
+10. **Home sem feed (2026-10-18).** `/inicio`: faixa de Indicadores; To-do (`TodoCard`: tarefas do TrackFlow separadas em "para você responder" e "suas solicitações"), Agenda (publicações com evento + `/api/calendar`, filtro "Acontece em"), Pessoas e equipes em colunas; à direita Avisos (`isHighlighted`, por prazo; "Novo aviso" para quem publica) — a Home não tem mais os botões Publicações/Nova publicação no topo e Publicações (novas desde o último Resumo + 3 últimas). O feed foi para `/publicacoes` (chip "Todos" = seguidos + Avisos). Resumo com imagem e modo sob demanda (`?since` aceito de qualquer pessoa do piloto, até 30 dias).
 
 **Sai do piloto quando:** o grupo usa por 2–4 semanas, o RH publicou só pelo feed por pelo menos 2 semanas e não há diferença entre `newsItems` e `hubPosts`.
 
