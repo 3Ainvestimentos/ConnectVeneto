@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowDownRight, ArrowUpRight, Building2, LineChart, Lock, Minus, type LucideIcon } from 'lucide-react';
+import { ArrowDownRight, ArrowUpRight, Building2, LineChart, Minus, type LucideIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import TradingViewWidget from '@/components/dashboard-v2/TradingViewWidget';
 import { WidgetErrorBoundary } from '@/components/error/WidgetErrorBoundary';
@@ -33,7 +33,6 @@ function IndicatorGroup({
   icon: Icon,
   title,
   note,
-  restricted,
   items,
   className,
   gridClassName,
@@ -42,7 +41,6 @@ function IndicatorGroup({
   icon: LucideIcon;
   title: string;
   note: string;
-  restricted?: boolean;
   items: Indicator[];
   className?: string;
   gridClassName: string;
@@ -54,7 +52,6 @@ function IndicatorGroup({
         <h2 className="inline-flex items-center gap-2 font-headline text-lg font-semibold">
           <Icon className="h-5 w-5 text-primary" aria-hidden />
           {title}
-          {restricted && <Lock className="h-3.5 w-3.5 text-muted-foreground" aria-label="Restrito" />}
         </h2>
         <ExampleDataBadge />
       </div>
@@ -91,14 +88,13 @@ export function MarketIndicators() {
   );
 }
 
-/** Vêneto: indicadores da empresa (só com acesso a Dados Estratégicos). Na coluna lateral, na largura dos Avisos. */
+/** Indicadores Estratégicos da Vêneto (só com acesso a Dados Estratégicos). Na coluna lateral, na largura dos Avisos. */
 export function StrategicIndicators() {
   return (
     <IndicatorGroup
       icon={Building2}
-      title="Vêneto"
+      title="Indicadores Estratégicos"
       note="Fechamento do mês anterior · Dados Estratégicos"
-      restricted
       items={STRATEGIC_INDICATORS}
       className="border-primary/30 bg-primary/[0.06]"
       gridClassName="grid-cols-3"
