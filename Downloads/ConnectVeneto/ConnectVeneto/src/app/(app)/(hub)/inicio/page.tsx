@@ -10,7 +10,6 @@ import { canAccessEmbeddedModule } from '@/components/layout/navigation';
 import { WidgetErrorBoundary } from '@/components/error/WidgetErrorBoundary';
 import { AgendaCard } from '@/components/hub-feed/AgendaCard';
 import { AvisosCard } from '@/components/hub-feed/AvisosCard';
-import { BirthdaysCard } from '@/components/hub-feed/BirthdaysCard';
 import { HubPage } from '@/components/hub-feed/HubPage';
 import { MarketIndicators, StrategicIndicators } from '@/components/hub-feed/IndicatorCards';
 import { PeoplePanel } from '@/components/hub-feed/PeoplePanel';
@@ -93,7 +92,7 @@ export default function InicioPage() {
         ) : (
           // Duas colunas que terminam juntas: o último card de cada uma estica até a altura da outra
           // (à esquerda é o Mercado, cujo gráfico ocupa o espaço que sobrar). No celular: Avisos →
-          // To-do → Aniversários → Agenda → Pessoas → Vêneto → Publicações → Mercado.
+          // To-do → Agenda → Pessoas → Vêneto → Publicações → Mercado.
           <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_360px] xl:grid-cols-[minmax(0,1fr)_400px] 2xl:gap-8">
             <div className="contents lg:flex lg:min-w-0 lg:flex-col lg:gap-6">
               <div className="order-2 min-w-0 lg:order-none">
@@ -121,9 +120,6 @@ export default function InicioPage() {
               )}
               <div className="order-1 min-w-0 lg:order-none">
                 <AvisosCard />
-              </div>
-              <div className="order-3 min-w-0 empty:hidden lg:order-none">
-                <BirthdaysCard />
               </div>
               <div className={STRETCH_LAST + ' order-7'}>
                 <PublicacoesMiniCard />

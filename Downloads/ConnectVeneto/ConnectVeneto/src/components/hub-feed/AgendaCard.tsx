@@ -3,6 +3,7 @@
 import { useMemo, useState } from 'react';
 import { CalendarCheck, CalendarDays, Megaphone } from 'lucide-react';
 import { Card } from '@/components/ui/card';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { GoogleEventDetailsModal } from '@/components/dashboard-v2/GoogleEventDetailsModal';
 import type { CalendarEvent } from '@/components/dashboard-v2/GoogleCalendar';
 import { useCompanyCalendar } from '@/hooks/useCompanyCalendar';
@@ -12,9 +13,28 @@ import { happensIn, type DateRange } from '@/lib/hub/periods';
 import { PostDialog } from './PostDialog';
 
 const DAY = 24 * 60 * 60 * 1000;
-/** A Agenda mostra os próximos 60 dias. */
-const DEFAULT_DAYS = 60;
 const VISIBLE = 6;
+
+/** Janelas do seletor da Agenda; o padrão são os próximos 60 dias. */
+const WINDOWS = [
+  { id: '7', label: 'Próximos 7 dias', empty: 'nos próximos 7 dias' },
+  { id: '30', label: 'Próximos 30 dias', empty: 'nos próximos 30 dias' },
+  { id: '60', label: 'Próximos 60 dias', empty: 'nos próximos 60 dias' },
+  { id: '90', label: 'Próximos 90 dias', empty: 'nos próximos 90 dias' },
+  { id: 'this-month', label: 'Este mês', empty: 'neste mês' },
+  { id: 'next-month', label: 'Próximo mês', empty: 'no próximo mês' },
+] as const;
+type WindowId = (typeof WINDOWS)[number]['id'];
+
+function windowRange(id: WindowId): DateRange {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  if (id === 'this-month') return { from: today, to: new Date(today.getFullYear(), today.getMonth() + 1, 0, 23, 59, 59) };
+  if (id === 'next-month') {
+    return { from: new Date(today.getFullYear(), today.getMonth() + 1, 1), to: new Date(today.getFullYear(), today.getMonth() + 2, 0, 23, 59, 59) };
+  }
+  return { from: today, to: new Date(today.getTime() + Number(id) * DAY) };
+}
 
 type AgendaEntry = {
   key: string;
@@ -37,20 +57,19 @@ function DateTile({ date }: { date: Date }) {
 }
 
 /**
- * Agenda da Home: eventos publicados no hub (com presença) e o Google Agenda da Vêneto, juntos e
- * por data. Evento importado do Google para uma publicação aparece uma vez só, como publicação.
+ * Agenda e Eventos da Home: eventos publicados no hub (com presença) e o Google Agenda da Vêneto,
+ * juntos e por data, na janela escolhida. Evento importado do Google para uma publicação aparece uma
+ * vez só, como publicação.
  */
 export function AgendaCard() {
   const { data } = useHubFeed();
   const [openPost, setOpenPost] = useState<string | null>(null);
   const [openCalendar, setOpenCalendar] = useState<CalendarItem | null>(null);
   const [showAll, setShowAll] = useState(false);
+  const [windowId, setWindowId] = useState<WindowId>('60');
+  const current = WINDOWS.find((w) => w.id === windowId)!;
 
-  const range: DateRange = useMemo(() => {
-    const from = new Date();
-    from.setHours(0, 0, 0, 0);
-    return { from, to: new Date(from.getTime() + DEFAULT_DAYS * DAY) };
-  }, []);
+  const range = useMemo(() => windowRange(windowId), [windowId]);
   const calendar = useCompanyCalendar(range.from, range.to);
 
   const entries = useMemo(() => {
@@ -82,13 +101,30 @@ export function AgendaCard() {
     <Card className="shadow-sm">
       <div className="flex flex-wrap items-center justify-between gap-3 px-5 pt-5">
         <h2 className="inline-flex items-center gap-2 font-headline text-lg font-semibold">
-          <CalendarDays className="h-5 w-5 text-primary" aria-hidden /> Agenda
+          <CalendarDays className="h-5 w-5 text-primary" aria-hidden /> Agenda e Eventos
         </h2>
-        <span className="text-sm text-muted-foreground">próximos 60 dias</span>
+        <Select
+          value={windowId}
+          onValueChange={(v) => {
+            setWindowId(v as WindowId);
+            setShowAll(false);
+          }}
+        >
+          <SelectTrigger className="h-9 w-auto gap-2 text-sm" aria-label="Período da agenda">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent align="end">
+            {WINDOWS.map((w) => (
+              <SelectItem key={w.id} value={w.id}>
+                {w.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
       <div className="px-5 pb-5 pt-4">
         {data && entries.length === 0 && !calendar.isLoading && (
-          <p className="text-base text-muted-foreground">Nenhum evento nos próximos 60 dias.</p>
+          <p className="text-base text-muted-foreground">Nenhum evento {current.empty}.</p>
         )}
         <ul className="grid gap-1">
           {visible.map((e) => (

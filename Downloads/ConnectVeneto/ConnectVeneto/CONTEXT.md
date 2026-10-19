@@ -105,4 +105,4 @@ _Avoid_: ausência, deslocamento
 Período de afastamento solicitado pelo colaborador e aprovado pelo Gestor; só as aprovadas aparecem para os colegas.
 
 **Evento**:
-Acontecimento com data e local, interno ou para clientes, divulgado em uma Publicação, com confirmação de presença. Aparece na Agenda da Home junto com o Google Agenda da Vêneto.
+Acontecimento com data e local, interno ou para clientes, divulgado em uma Publicação, com confirmação de presença. Aparece em Agenda e Eventos, na Home, junto com o Google Agenda da Vêneto.

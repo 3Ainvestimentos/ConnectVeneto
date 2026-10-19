@@ -69,6 +69,9 @@ function Row({
   );
 }
 
+/** "Ana", "Ana e Bruno", "Ana, Bruno e Carla". */
+const joinNames = (names: string[]) => (names.length <= 1 ? (names[0] ?? '') : `${names.slice(0, -1).join(', ')} e ${names[names.length - 1]}`);
+
 const Empty = ({ children }: { children: React.ReactNode }) => <p className="text-sm text-muted-foreground">{children}</p>;
 
 const ActionLink = ({ onClick, children }: { onClick: () => void; children: React.ReactNode }) => (
@@ -79,8 +82,8 @@ const ActionLink = ({ onClick, children }: { onClick: () => void; children: Reac
 
 /**
  * Pessoas e equipes: o que está acontecendo com os colegas. `stack` empilha viagens, férias, eventos
- * e aniversários; `columns` (Home) põe viagens e férias lado a lado: os eventos ficam na Agenda e os
- * aniversários num card próprio (`BirthdaysCard`).
+ * e aniversários; `columns` (Home) põe viagens e férias lado a lado, com uma faixa "Hoje é o
+ * aniversário de…" só nos dias em que há aniversariante. Os eventos ficam na Agenda.
  */
 export function PeoplePanel({ variant = 'stack' }: { variant?: 'stack' | 'columns' }) {
   const columns = variant === 'columns';
@@ -96,6 +99,8 @@ export function PeoplePanel({ variant = 'stack' }: { variant?: 'stack' | 'column
   const upcomingTrips = trips.filter((t) => t.personId !== meId && overlaps(t.start, t.end, now, in30)).sort((a, b) => a.start.localeCompare(b.start));
   // Quem vem para a sua cidade aparece primeiro.
   const trips30 = [...upcomingTrips.filter((t) => t.destination === me.city), ...upcomingTrips.filter((t) => t.destination !== me.city)].slice(0, 4);
+
+  const birthdaysToday = BIRTHDAYS.filter((b) => relativeDay(b.date) === 'hoje').map((b) => personById(b.personId));
 
   const events = [
     ...posts.filter((p) => p.event && new Date(p.event.date) >= now).map((p) => ({ id: p.id, title: p.title, date: p.event!.date, audience: p.event!.audience })),
@@ -121,6 +126,19 @@ export function PeoplePanel({ variant = 'stack' }: { variant?: 'stack' | 'column
       </div>
 
       <div className={columns ? 'grid gap-4 px-5 pb-5 md:grid-cols-2' : 'divide-y'}>
+        {columns && birthdaysToday.length > 0 && (
+          <div className="flex items-center gap-3 rounded-xl border border-primary/30 bg-primary/[0.06] p-4 md:col-span-2" role="status">
+            <Cake className="h-6 w-6 shrink-0 text-primary" aria-hidden />
+            <div className="flex shrink-0 -space-x-2">
+              {birthdaysToday.map((p) => (
+                <PersonAvatar key={p.id} person={p} size="md" link />
+              ))}
+            </div>
+            <p className="min-w-0 text-base">
+              Hoje é o aniversário de <b>{joinNames(birthdaysToday.map((p) => p.name))}</b>! 🎉
+            </p>
+          </div>
+        )}
         <Section boxed={columns} icon={Plane} title="Viagens" action={<ActionLink onClick={() => setTripOpen(true)}>viagem</ActionLink>}>
           {trips30.length === 0 && <Empty>Nenhuma viagem nos próximos 30 dias.</Empty>}
           {trips30.map((t) => {
