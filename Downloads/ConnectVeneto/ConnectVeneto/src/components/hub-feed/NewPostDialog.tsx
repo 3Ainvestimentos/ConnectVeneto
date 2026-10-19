@@ -30,6 +30,7 @@ import { cn } from '@/lib/utils';
 import { useHubFeedActions } from '@/hooks/useHubFeed';
 import { formatBytes, parseVideoUrl } from '@/lib/hub/media';
 import type { CreatePostInput, FeedChannel, FeedPost as FeedPostData, HubButton, HubVideo, Importance } from '@/lib/hub/model';
+import type { CalendarItem } from '@/lib/calendar/types';
 import { ACCEPT_ATTR, uploadHubFile, validateUpload, type UploadKind } from '@/lib/hub/upload';
 import { FeedPost } from './FeedPost';
 import { shortDate, toDateInput } from './format';
@@ -42,15 +43,6 @@ interface EventDraft {
   audience: 'Interno' | 'Clientes';
   calendarEventId?: string;
   addToCompanyCalendar: boolean;
-}
-
-interface CalendarItem {
-  id: string;
-  summary: string;
-  description?: string;
-  location?: string;
-  start: { dateTime?: string; date?: string };
-  end?: { dateTime?: string; date?: string };
 }
 
 const DAY = 24 * 60 * 60 * 1000;
@@ -345,8 +337,8 @@ export function NewPostDialog({
           event?.addToCompanyCalendar && !event.calendarEventId
             ? 'O evento ainda não vai para o Google Agenda da Vêneto: essa integração entra numa próxima etapa.'
             : highlightIso
-              ? `Fica no topo do feed até ${shortDate(highlightIso)}.`
-              : 'A publicação já aparece no feed.',
+              ? `Aparece em Avisos, na Home, até ${shortDate(highlightIso)}.`
+              : 'A notícia já está em Publicações e entra no próximo Resumo.',
       });
       reset();
       onOpenChange(false);
@@ -392,9 +384,9 @@ export function NewPostDialog({
           </Select>
         </div>
         <div className="grid gap-1.5">
-          <Label>Importância</Label>
+          <Label>Tipo</Label>
           <div className="flex items-center gap-2">
-            <div className="inline-flex rounded-md bg-muted p-1 text-sm" role="radiogroup" aria-label="Importância">
+            <div className="inline-flex rounded-md bg-muted p-1 text-sm" role="radiogroup" aria-label="Tipo de publicação">
               {(['normal', 'importante'] as const).map((v) => (
                 <button
                   key={v}
@@ -404,12 +396,15 @@ export function NewPostDialog({
                   onClick={() => setImportance(v)}
                   className={cn('rounded px-3 py-1.5 font-medium', importance === v ? 'bg-card shadow-sm' : 'text-muted-foreground hover:text-foreground')}
                 >
-                  {v === 'normal' ? 'Normal' : 'Importante'}
+                  {v === 'normal' ? 'Notícia' : 'Aviso'}
                 </button>
               ))}
             </div>
             {importance === 'importante' && (
-              <Input aria-label="Em destaque até" type="date" value={highlightUntil} onChange={(e) => setHighlightUntil(e.target.value)} className="h-9 w-auto" title="Fica no topo do feed até esta data" />
+              <label className="inline-flex items-center gap-2 text-sm text-muted-foreground">
+                válido até
+                <Input aria-label="Aviso válido até" type="date" value={highlightUntil} onChange={(e) => setHighlightUntil(e.target.value)} className="h-9 w-auto" title="O aviso fica na Home até esta data" />
+              </label>
             )}
           </div>
         </div>

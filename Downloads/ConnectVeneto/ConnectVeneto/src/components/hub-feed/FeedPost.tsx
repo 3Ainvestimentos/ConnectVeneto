@@ -206,12 +206,15 @@ export function FeedPost({
   channelName,
   viewerEmail,
   preview = false,
+  inDialog = false,
 }: {
   post: FeedPostData;
   channelName: string;
   viewerEmail: string;
   /** Pré-visualização no formulário: sem ações. */
   preview?: boolean;
+  /** Aberta num diálogo (Home): sem borda/sombra e sem a âncora `post-<id>` da lista. */
+  inDialog?: boolean;
 }) {
   const { react, updatePost } = useHubFeedActions();
   const [showComments, setShowComments] = useState(false);
@@ -231,7 +234,7 @@ export function FeedPost({
   };
 
   const copyLink = () => {
-    const url = `${window.location.origin}/inicio?p=${post.id}`;
+    const url = `${window.location.origin}/publicacoes?p=${post.id}`;
     navigator.clipboard?.writeText(url).then(
       () => toast({ title: 'Link copiado' }),
       () => toast({ title: 'Não foi possível copiar', description: url }),
@@ -240,10 +243,11 @@ export function FeedPost({
 
   return (
     <article
-      id={`post-${post.id}`}
+      id={inDialog ? undefined : `post-${post.id}`}
       className={cn(
-        'grid scroll-mt-24 gap-3 rounded-xl border bg-card p-4 shadow-sm sm:p-5',
-        highlighted && 'border-l-4 border-l-primary border-primary/40 bg-gradient-to-br from-primary/[0.04] to-transparent',
+        'grid scroll-mt-24 gap-3 bg-card',
+        inDialog ? 'p-5 sm:p-6' : 'rounded-xl border p-4 shadow-sm sm:p-5',
+        highlighted && !inDialog && 'border-l-4 border-l-primary border-primary/40 bg-gradient-to-br from-primary/[0.04] to-transparent',
       )}
     >
       <header className="flex items-start gap-3">
@@ -261,14 +265,15 @@ export function FeedPost({
               <>
                 <span aria-hidden>·</span>
                 <span className="inline-flex items-center gap-1 text-primary">
-                  <Pin className="h-3.5 w-3.5" /> em destaque até {shortDate(post.highlightUntil!)}
+                  <Pin className="h-3.5 w-3.5" /> aviso até {shortDate(post.highlightUntil!)}
                 </span>
               </>
             )}
           </div>
         </div>
         {!preview && (
-          <DropdownMenu>
+          // modal={false}: dentro do PostDialog, o menu modal pode deixar o body sem cliques ao fechar.
+          <DropdownMenu modal={false}>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" size="icon" className="h-9 w-9 shrink-0" aria-label="Mais opções">
                 <MoreHorizontal className="h-5 w-5" />
@@ -290,7 +295,7 @@ export function FeedPost({
                   <DropdownMenuSeparator />
                   {highlighted ? (
                     <DropdownMenuItem onSelect={() => updatePost.mutateAsync({ postId: post.id, patch: { highlightUntil: null } }).catch(fail)}>
-                      <PinOff className="mr-2 h-4 w-4" /> Tirar do destaque
+                      <PinOff className="mr-2 h-4 w-4" /> Encerrar aviso
                     </DropdownMenuItem>
                   ) : null}
                   <DropdownMenuItem

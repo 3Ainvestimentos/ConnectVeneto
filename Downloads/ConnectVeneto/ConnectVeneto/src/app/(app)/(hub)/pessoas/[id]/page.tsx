@@ -174,7 +174,7 @@ export default function PerfilPage() {
               <ul className="grid gap-1.5">
                 {myPosts.map((p) => (
                   <li key={p.id}>
-                    <Link href="/inicio" className="flex items-start justify-between gap-3 rounded-lg border px-3 py-2 text-base hover:bg-muted">
+                    <Link href="/publicacoes" className="flex items-start justify-between gap-3 rounded-lg border px-3 py-2 text-base hover:bg-muted">
                       <span className="min-w-0">
                         <span className="block truncate font-medium">{p.title}</span>
                         <span className="text-sm text-muted-foreground">

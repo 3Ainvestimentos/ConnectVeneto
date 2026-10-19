@@ -32,6 +32,7 @@ const EXACT_APP_PAGE_PATHS = new Set<string>([
   "/opportunity-map",
   "/personal-panel",
   "/pessoas",
+  "/publicacoes",
   "/requests",
   "/regras-comerciais",
   "/test-sheet",

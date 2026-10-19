@@ -1,13 +1,13 @@
 "use client";
 
-import { Pin, Plus } from 'lucide-react';
+import { LayoutList, Plus } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { FeedChannel } from '@/lib/hub/model';
 
 /**
- * Filtro de canais em linha. "Destaques" é o feed principal (só Importantes); cada canal mostra
- * tudo dele. Canais não seguidos aparecem tracejados: clicar passa a seguir. `newCounts` marca o
- * que chegou depois do último Resumo diário.
+ * Filtro de canais em linha (página Publicações). "Todos" junta os canais seguidos e os Avisos;
+ * cada canal mostra tudo dele. Canais não seguidos aparecem tracejados: clicar passa a seguir.
+ * `newCounts` marca o que chegou depois do último Resumo diário.
  */
 export function ChannelChips({
   channels,
@@ -34,7 +34,7 @@ export function ChannelChips({
   return (
     <div className={cn('-mx-4 flex gap-2 overflow-x-auto px-4 pb-1 sm:-mx-0 sm:px-0 [scrollbar-width:none]', className)} role="group" aria-label="Canais">
       <button type="button" className={chip(channelFilter === 'all')} onClick={() => onChannelFilter('all')}>
-        <Pin className="h-3.5 w-3.5" /> Destaques
+        <LayoutList className="h-3.5 w-3.5" /> Todos
       </button>
       {followed.map((c) => {
         const count = newCounts?.[c.id] ?? 0;

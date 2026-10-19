@@ -1,6 +1,6 @@
 # ConnectVeneto — Comunicação Interna
 
-Hub centralizado de comunicação interna da Vêneto: a Home do Connect reúne as publicações da empresa por canal, a agenda das pessoas (viagens, férias, eventos, aniversários), os perfis e o organograma.
+Hub centralizado de comunicação interna da Vêneto. A Home do Connect mostra o que a pessoa precisa fazer e saber (pendências, Avisos, agenda, pessoas e equipes, indicadores); as Notícias chegam pelo Resumo diário e ficam guardadas na página Publicações, por canal.
 
 ## Language
 
@@ -11,8 +11,16 @@ Espaço temático onde publicações são organizadas (ex.: Tecnologia, Eventos)
 _Avoid_: grupo, comunidade, newsletter
 
 **Publicação**:
-Conteúdo publicado por um Publicador em um Canal; pode conter um Evento ou uma enquete.
-_Avoid_: notícia (termo legado), post, comunicado
+Conteúdo publicado por um Publicador em um Canal; é uma Notícia ou um Aviso e pode conter um Evento ou uma enquete.
+_Avoid_: post, comunicado
+
+**Notícia**:
+Publicação Normal: cultura, conquistas, employer branding. Não aparece na Home; chega pelo Resumo diário e fica em Publicações. (As Notícias antigas de `newsItems` são o legado migrado para cá.)
+_Avoid_: post, novidade
+
+**Aviso**:
+Publicação Importante dentro do Prazo do aviso: um recado com data (prazo de entrega, evento). Aparece no widget Avisos da Home enquanto vale.
+_Avoid_: alerta, comunicado, destaque
 
 **Publicador**:
 Colaborador autorizado a publicar em um ou mais Canais. A Comunicação publica em todos.
@@ -23,14 +31,15 @@ Colaborador responsável por um Canal e por quem pode publicar nele.
 _Avoid_: moderador, admin do canal
 
 **Importância**:
-Nível de uma Publicação: Normal ou Importante.
+Nível de uma Publicação: Normal (Notícia) ou Importante (Aviso). Na tela de publicar aparece como "Tipo: Notícia | Aviso".
 _Avoid_: prioridade, urgência, crítico
 
 **Importante**:
-Publicação que fica no topo do Feed, com destaque visual, durante o Período de destaque, sem exigir confirmação de leitura.
+Publicação que, durante o Prazo do aviso, aparece em Avisos na Home e no topo de Publicações, sem exigir confirmação de leitura.
 
-**Período de destaque**:
-Intervalo, definido pelo Publicador, em que uma Publicação Importante fica fixada no topo do Feed.
+**Prazo do aviso**:
+Data, definida pelo Publicador ("válido até"), até a qual uma Publicação Importante é Aviso. "Encerrar aviso" antecipa o fim; a Publicação continua no Canal.
+_Avoid_: período de destaque (termo antigo), fixar
 
 **Validade**:
 Data a partir da qual uma Publicação deixa de aparecer no Feed.
@@ -41,16 +50,23 @@ _Avoid_: comentário aprovado, destaque
 
 ### Consumo
 
+**Home**:
+Página inicial do Connect (piloto em `/inicio`): Avisos, Pendências do TrackFlow, Agenda, Pessoas e equipes e Indicadores. Não tem Feed.
+_Avoid_: dashboard, painel, mural
+
+**Publicações (página)**:
+Página `/publicacoes` com o Feed completo por Canal. É para onde levam o Resumo diário, as notificações e os links de Publicação.
+
 **Feed**:
-Fluxo de Publicações da Home. Abre em **Destaques** (só as Importantes); escolher um Canal mostra tudo dele, inclusive as Normais.
+Fluxo de Publicações da página Publicações. Abre em **Todos** (Canais seguidos + Avisos); escolher um Canal mostra tudo dele.
 _Avoid_: mural, timeline
 
 **Resumo diário**:
-Pop-up da primeira visita do dia com as Publicações Normais dos Canais seguidos que saíram desde o último Resumo que a pessoa viu. Não abre se não houver nada novo. No piloto, substitui o Daily Fin.
+Pop-up da primeira visita do dia com as Notícias dos Canais seguidos que saíram desde o último Resumo que a pessoa viu. Não abre se não houver nada novo; fechar marca como visto. Também abre sob demanda ("Abrir resumo", "Resumo"), sem marcar como visto. No piloto, substitui o Daily Fin.
 _Avoid_: newsletter, digest, e-mail diário
 
 **Janela de tempo**:
-Filtro "Acontece em" (esta semana, próxima semana, este mês, próximo mês) que recorta o Feed para Eventos, pela data do evento, e enquetes, pelo encerramento.
+Filtro "Acontece em" da Agenda da Home (próximos, esta semana, próxima semana, este mês, próximo mês), pela data do Evento.
 _Avoid_: filtro de data de publicação
 
 **Seguir canal**:
@@ -93,4 +109,4 @@ _Avoid_: ausência, deslocamento
 Período de afastamento solicitado pelo colaborador e aprovado pelo Gestor; só as aprovadas aparecem para os colegas.
 
 **Evento**:
-Acontecimento com data e local, interno ou para clientes, divulgado em uma Publicação, com confirmação de presença.
+Acontecimento com data e local, interno ou para clientes, divulgado em uma Publicação, com confirmação de presença. Aparece na Agenda da Home junto com o Google Agenda da Vêneto.

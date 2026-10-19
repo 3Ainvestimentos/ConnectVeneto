@@ -5,7 +5,7 @@
 import { addMonths, addWeeks, endOfMonth, endOfWeek, startOfMonth, startOfWeek } from 'date-fns';
 
 export const PERIODS = [
-  { id: 'all', label: 'Tudo' },
+  { id: 'all', label: 'Próximos' },
   { id: 'this-week', label: 'Esta semana' },
   { id: 'next-week', label: 'Próxima semana' },
   { id: 'this-month', label: 'Este mês' },

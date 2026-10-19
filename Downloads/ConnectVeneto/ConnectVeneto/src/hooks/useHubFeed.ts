@@ -60,7 +60,7 @@ export function useHubFeed() {
   });
 }
 
-/** Busca o Resumo diário. `since` força a janela (botão "Testar resumo"). */
+/** Busca o Resumo diário. `since` força a janela (Resumo aberto sob demanda). */
 export function useHubDigestApi() {
   const api = useApi();
   const qc = useQueryClient();

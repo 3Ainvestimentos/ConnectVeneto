@@ -342,8 +342,11 @@ export async function listDigest(viewer: HubViewer, sinceOverride?: string): Pro
             excerpt: excerpt(p.body),
             authorName: p.authorName,
             createdAt: p.createdAt,
+            channelName: c.name,
+            ...(p.images?.[0]?.url ? { imageUrl: p.images[0].url } : {}),
             hasEvent: !!p.event,
             hasPoll: !!p.poll,
+            hasVideo: !!p.video,
           })),
       }))
       .filter((c) => c.posts.length > 0),

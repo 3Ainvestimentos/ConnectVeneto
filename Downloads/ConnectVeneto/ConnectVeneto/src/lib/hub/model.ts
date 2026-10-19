@@ -263,8 +263,12 @@ export interface DigestItem {
   excerpt: string;
   authorName: string;
   createdAt: string;
+  channelName: string;
+  /** Primeira imagem da publicação, para a miniatura do Resumo. */
+  imageUrl?: string;
   hasEvent: boolean;
   hasPoll: boolean;
+  hasVideo: boolean;
 }
 
 /** Resumo diário: Normais dos canais seguidos publicadas desde `since`. */
