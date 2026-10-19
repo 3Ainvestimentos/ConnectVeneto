@@ -166,12 +166,4 @@ export const STRATEGIC_INDICATORS: Indicator[] = [
   { label: 'ROA', hint: 'trimestre', value: '0,62%', delta: 'estável', trend: 'flat', tone: 'neutral' },
 ];
 
-export const MARKET_INDICATORS: Indicator[] = [
-  { label: 'Dólar', hint: 'USD/BRL', value: 'R$ 5,21', delta: '−0,4%', trend: 'down', tone: 'negative' },
-  { label: 'Ibovespa', hint: 'pontos', value: '141.230', delta: '+0,8%', trend: 'up', tone: 'positive' },
-  { label: 'S&P 500', hint: 'futuro', value: '6.412', delta: '+0,2%', trend: 'up', tone: 'positive' },
-  { label: 'CDI', hint: 'ao ano', value: '14,90%', delta: 'mantido', trend: 'flat', tone: 'neutral' },
-  { label: 'IPCA', hint: '12 meses', value: '4,6%', delta: '−0,1 p.p.', trend: 'down', tone: 'positive' },
-];
-
 export const REACTIONS = ['👍', '❤️', '👏', '💡', '🎉'];
