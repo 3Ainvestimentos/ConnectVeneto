@@ -11,9 +11,9 @@ import { WidgetErrorBoundary } from '@/components/error/WidgetErrorBoundary';
 import { AgendaCard } from '@/components/hub-feed/AgendaCard';
 import { AvisosCard } from '@/components/hub-feed/AvisosCard';
 import { HubPage } from '@/components/hub-feed/HubPage';
-import { MarketIndicators, StrategicIndicators } from '@/components/hub-feed/IndicatorCards';
+import { StrategicIndicators } from '@/components/hub-feed/IndicatorCards';
 import { PeoplePanel } from '@/components/hub-feed/PeoplePanel';
-import { PublicacoesMiniCard } from '@/components/hub-feed/PublicacoesMiniCard';
+import { PublicacoesFeedCard } from '@/components/hub-feed/PublicacoesFeedCard';
 import { TodoCard } from '@/components/hub-feed/TodoCard';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCollaborators } from '@/contexts/CollaboratorsContext';
@@ -90,9 +90,9 @@ export default function InicioPage() {
             </Button>
           </div>
         ) : (
-          // Duas colunas que terminam juntas: o último card de cada uma estica até a altura da outra
-          // (à esquerda é o Mercado, cujo gráfico ocupa o espaço que sobrar). No celular: Avisos →
-          // To-do → Agenda → Pessoas → Vêneto → Publicações → Mercado.
+          // Duas colunas que terminam juntas: o último card de cada uma (Pessoas e equipes / Agenda e
+          // Eventos) estica até a altura da outra. No celular: Avisos → To-do → Agenda e Eventos →
+          // Publicações → Pessoas → Indicadores Estratégicos.
           <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_360px] xl:grid-cols-[minmax(0,1fr)_400px] 2xl:grid-cols-[minmax(0,1fr)_460px] 2xl:gap-8">
             <div className="contents lg:flex lg:min-w-0 lg:flex-col lg:gap-6">
               <div className="order-2 min-w-0 lg:order-none">
@@ -101,14 +101,11 @@ export default function InicioPage() {
                 </WidgetErrorBoundary>
               </div>
               <div className="order-4 min-w-0 lg:order-none">
-                <AgendaCard />
+                <PublicacoesFeedCard />
               </div>
               {/* Ainda com dados de exemplo: pessoas, viagens e férias entram numa etapa seguinte. */}
-              <div className="order-5 min-w-0 lg:order-none">
+              <div className={STRETCH_LAST + ' order-5'}>
                 <PeoplePanel variant="columns" />
-              </div>
-              <div className={STRETCH_LAST + ' order-8'}>
-                <MarketIndicators />
               </div>
             </div>
 
@@ -121,8 +118,8 @@ export default function InicioPage() {
               <div className="order-1 min-w-0 lg:order-none">
                 <AvisosCard />
               </div>
-              <div className={STRETCH_LAST + ' order-7'}>
-                <PublicacoesMiniCard />
+              <div className={STRETCH_LAST + ' order-3'}>
+                <AgendaCard />
               </div>
             </aside>
           </div>

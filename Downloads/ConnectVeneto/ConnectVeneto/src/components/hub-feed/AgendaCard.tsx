@@ -132,38 +132,25 @@ export function AgendaCard() {
               <button
                 type="button"
                 onClick={() => (e.source === 'post' ? setOpenPost(e.postId) : setOpenCalendar(e.item))}
-                className="-mx-2 flex w-[calc(100%+1rem)] items-center gap-4 rounded-lg p-2 text-left hover:bg-muted"
+                className="-mx-2 flex w-[calc(100%+1rem)] items-start gap-3 rounded-lg p-2 text-left hover:bg-muted"
               >
                 <DateTile date={e.start} />
                 <span className="grid min-w-0 flex-1 gap-0.5">
-                  <span className="truncate text-base font-semibold">{e.title}</span>
-                  <span className="flex min-w-0 flex-wrap items-center gap-x-2 text-sm text-muted-foreground">
-                    <span className="capitalize">{e.start.toLocaleDateString('pt-BR', { weekday: 'long' })}</span>
+                  <span className="line-clamp-2 text-base font-semibold leading-snug">{e.title}</span>
+                  <span className="flex min-w-0 flex-wrap items-center gap-x-1.5 text-sm text-muted-foreground">
+                    {e.source === 'post' ? (
+                      <Megaphone className="h-3.5 w-3.5 shrink-0" aria-label="Publicação" />
+                    ) : (
+                      <CalendarCheck className="h-3.5 w-3.5 shrink-0" aria-label="Agenda da Vêneto" />
+                    )}
+                    <span className="capitalize">{e.start.toLocaleDateString('pt-BR', { weekday: 'short' }).replace('.', '')}</span>
                     <span aria-hidden>·</span>
                     <span className="tabular-nums">{e.allDay ? 'dia todo' : fmtTime(e.start)}</span>
-                    {e.place && (
-                      <>
-                        <span aria-hidden>·</span>
-                        <span className="truncate">{e.place}</span>
-                      </>
+                    {e.audience === 'Clientes' && (
+                      <span className="rounded bg-sky-100 px-1.5 py-0.5 text-xs font-semibold text-sky-800 dark:bg-sky-950 dark:text-sky-200">Para clientes</span>
                     )}
                   </span>
-                </span>
-                <span className="hidden shrink-0 flex-col items-end gap-1 sm:flex">
-                  {e.audience === 'Clientes' && (
-                    <span className="rounded bg-sky-100 px-2 py-0.5 text-xs font-semibold text-sky-800 dark:bg-sky-950 dark:text-sky-200">Para clientes</span>
-                  )}
-                  <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
-                    {e.source === 'post' ? (
-                      <>
-                        <Megaphone className="h-3.5 w-3.5" aria-hidden /> Publicação
-                      </>
-                    ) : (
-                      <>
-                        <CalendarCheck className="h-3.5 w-3.5" aria-hidden /> Agenda da Vêneto
-                      </>
-                    )}
-                  </span>
+                  {e.place && <span className="truncate text-sm text-muted-foreground">{e.place}</span>}
                 </span>
               </button>
             </li>
