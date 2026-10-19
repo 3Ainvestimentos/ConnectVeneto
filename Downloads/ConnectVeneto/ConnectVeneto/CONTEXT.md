@@ -51,7 +51,7 @@ _Avoid_: comentário aprovado, destaque
 ### Consumo
 
 **Home**:
-Página inicial do Connect (piloto em `/inicio`): Avisos, Pendências do TrackFlow, Agenda, Pessoas e equipes e Indicadores. Não tem Feed.
+Página inicial do Connect (piloto em `/inicio`): Avisos (com "Novo aviso" para Publicadores), To-do (tarefas do TrackFlow), Agenda, Pessoas e equipes e Indicadores. Não tem Feed.
 _Avoid_: dashboard, painel, mural
 
 **Publicações (página)**:

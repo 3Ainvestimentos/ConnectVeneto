@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowDownRight, ArrowUpRight, Lock, Minus } from 'lucide-react';
+import { ArrowDownRight, ArrowUpRight, Building2, LineChart, Lock, Minus, type LucideIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { MARKET_INDICATORS, STRATEGIC_INDICATORS } from '@/lib/hub-mock/data';
 import type { Indicator } from '@/lib/hub-mock/types';
@@ -15,10 +15,10 @@ const TONE = {
 function Tile({ item }: { item: Indicator }) {
   const Icon = item.trend === 'up' ? ArrowUpRight : item.trend === 'down' ? ArrowDownRight : Minus;
   return (
-    <div className="flex min-w-[148px] flex-1 snap-start flex-col gap-1 rounded-lg bg-muted/50 px-4 py-3" title={item.hint}>
+    <div className="flex min-w-0 flex-col gap-0.5 rounded-lg bg-card px-3 py-2.5 shadow-sm" title={item.hint ? `${item.label} · ${item.hint}` : item.label}>
       <span className="truncate text-sm font-medium text-muted-foreground">{item.label}</span>
-      <span className="font-headline text-xl font-bold leading-tight tabular-nums">{item.value}</span>
-      <span className={cn('inline-flex min-w-0 items-center gap-1 text-sm font-semibold tabular-nums', TONE[item.tone])}>
+      <span className="truncate font-headline text-lg font-bold leading-tight tabular-nums xl:text-xl">{item.value}</span>
+      <span className={cn('inline-flex min-w-0 items-center gap-1 text-sm font-semibold tabular-nums', TONE[item.tone])} title={item.delta}>
         <Icon className="h-3.5 w-3.5 shrink-0" aria-hidden />
         <span className="truncate">{item.delta}</span>
       </span>
@@ -26,41 +26,74 @@ function Tile({ item }: { item: Indicator }) {
   );
 }
 
-function Group({ label, restricted, items }: { label: string; restricted?: boolean; items: Indicator[] }) {
+function Group({
+  icon: Icon,
+  title,
+  note,
+  restricted,
+  items,
+  className,
+  gridClassName,
+}: {
+  icon: LucideIcon;
+  title: string;
+  note: string;
+  restricted?: boolean;
+  items: Indicator[];
+  className?: string;
+  gridClassName: string;
+}) {
   return (
-    <div className="flex min-w-0 flex-col gap-2" role="group" aria-label={label}>
-      <span className="inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-muted-foreground">
-        {label}
-        {restricted && <Lock className="h-3 w-3" aria-label="Restrito" />}
-      </span>
-      <div className="flex gap-2">
+    <section className={cn('grid min-w-0 content-start gap-3 rounded-xl border p-4', className)} aria-label={title}>
+      <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
+        <h3 className="inline-flex items-center gap-2 font-headline text-base font-semibold">
+          <Icon className="h-4 w-4" aria-hidden />
+          {title}
+          {restricted && <Lock className="h-3.5 w-3.5 text-muted-foreground" aria-label="Restrito" />}
+        </h3>
+        <span className="text-xs text-muted-foreground">{note}</span>
+      </div>
+      <div className={cn('grid gap-2', gridClassName)}>
         {items.map((i) => (
           <Tile key={i.label} item={i} />
         ))}
       </div>
-    </div>
+    </section>
   );
 }
 
 /**
- * Faixa de indicadores no topo da Home: leitura rápida, sem gráfico. Os da Vêneto só aparecem para
- * quem tem acesso a Dados Estratégicos.
+ * Indicadores no topo da Home, em dois blocos separados: os da Vêneto (só para quem tem acesso a
+ * Dados Estratégicos) e os de mercado. Tudo cabe na largura, sem rolagem.
  */
 export function IndicatorsStrip({ canSeeStrategic }: { canSeeStrategic: boolean }) {
   return (
-    <section className="rounded-xl border bg-card px-5 py-4 shadow-sm" aria-labelledby="indicadores-titulo">
-      <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-        <h2 id="indicadores-titulo" className="inline-flex items-center gap-2 font-headline text-lg font-semibold">
-          Indicadores <ExampleDataBadge />
-        </h2>
-        <span className="text-sm text-muted-foreground">
-          {canSeeStrategic ? 'Vêneto: fechamento do mês anterior · ' : ''}Mercado: cotações com atraso
-        </span>
+    <div className="grid gap-3">
+      <div className="flex items-center gap-2">
+        <h2 className="font-headline text-lg font-semibold">Indicadores</h2>
+        <ExampleDataBadge />
       </div>
-      <div className="-mx-5 flex snap-x gap-6 overflow-x-auto px-5 pb-1 [scrollbar-width:none]">
-        {canSeeStrategic && <Group label="Vêneto" restricted items={STRATEGIC_INDICATORS} />}
-        <Group label="Mercado" items={MARKET_INDICATORS} />
+      <div className={cn('grid gap-4', canSeeStrategic && 'xl:grid-cols-[3fr_5fr]')}>
+        {canSeeStrategic && (
+          <Group
+            icon={Building2}
+            title="Vêneto"
+            note="Fechamento do mês anterior"
+            restricted
+            items={STRATEGIC_INDICATORS}
+            className="border-primary/30 bg-primary/[0.06]"
+            gridClassName="grid-cols-2 sm:grid-cols-3"
+          />
+        )}
+        <Group
+          icon={LineChart}
+          title="Mercado"
+          note="Cotações com atraso"
+          items={MARKET_INDICATORS}
+          className="bg-muted/40"
+          gridClassName="grid-cols-2 sm:grid-cols-3 md:grid-cols-5"
+        />
       </div>
-    </section>
+    </div>
   );
 }
