@@ -5,7 +5,6 @@ import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Lock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { VenetoMarketingFooter } from '@/components/layout/VenetoMarketingFooter';
 import { canAccessEmbeddedModule } from '@/components/layout/navigation';
 import { WidgetErrorBoundary } from '@/components/error/WidgetErrorBoundary';
 import { AgendaCard } from '@/components/hub-feed/AgendaCard';
@@ -125,7 +124,6 @@ export default function InicioPage() {
           </div>
         )}
       </HubPage>
-      <VenetoMarketingFooter variant="flow" />
     </>
   );
 }
