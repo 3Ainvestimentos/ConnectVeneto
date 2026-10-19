@@ -18,15 +18,18 @@ function Section({
   icon: Icon,
   title,
   action,
+  boxed,
   children,
 }: {
   icon: LucideIcon;
   title: string;
   action?: React.ReactNode;
+  /** Em colunas (Home): cada seção vira um bloco próprio, com respiro. */
+  boxed?: boolean;
   children: React.ReactNode;
 }) {
   return (
-    <section className="grid gap-3.5 px-5 py-5">
+    <section className={boxed ? 'grid content-start gap-4 rounded-xl border bg-muted/30 p-4' : 'grid gap-3.5 px-5 py-5'}>
       <div className="flex items-center justify-between gap-2">
         <h4 className="inline-flex items-center gap-2 text-base font-semibold">
           <Icon className="h-5 w-5 text-primary" aria-hidden />
@@ -39,15 +42,29 @@ function Section({
   );
 }
 
-function Row({ left, title, subtitle, right }: { left?: React.ReactNode; title: React.ReactNode; subtitle?: React.ReactNode; right?: React.ReactNode }) {
+/** `stacked` (colunas estreitas): a informação da direita desce para uma terceira linha. */
+function Row({
+  left,
+  title,
+  subtitle,
+  right,
+  stacked,
+}: {
+  left?: React.ReactNode;
+  title: React.ReactNode;
+  subtitle?: React.ReactNode;
+  right?: React.ReactNode;
+  stacked?: boolean;
+}) {
   return (
-    <div className="flex min-w-0 items-center gap-3 text-base">
+    <div className={stacked ? 'flex min-w-0 items-start gap-3 text-base' : 'flex min-w-0 items-center gap-3 text-base'}>
       {left}
       <div className="min-w-0 flex-1 leading-snug">
         <div className="truncate font-medium">{title}</div>
         {subtitle && <div className="truncate text-sm text-muted-foreground">{subtitle}</div>}
+        {stacked && right && <div className="mt-1 text-sm font-medium tabular-nums text-foreground/80">{right}</div>}
       </div>
-      {right && <div className="shrink-0 text-sm tabular-nums text-muted-foreground">{right}</div>}
+      {!stacked && right && <div className="shrink-0 text-sm tabular-nums text-muted-foreground">{right}</div>}
     </div>
   );
 }
@@ -88,7 +105,7 @@ export function PeoplePanel({ variant = 'stack' }: { variant?: 'stack' | 'column
     .slice(0, 3);
 
   return (
-    <Card className="divide-y shadow-sm">
+    <Card className={columns ? 'shadow-sm' : 'divide-y shadow-sm'}>
       <div className="px-5 pt-5 pb-4">
         <div className="flex items-center justify-between gap-2">
           <div className="flex flex-wrap items-center gap-2">
@@ -103,24 +120,25 @@ export function PeoplePanel({ variant = 'stack' }: { variant?: 'stack' | 'column
         </div>
       </div>
 
-      <div className={columns ? 'grid divide-y md:grid-cols-3 md:divide-x md:divide-y-0' : 'divide-y'}>
-        <Section icon={Plane} title="Viagens" action={<ActionLink onClick={() => setTripOpen(true)}>viagem</ActionLink>}>
+      <div className={columns ? 'grid gap-4 px-5 pb-5 md:grid-cols-3' : 'divide-y'}>
+        <Section boxed={columns} icon={Plane} title="Viagens" action={<ActionLink onClick={() => setTripOpen(true)}>viagem</ActionLink>}>
           {trips30.length === 0 && <Empty>Nenhuma viagem nos próximos 30 dias.</Empty>}
           {trips30.map((t) => {
             const p = personById(t.personId);
             return (
-              <Row key={t.id} left={<PersonAvatar person={p} size="md" link />} title={p.name} subtitle={t.destination} right={period(t.start, t.end)} />
+              <Row stacked={columns} key={t.id} left={<PersonAvatar person={p} size="md" link />} title={p.name} subtitle={t.destination} right={period(t.start, t.end)} />
             );
           })}
         </Section>
 
-        <Section icon={TreePalm} title="Férias" action={<ActionLink onClick={() => setVacationOpen(true)}>férias</ActionLink>}>
+        <Section boxed={columns} icon={TreePalm} title="Férias" action={<ActionLink onClick={() => setVacationOpen(true)}>férias</ActionLink>}>
           {onVacation.length === 0 && <Empty>Ninguém de férias nas próximas duas semanas.</Empty>}
           {onVacation.map((v) => {
             const p = personById(v.personId);
             const started = new Date(v.start) <= now;
             return (
               <Row
+                stacked={columns}
                 key={v.id}
                 left={<PersonAvatar person={p} size="md" link />}
                 title={p.name}
@@ -149,12 +167,13 @@ export function PeoplePanel({ variant = 'stack' }: { variant?: 'stack' | 'column
           </Section>
         )}
 
-        <Section icon={Cake} title="Aniversários">
+        <Section boxed={columns} icon={Cake} title="Aniversários">
           {BIRTHDAYS.map((b) => {
             const p = personById(b.personId);
             const today = relativeDay(b.date) === 'hoje';
             return (
               <Row
+                stacked={columns}
                 key={b.personId}
                 left={<PersonAvatar person={p} size="md" link />}
                 title={p.name}

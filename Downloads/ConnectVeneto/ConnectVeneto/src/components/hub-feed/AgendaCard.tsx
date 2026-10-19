@@ -8,12 +8,11 @@ import type { CalendarEvent } from '@/components/dashboard-v2/GoogleCalendar';
 import { useCompanyCalendar } from '@/hooks/useCompanyCalendar';
 import { useHubFeed } from '@/hooks/useHubFeed';
 import { calendarStart, type CalendarItem } from '@/lib/calendar/types';
-import { happensIn, periodRange, type DateRange, type Period } from '@/lib/hub/periods';
-import { PeriodFilter } from './PeriodFilter';
+import { happensIn, type DateRange } from '@/lib/hub/periods';
 import { PostDialog } from './PostDialog';
 
 const DAY = 24 * 60 * 60 * 1000;
-/** Sem filtro, a Agenda mostra os próximos 60 dias. */
+/** A Agenda mostra os próximos 60 dias. */
 const DEFAULT_DAYS = 60;
 const VISIBLE = 6;
 
@@ -43,17 +42,15 @@ function DateTile({ date }: { date: Date }) {
  */
 export function AgendaCard() {
   const { data } = useHubFeed();
-  const [period, setPeriod] = useState<Period>('all');
   const [openPost, setOpenPost] = useState<string | null>(null);
   const [openCalendar, setOpenCalendar] = useState<CalendarItem | null>(null);
   const [showAll, setShowAll] = useState(false);
 
   const range: DateRange = useMemo(() => {
-    if (period !== 'all') return periodRange(period);
     const from = new Date();
     from.setHours(0, 0, 0, 0);
     return { from, to: new Date(from.getTime() + DEFAULT_DAYS * DAY) };
-  }, [period]);
+  }, []);
   const calendar = useCompanyCalendar(range.from, range.to);
 
   const entries = useMemo(() => {
@@ -87,17 +84,11 @@ export function AgendaCard() {
         <h2 className="inline-flex items-center gap-2 font-headline text-lg font-semibold">
           <CalendarDays className="h-5 w-5 text-primary" aria-hidden /> Agenda
         </h2>
-        <PeriodFilter
-          value={period}
-          onChange={(p) => {
-            setPeriod(p);
-            setShowAll(false);
-          }}
-        />
+        <span className="text-sm text-muted-foreground">próximos 60 dias</span>
       </div>
       <div className="px-5 pb-5 pt-4">
         {data && entries.length === 0 && !calendar.isLoading && (
-          <p className="text-base text-muted-foreground">{period === 'all' ? 'Nenhum evento nos próximos 60 dias.' : 'Nada marcado para este período.'}</p>
+          <p className="text-base text-muted-foreground">Nenhum evento nos próximos 60 dias.</p>
         )}
         <ul className="grid gap-1">
           {visible.map((e) => (
