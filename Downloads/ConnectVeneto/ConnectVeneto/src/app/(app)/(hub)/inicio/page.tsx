@@ -91,11 +91,11 @@ export default function InicioPage() {
             </Button>
           </div>
         ) : (
-          // Duas colunas que terminam juntas: o último card de cada uma estica até a altura da outra.
-          // Mercado fecha a página em largura total (é o menos urgente). No celular: Avisos → To-do →
-          // Aniversários → Agenda → Pessoas → Vêneto → Publicações → Mercado.
+          // Duas colunas que terminam juntas: o último card de cada uma estica até a altura da outra
+          // (à esquerda é o Mercado, cujo gráfico ocupa o espaço que sobrar). No celular: Avisos →
+          // To-do → Aniversários → Agenda → Pessoas → Vêneto → Publicações → Mercado.
           <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_360px] xl:grid-cols-[minmax(0,1fr)_400px] 2xl:gap-8">
-            <div className="contents lg:col-start-1 lg:row-start-1 lg:flex lg:min-w-0 lg:flex-col lg:gap-6">
+            <div className="contents lg:flex lg:min-w-0 lg:flex-col lg:gap-6">
               <div className="order-2 min-w-0 lg:order-none">
                 <WidgetErrorBoundary title="To-do indisponível">
                   <TodoCard />
@@ -105,31 +105,30 @@ export default function InicioPage() {
                 <AgendaCard />
               </div>
               {/* Ainda com dados de exemplo: pessoas, viagens e férias entram numa etapa seguinte. */}
-              <div className={STRETCH_LAST + ' order-5'}>
+              <div className="order-5 min-w-0 lg:order-none">
                 <PeoplePanel variant="columns" />
+              </div>
+              <div className={STRETCH_LAST + ' order-8'}>
+                <MarketIndicators />
               </div>
             </div>
 
-            <aside className="contents lg:col-start-2 lg:row-start-1 lg:flex lg:min-w-0 lg:flex-col lg:gap-6">
+            <aside className="contents lg:flex lg:min-w-0 lg:flex-col lg:gap-6">
+              {canSeeStrategic && (
+                <div className="order-6 min-w-0 lg:order-none">
+                  <StrategicIndicators />
+                </div>
+              )}
               <div className="order-1 min-w-0 lg:order-none">
                 <AvisosCard />
               </div>
               <div className="order-3 min-w-0 empty:hidden lg:order-none">
                 <BirthdaysCard />
               </div>
-              {canSeeStrategic && (
-                <div className="order-6 min-w-0 lg:order-none">
-                  <StrategicIndicators />
-                </div>
-              )}
               <div className={STRETCH_LAST + ' order-7'}>
                 <PublicacoesMiniCard />
               </div>
             </aside>
-
-            <div className="order-8 min-w-0 lg:order-none lg:col-span-2 lg:row-start-2">
-              <MarketIndicators />
-            </div>
           </div>
         )}
       </HubPage>

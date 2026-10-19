@@ -9,7 +9,7 @@ import { countNewSince, followedNews } from '@/lib/hub/home';
 import { HubDigestModal } from './HubDigestModal';
 import { timeAgo } from './format';
 
-const LATEST = 3;
+const LATEST = 5;
 
 /** Ponte para as Notícias: quantas chegaram desde o último Resumo e as mais recentes. */
 export function PublicacoesMiniCard() {
