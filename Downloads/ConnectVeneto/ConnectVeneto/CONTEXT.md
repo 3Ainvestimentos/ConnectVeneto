@@ -62,7 +62,7 @@ Fluxo de Publicações da página Publicações. Abre em **Todos** (Canais segui
 _Avoid_: mural, timeline
 
 **Resumo diário**:
-Pop-up da primeira visita do dia com as Notícias dos Canais seguidos que saíram desde o último Resumo que a pessoa viu. Não abre se não houver nada novo; fechar marca como visto. Também abre sob demanda ("Abrir resumo", "Resumo"), sem marcar como visto. No piloto, substitui o Daily Fin.
+Pop-up da primeira visita do dia com as Notícias dos Canais seguidos que saíram desde o último Resumo que a pessoa viu. Não abre se não houver nada novo; fechar marca como visto. Também abre sob demanda pelo botão "Resumo" da página Publicações, sem marcar como visto. No piloto, substitui o Daily Fin.
 _Avoid_: newsletter, digest, e-mail diário
 
 **Seguir canal**:

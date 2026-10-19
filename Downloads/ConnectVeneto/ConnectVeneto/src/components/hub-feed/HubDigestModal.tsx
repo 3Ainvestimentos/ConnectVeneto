@@ -5,7 +5,7 @@
  * a pessoa segue, publicadas desde o último resumo que ela viu. Para quem está no piloto, substitui
  * o Daily Fin. Sem nada novo, não abre.
  *
- * `onDemand` (botões "Abrir resumo" e "Resumo") abre na hora, desde `since` (último resumo visto
+ * `onDemand` (botão "Resumo" da página Publicações) abre na hora, desde `since` (último resumo visto
  * ou, sem histórico, 7 dias) e não mexe no "visto".
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
