@@ -71,8 +71,8 @@ export default function InicioPage() {
 
   return (
     <>
-      {/* Alinhada ao menu (sem centralizar): em telas largas a sobra fica à direita. */}
-      <HubPage className="max-w-[1320px] md:mx-0">
+      {/* Ocupa toda a largura ao lado do menu (aberto ou recolhido): sem vão nem à esquerda nem à direita. */}
+      <HubPage className="max-w-none md:mx-0">
         <header className="flex flex-wrap items-end justify-between gap-3">
           <div>
             <h1 className="font-headline text-3xl font-bold sm:text-4xl">{greeting && firstName ? `${greeting}, ${firstName}!` : 'Bem-vindo(a)!'}</h1>
@@ -93,7 +93,7 @@ export default function InicioPage() {
           // Duas colunas que terminam juntas: o último card de cada uma estica até a altura da outra
           // (à esquerda é o Mercado, cujo gráfico ocupa o espaço que sobrar). No celular: Avisos →
           // To-do → Agenda → Pessoas → Vêneto → Publicações → Mercado.
-          <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_360px] xl:grid-cols-[minmax(0,1fr)_400px] 2xl:gap-8">
+          <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_360px] xl:grid-cols-[minmax(0,1fr)_400px] 2xl:grid-cols-[minmax(0,1fr)_460px] 2xl:gap-8">
             <div className="contents lg:flex lg:min-w-0 lg:flex-col lg:gap-6">
               <div className="order-2 min-w-0 lg:order-none">
                 <WidgetErrorBoundary title="To-do indisponível">
