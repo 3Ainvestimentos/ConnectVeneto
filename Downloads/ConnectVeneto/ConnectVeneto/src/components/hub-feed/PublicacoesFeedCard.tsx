@@ -47,7 +47,8 @@ function Tile({ post, channelName, large, onOpen }: { post: FeedPost; channelNam
 
 /**
  * Mini-feed das Notícias na Home: as mais recentes dos canais seguidos em mosaico de imagens.
- * Clicar abre a notícia por cima da página; o histórico completo fica em /publicacoes.
+ * Clicar abre a notícia por cima da página; o histórico completo fica em /publicacoes. Quando o card
+ * estica (último da coluna), o mosaico cresce junto.
  */
 export function PublicacoesFeedCard() {
   const { data } = useHubFeed();
@@ -65,7 +66,7 @@ export function PublicacoesFeedCard() {
   const channelName = (id: string) => data?.channels.find((c) => c.id === id)?.name ?? '';
 
   return (
-    <Card className="shadow-sm">
+    <Card className="flex flex-col shadow-sm">
       <div className="flex flex-wrap items-center justify-between gap-3 px-5 pt-5">
         <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
           <h2 className="inline-flex items-center gap-2 font-headline text-lg font-semibold">
@@ -89,11 +90,11 @@ export function PublicacoesFeedCard() {
         </div>
       </div>
 
-      <div className="px-5 pb-5 pt-4">
+      <div className="flex flex-1 flex-col px-5 pb-5 pt-4">
         {!data && <div className="h-[340px] animate-pulse rounded-xl bg-muted" />}
         {data && latest.length === 0 && <p className="text-base text-muted-foreground">Nada publicado nos canais que você segue.</p>}
         {latest.length > 0 && (
-          <div className={cn('grid gap-3', latest.length === 3 && 'md:grid-cols-[3fr_2fr]', latest.length === 2 && 'md:grid-cols-2')}>
+          <div className={cn('grid flex-1 gap-3 md:auto-rows-fr', latest.length === 3 && 'md:grid-cols-[3fr_2fr]', latest.length === 2 && 'md:grid-cols-2')}>
             {latest.map((p, i) => (
               <Tile key={p.id} post={p} channelName={channelName(p.channelId)} large={i === 0 && latest.length === 3} onOpen={() => setOpenId(p.id)} />
             ))}

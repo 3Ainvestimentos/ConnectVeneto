@@ -90,9 +90,9 @@ export default function InicioPage() {
             </Button>
           </div>
         ) : (
-          // Duas colunas que terminam juntas: o último card de cada uma (Pessoas e equipes / Agenda e
-          // Eventos) estica até a altura da outra. No celular: Avisos → To-do → Agenda e Eventos →
-          // Publicações → Pessoas → Indicadores Estratégicos.
+          // Duas colunas que terminam juntas: o último card de cada uma (Publicações / Agenda e Eventos)
+          // estica até a altura da outra. No celular: Avisos → To-do → Agenda e Eventos → Pessoas →
+          // Publicações → Indicadores Estratégicos.
           <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_360px] xl:grid-cols-[minmax(0,1fr)_400px] 2xl:grid-cols-[minmax(0,1fr)_460px] 2xl:gap-8">
             <div className="contents lg:flex lg:min-w-0 lg:flex-col lg:gap-6">
               <div className="order-2 min-w-0 lg:order-none">
@@ -100,12 +100,12 @@ export default function InicioPage() {
                   <TodoCard />
                 </WidgetErrorBoundary>
               </div>
-              <div className="order-4 min-w-0 lg:order-none">
-                <PublicacoesFeedCard />
-              </div>
               {/* Ainda com dados de exemplo: pessoas, viagens e férias entram numa etapa seguinte. */}
-              <div className={STRETCH_LAST + ' order-5'}>
+              <div className="order-4 min-w-0 lg:order-none">
                 <PeoplePanel variant="columns" />
+              </div>
+              <div className={STRETCH_LAST + ' order-5'}>
+                <PublicacoesFeedCard />
               </div>
             </div>
 
