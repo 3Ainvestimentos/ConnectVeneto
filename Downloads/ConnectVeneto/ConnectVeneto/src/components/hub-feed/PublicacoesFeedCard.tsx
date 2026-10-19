@@ -8,7 +8,6 @@ import { useHubFeed } from '@/hooks/useHubFeed';
 import { countNewSince, followedNews } from '@/lib/hub/home';
 import type { FeedPost } from '@/lib/hub/model';
 import { cn } from '@/lib/utils';
-import { HubDigestModal } from './HubDigestModal';
 import { PostDialog } from './PostDialog';
 import { timeAgo } from './format';
 
@@ -53,7 +52,6 @@ function Tile({ post, channelName, large, onOpen }: { post: FeedPost; channelNam
 export function PublicacoesFeedCard() {
   const { data } = useHubFeed();
   const [openId, setOpenId] = useState<string | null>(null);
-  const [digestOpen, setDigestOpen] = useState(false);
 
   const { latest, fresh } = useMemo(() => {
     if (!data) return { latest: [], fresh: 0 };
@@ -78,16 +76,9 @@ export function PublicacoesFeedCard() {
             </span>
           )}
         </div>
-        <div className="flex items-center gap-4">
-          {data && (
-            <button type="button" onClick={() => setDigestOpen(true)} className="text-sm font-medium text-primary hover:underline">
-              Abrir resumo
-            </button>
-          )}
-          <Link href="/publicacoes" className="inline-flex items-center gap-1 text-sm font-medium text-primary hover:underline">
-            ver todas <ArrowRight className="h-4 w-4" />
-          </Link>
-        </div>
+        <Link href="/publicacoes" className="inline-flex items-center gap-1 text-sm font-medium text-primary hover:underline">
+          ver todas <ArrowRight className="h-4 w-4" />
+        </Link>
       </div>
 
       <div className="flex flex-1 flex-col px-5 pb-5 pt-4">
@@ -103,7 +94,6 @@ export function PublicacoesFeedCard() {
       </div>
 
       <PostDialog postId={openId} onOpenChange={(o) => !o && setOpenId(null)} />
-      {digestOpen && <HubDigestModal onDemand since={data?.digestSeenAt} onOpenChange={setDigestOpen} />}
     </Card>
   );
 }
