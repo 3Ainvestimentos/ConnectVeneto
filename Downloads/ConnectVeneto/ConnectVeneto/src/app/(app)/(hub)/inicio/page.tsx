@@ -11,7 +11,7 @@ import { WidgetErrorBoundary } from '@/components/error/WidgetErrorBoundary';
 import { AgendaCard } from '@/components/hub-feed/AgendaCard';
 import { AvisosCard } from '@/components/hub-feed/AvisosCard';
 import { HubPage } from '@/components/hub-feed/HubPage';
-import { IndicatorsStrip } from '@/components/hub-feed/IndicatorsStrip';
+import { MarketIndicators, StrategicIndicators } from '@/components/hub-feed/IndicatorCards';
 import { PeoplePanel } from '@/components/hub-feed/PeoplePanel';
 import { PublicacoesMiniCard } from '@/components/hub-feed/PublicacoesMiniCard';
 import { TodoCard } from '@/components/hub-feed/TodoCard';
@@ -21,6 +21,7 @@ import { isEmbeddedModule } from '@/config/modules';
 import { HubApiError, useHubFeed } from '@/hooks/useHubFeed';
 import { useHubModules } from '@/hooks/useHubModules';
 import { findCollaboratorByEmail } from '@/lib/email-utils';
+import { cn } from '@/lib/utils';
 
 /** Módulo "Dados Estratégicos" (id histórico: portal-repasse). */
 const STRATEGIC_MODULE_ID = 'portal-repasse';
@@ -87,32 +88,40 @@ export default function InicioPage() {
             </Button>
           </div>
         ) : (
-          // Celular: Avisos → To-do → Indicadores → Agenda → Pessoas → Publicações.
+          // Uma grade só, duas colunas: a principal (Mercado, To-do, Agenda, Pessoas) e a lateral (Vêneto,
+          // Avisos, Publicações). Mercado e Vêneto dividem a primeira linha, então ficam com a mesma
+          // largura do To-do e dos Avisos. No celular a ordem é: Avisos → To-do → Mercado → Vêneto →
+          // Agenda → Pessoas → Publicações.
           <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_360px] xl:grid-cols-[minmax(0,1fr)_400px] 2xl:gap-8">
-            <div className="order-3 min-w-0 lg:order-none lg:col-span-2">
-              <IndicatorsStrip canSeeStrategic={canSeeStrategic} />
+            <div className={cn('order-3 min-w-0 lg:order-none lg:col-start-1 lg:row-start-1', !canSeeStrategic && 'lg:col-span-2')}>
+              <MarketIndicators />
             </div>
+            {canSeeStrategic && (
+              <div className="order-4 min-w-0 lg:order-none lg:col-start-2 lg:row-start-1">
+                <StrategicIndicators />
+              </div>
+            )}
 
-            <div className="contents lg:flex lg:min-w-0 lg:flex-col lg:gap-6">
+            <div className="contents lg:col-start-1 lg:row-start-2 lg:flex lg:min-w-0 lg:flex-col lg:gap-6">
               <div className="order-2 min-w-0 lg:order-none">
                 <WidgetErrorBoundary title="To-do indisponível">
                   <TodoCard />
                 </WidgetErrorBoundary>
               </div>
-              <div className="order-4 min-w-0 lg:order-none">
+              <div className="order-5 min-w-0 lg:order-none">
                 <AgendaCard />
               </div>
               {/* Ainda com dados de exemplo: pessoas, viagens e férias entram numa etapa seguinte. */}
-              <div className="order-5 min-w-0 lg:order-none">
+              <div className="order-6 min-w-0 lg:order-none">
                 <PeoplePanel variant="columns" />
               </div>
             </div>
 
-            <aside className="contents lg:flex lg:min-w-0 lg:flex-col lg:gap-6">
+            <aside className="contents lg:col-start-2 lg:row-start-2 lg:flex lg:min-w-0 lg:flex-col lg:gap-6">
               <div className="order-1 min-w-0 lg:order-none">
                 <AvisosCard />
               </div>
-              <div className="order-6 min-w-0 lg:order-none">
+              <div className="order-7 min-w-0 lg:order-none">
                 <PublicacoesMiniCard />
               </div>
             </aside>

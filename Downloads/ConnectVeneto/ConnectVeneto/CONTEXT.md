@@ -65,10 +65,6 @@ _Avoid_: mural, timeline
 Pop-up da primeira visita do dia com as Notícias dos Canais seguidos que saíram desde o último Resumo que a pessoa viu. Não abre se não houver nada novo; fechar marca como visto. Também abre sob demanda ("Abrir resumo", "Resumo"), sem marcar como visto. No piloto, substitui o Daily Fin.
 _Avoid_: newsletter, digest, e-mail diário
 
-**Janela de tempo**:
-Filtro "Acontece em" da Agenda da Home (próximos, esta semana, próxima semana, este mês, próximo mês), pela data do Evento.
-_Avoid_: filtro de data de publicação
-
 **Seguir canal**:
 Escolha do colaborador de ver no Feed as Publicações de um Canal.
 _Avoid_: newsletter, inscrever-se, assinar
