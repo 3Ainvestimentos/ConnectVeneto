@@ -20,6 +20,7 @@ import { useCollaborators } from '@/contexts/CollaboratorsContext';
 import { ConfirmDeleteDialog } from './ConfirmDeleteDialog';
 import { LabelChecklist } from './AudiencePicker';
 import { distinctLabels } from './audience';
+import { TypeAdminsList } from './TypeAdminsList';
 
 type FormState = { id?: string; name: string; description: string; admins: string; adminAreas: string[]; order: string };
 
@@ -155,6 +156,16 @@ export function LinkTypesDialog({
                 placeholder={'nome.sobrenome@venetomfo.com.br\noutra.pessoa@venetomfo.com.br'}
               />
               <p className="text-xs text-muted-foreground">Um e-mail por linha, para quem está fora das áreas acima. Super admins administram todos os tipos.</p>
+            </div>
+            <div className="space-y-2 rounded-lg border bg-muted/30 p-3">
+              <Label>Quem vai administrar hoje</Label>
+              <TypeAdminsList
+                type={{
+                  adminAreas: form.adminAreas,
+                  adminEmails: form.admins.split(/[\s,;]+/).map((email) => email.trim().toLowerCase()).filter(Boolean),
+                }}
+                emptyText="Ninguém além dos super admins — marque uma área ou informe e-mails."
+              />
             </div>
             {error && <p className="text-sm text-destructive">{error}</p>}
             <div className="flex justify-end gap-2">
