@@ -62,6 +62,14 @@ const ERROR_MAP: Record<string, ErrorDescriptor> = {
     status: 404,
     body: { error: 'Publicacao nao encontrada.' },
   },
+  FORBIDDEN_CONSULTA_LINK: {
+    status: 403,
+    body: { error: 'Acesso negado: voce nao pode alterar este link.' },
+  },
+  FORBIDDEN_CONSULTA_TYPE_ADMIN_REQUIRED: {
+    status: 403,
+    body: { error: 'Acesso negado: requer ser administrador deste tipo de link.' },
+  },
   SYSTEM_SETTINGS_NOT_FOUND: {
     status: 503,
     body: { error: 'Configuracao do sistema indisponivel.' },

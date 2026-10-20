@@ -1,110 +1,19 @@
 "use client";
 
-import React, { useMemo, useState, useEffect, useRef } from 'react';
-import { useAuth } from '@/contexts/AuthContext';
-import { useCollaborators } from '@/contexts/CollaboratorsContext';
-import { findCollaboratorByEmail } from '@/lib/email-utils';
+import React, { useState } from 'react';
 import { AlertCircle } from 'lucide-react';
-import { LoadingSpinner } from '@/components/ui/loading-spinner';
 import { PageHeader } from '@/components/layout/PageHeader';
-import { cn } from '@/lib/utils';
-
-type ConsultaTab = 'mesa' | 'cliente' | 'cx';
-
-const TAB_LABELS: Record<ConsultaTab, string> = {
-  mesa: 'MESA',
-  cliente: 'CLIENTE',
-  cx: 'CX',
-};
-
-function toPreviewUrl(url: string): string {
-  if (url.includes('docs.google.com/spreadsheets') && url.includes('/edit')) {
-    return url.replace(/\/edit.*$/, '/preview');
-  }
-  return url;
-}
-
-function IframePanel({ url, label }: { url: string; label: string }) {
-  const [loaded, setLoaded] = useState(false);
-  const [usedFallback, setUsedFallback] = useState(false);
-  const [src, setSrc] = useState(url);
-  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  useEffect(() => {
-    setLoaded(false);
-    setUsedFallback(false);
-    setSrc(url);
-  }, [url]);
-
-  useEffect(() => {
-    if (loaded) return;
-
-    timerRef.current = setTimeout(() => {
-      if (!loaded) {
-        const fallback = toPreviewUrl(src);
-        if (fallback !== src) {
-          setUsedFallback(true);
-          setSrc(fallback);
-        }
-      }
-    }, 7000);
-
-    return () => {
-      if (timerRef.current) clearTimeout(timerRef.current);
-    };
-  }, [src, loaded]);
-
-  return (
-    <div className="flex flex-col w-full h-full">
-      {usedFallback && (
-        <div className="mx-4 mt-2 rounded-md border border-amber-300 bg-amber-50 px-4 py-2 text-sm text-amber-900">
-          Ajuste automático aplicado: exibindo no modo <strong>/preview</strong> por restrição do Google Sheets.
-        </div>
-      )}
-      <div className="relative flex-1 min-h-0 overflow-hidden">
-        <iframe
-          key={src}
-          aria-label={`Planilha de consulta: ${label}`}
-          width="100%"
-          height="100%"
-          src={src}
-          frameBorder="0"
-          allowFullScreen
-          allow="fullscreen; clipboard-read; clipboard-write; autoplay"
-          className="absolute inset-0 h-full w-full border-0"
-          onLoad={() => setLoaded(true)}
-        />
-      </div>
-    </div>
-  );
-}
+import { LoadingSpinner } from '@/components/ui/loading-spinner';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { PersonalLinkLibrary } from '@/components/consulta/PersonalLinkLibrary';
+import { ConsultaAdminPanel } from '@/components/consulta/ConsultaAdminPanel';
+import { useConsultaSession } from '@/hooks/useConsultaLinks';
 
 export default function ConsultaPage() {
-  const { user, loading: userLoading } = useAuth();
-  const { collaborators, loading: collabLoading } = useCollaborators();
+  const { data: session, isLoading, error } = useConsultaSession();
+  const [tab, setTab] = useState('links');
 
-  const consultaLinks = useMemo(() => {
-    if (userLoading || collabLoading || !user) return null;
-    const currentUser = findCollaboratorByEmail(collaborators, user.email);
-    return currentUser?.consultaLinks ?? null;
-  }, [user, collaborators, userLoading, collabLoading]);
-
-  const availableTabs = useMemo<ConsultaTab[]>(() => {
-    if (!consultaLinks) return [];
-    return (['mesa', 'cliente', 'cx'] as ConsultaTab[]).filter(
-      (tab) => !!consultaLinks[tab]
-    );
-  }, [consultaLinks]);
-
-  const [activeTab, setActiveTab] = useState<ConsultaTab | null>(null);
-
-  useEffect(() => {
-    if (availableTabs.length > 0 && !activeTab) {
-      setActiveTab(availableTabs[0]);
-    }
-  }, [availableTabs, activeTab]);
-
-  if (userLoading || collabLoading) {
+  if (isLoading) {
     return (
       <div className="flex h-full w-full items-center justify-center bg-background">
         <LoadingSpinner />
@@ -112,60 +21,43 @@ export default function ConsultaPage() {
     );
   }
 
-  if (availableTabs.length === 0) {
+  if (error || !session) {
     return (
       <div className="flex h-full w-full items-center justify-center bg-background p-4 text-center">
         <div className="flex flex-col items-center gap-2 text-muted-foreground">
           <AlertCircle className="h-10 w-10" />
-          <h2 className="text-xl font-semibold text-foreground">Consulta não configurada</h2>
-          <p>Nenhum link de Consulta Pessoal foi configurado para o seu usuário.</p>
+          <h2 className="text-xl font-semibold text-foreground">Não foi possível carregar seus links</h2>
+          <p>{error instanceof Error ? error.message : 'Tente novamente em instantes.'}</p>
         </div>
       </div>
     );
   }
 
-  const activeUrl = activeTab ? consultaLinks![activeTab] : '';
-
-  const tabActions = availableTabs.length > 1 ? (
-    <div
-      role="tablist"
-      aria-label="Tipo de consulta"
-      className="inline-flex h-9 shrink-0 items-center rounded-md bg-muted p-1 text-muted-foreground"
-    >
-      {availableTabs.map((tab) => (
-        <button
-          key={tab}
-          type="button"
-          role="tab"
-          aria-selected={activeTab === tab}
-          onClick={() => setActiveTab(tab)}
-          className={cn(
-            'inline-flex items-center justify-center whitespace-nowrap rounded-sm px-3 py-1.5 text-xs font-medium transition-all',
-            'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background',
-            activeTab === tab
-              ? 'bg-background text-foreground shadow-sm'
-              : 'bg-transparent text-muted-foreground hover:text-foreground'
-          )}
-        >
-          {TAB_LABELS[tab]}
-        </button>
-      ))}
-    </div>
-  ) : undefined;
+  const canAdmin = session.adminTypeIds.length > 0 || session.isSuperAdmin;
 
   return (
-    <div className="flex h-full min-h-0 w-full flex-col overflow-hidden space-y-6 p-6 md:p-8">
+    <div className="h-full overflow-y-auto p-6 md:p-8">
       <PageHeader
         title="Consulta Pessoal"
-        description="Acesse suas planilhas de consulta."
-        actions={tabActions}
+        description="Seus links de trabalho em um só lugar: salve os que você usa e acesse os mantidos pelas áreas."
       />
 
-      <div className="flex min-h-0 flex-1 flex-col">
-        {activeTab && activeUrl && (
-          <IframePanel key={activeTab} url={activeUrl} label={TAB_LABELS[activeTab]} />
-        )}
-      </div>
+      {canAdmin ? (
+        <Tabs value={tab} onValueChange={setTab} className="space-y-6">
+          <TabsList>
+            <TabsTrigger value="links">Meus links</TabsTrigger>
+            <TabsTrigger value="admin">Administração</TabsTrigger>
+          </TabsList>
+          <TabsContent value="links">
+            <PersonalLinkLibrary session={session} />
+          </TabsContent>
+          <TabsContent value="admin">
+            <ConsultaAdminPanel session={session} />
+          </TabsContent>
+        </Tabs>
+      ) : (
+        <PersonalLinkLibrary session={session} />
+      )}
     </div>
   );
 }

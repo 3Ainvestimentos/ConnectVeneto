@@ -80,7 +80,7 @@
     "id": "consulta",
     "kind": "internal",
     "label": "Consulta Pessoal",
-    "description": "Planilhas Mesa, Cliente e CX configuráveis por colaborador",
+    "description": "Biblioteca de links pessoais e por tipo (MESA, CX), com administração por tipo",
     "iconName": "Table2",
     "order": 2,
     "enabled": true,
