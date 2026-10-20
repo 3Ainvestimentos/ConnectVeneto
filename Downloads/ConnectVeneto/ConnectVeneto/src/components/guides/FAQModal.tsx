@@ -44,7 +44,7 @@ const faqItems = [
   {
     question: "O que é a Consulta Pessoal?",
     answer:
-      "A Consulta Pessoal reúne os links para as principais planilhas pessoais dos colaboradores. Quando houver mais de um tipo (por exemplo MESA, CLIENTE ou CX), use as abas no topo da página para alternar entre elas.",
+      "A Consulta Pessoal é a sua barra de favoritos de trabalho. Em 'Meus links' você salva, edita e exclui os links que usa no dia a dia — só você vê. Abaixo aparecem os links mantidos pelos administradores de cada tipo (por exemplo MESA e CX): os individuais (como a planilha da Mesa) só aparecem para quem tem uma URL própria cadastrada; os compartilhados valem para a empresa toda, para a sua área ou equipe, ou para pessoas escolhidas. Quem muda de área passa a ver os links da nova área automaticamente.",
   },
   {
     question: "Onde estão os documentos da instituição?",

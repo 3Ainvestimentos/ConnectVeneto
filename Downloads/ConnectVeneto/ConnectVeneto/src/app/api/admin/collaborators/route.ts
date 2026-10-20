@@ -45,9 +45,6 @@ const profilePatchSchema = z
     leader: requiredText('Líder'),
     lideranca: z.string().trim().max(50),
     city: requiredText('Cidade'),
-    consultaLinks: z
-      .object({ mesa: optionalUrl, cliente: optionalUrl, cx: optionalUrl })
-      .strict(),
   })
   .strict()
   .partial()

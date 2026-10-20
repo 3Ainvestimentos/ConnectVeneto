@@ -11,13 +11,12 @@ import { Label } from '@/components/ui/label';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { PlusCircle, Edit, Trash2, Loader2, Upload, FileDown, AlertTriangle, Search, ChevronUp, ChevronDown, Table2, Filter, History } from 'lucide-react';
+import { PlusCircle, Edit, Trash2, Loader2, Upload, FileDown, AlertTriangle, Search, ChevronUp, ChevronDown, Filter, History } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../ui/card';
 import { toast } from '@/hooks/use-toast';
 import { ScrollArea } from '../ui/scroll-area';
 import Papa from 'papaparse';
 import { Badge } from '../ui/badge';
-import { Separator } from '../ui/separator';
 import { DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '../ui/dropdown-menu';
 import { useSystemSettings } from '@/contexts/SystemSettingsContext';
 import { CollaboratorAuditLogModal } from './CollaboratorAuditLogModal';
@@ -150,13 +149,6 @@ function mapCsvRowToCollaboratorDraft(row: CsvRow): Omit<Collaborator, 'id'> | n
   };
 }
 
-function countConsultaLinksFilled(consultaLinks: Collaborator['consultaLinks']): number {
-    if (!consultaLinks) return 0;
-    return [consultaLinks.mesa, consultaLinks.cliente, consultaLinks.cx].filter(
-        (s) => typeof s === 'string' && s.trim().length > 0
-    ).length;
-}
-
 function csvHeadersLookValid(fieldNames: string[] | undefined): boolean {
   if (!fieldNames?.length) return false;
   const s = new Set(fieldNames.map(normCsvHeader).filter(Boolean));
@@ -182,30 +174,6 @@ function csvHeadersLookValid(fieldNames: string[] | undefined): boolean {
   return portuguese || english;
 }
 
-const consultaUrlSchema = z.string().transform((value, ctx) => {
-    if (!value) return '';
-
-    if (z.string().url().safeParse(value).success) {
-        return value;
-    }
-
-    if (value.trim().startsWith('<iframe')) {
-        const srcMatch = value.match(/src="([^"]+)"/);
-        if (srcMatch && srcMatch[1]) {
-            const url = srcMatch[1];
-            if (z.string().url().safeParse(url).success) {
-                return url;
-            }
-        }
-    }
-
-    ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: "URL inválida. Cole a URL completa ou o código de incorporação do iframe.",
-    });
-    return z.NEVER;
-});
-
 const collaboratorSchema = z.object({
     id: z.string().optional(),
     idVeneto: z.string().min(1, "ID Veneto é obrigatório"),
@@ -219,11 +187,6 @@ const collaboratorSchema = z.object({
     leader: z.string().min(1, "Líder é obrigatório"),
     lideranca: z.string().optional().or(z.literal('')),
     city: z.string().min(1, "Cidade é obrigatória"),
-    consultaLinks: z.object({
-        mesa: consultaUrlSchema,
-        cliente: consultaUrlSchema,
-        cx: consultaUrlSchema,
-    }).optional(),
 });
 
 type CollaboratorFormValues = z.infer<typeof collaboratorSchema>;
@@ -393,14 +356,7 @@ export function ManageCollaborators() {
     const handleFormDialogOpen = (collaborator: Collaborator | null) => {
         setEditingCollaborator(collaborator);
         if (collaborator) {
-            reset({
-              ...collaborator,
-              consultaLinks: {
-                mesa: collaborator.consultaLinks?.mesa || '',
-                cliente: collaborator.consultaLinks?.cliente || '',
-                cx: collaborator.consultaLinks?.cx || '',
-              },
-            });
+            reset({ ...collaborator });
         } else {
             reset({
                 id: undefined,
@@ -415,7 +371,6 @@ export function ManageCollaborators() {
                 leader: '',
                 lideranca: '',
                 city: '',
-                consultaLinks: { mesa: '', cliente: '', cx: '' },
             });
         }
         setIsFormOpen(true);
@@ -650,13 +605,11 @@ export function ManageCollaborators() {
                                     <FilterableHeader fkey="leader" label="Líder" uniqueValues={uniqueLeaders} />
                                     <FilterableHeader fkey="lideranca" label="Liderança" uniqueValues={uniqueLideranca} />
                                     <FilterableHeader fkey="city" label="Cidade" uniqueValues={uniqueCities} />
-                                    <TableHead>Links Consulta</TableHead>
                                     <TableHead className="text-right">Ações</TableHead>
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
                                 {filteredAndSortedCollaborators.map((item) => {
-                                    const consultaCount = countConsultaLinksFilled(item.consultaLinks);
                                     return (
                                     <TableRow key={item.id}>
                                         <TableCell className="font-medium">{item.name}<br/><span className="text-xs text-muted-foreground">{item.email}</span></TableCell>
@@ -667,16 +620,6 @@ export function ManageCollaborators() {
                                         <TableCell>{item.leader}</TableCell>
                                         <TableCell>{item.lideranca || '—'}</TableCell>
                                         <TableCell>{item.city}</TableCell>
-                                        <TableCell>
-                                            {consultaCount > 0 ? (
-                                                <Badge variant="secondary" className="flex items-center w-fit gap-1.5">
-                                                    <Table2 className="h-3 w-3" />
-                                                    {consultaCount} link(s)
-                                                </Badge>
-                                            ) : (
-                                                 <Badge variant="outline">Nenhum</Badge>
-                                            )}
-                                        </TableCell>
                                         <TableCell className="text-right">
                                             <Button variant="ghost" size="icon" onClick={() => handleFormDialogOpen(item)} className="hover:bg-muted">
                                                 <Edit className="h-4 w-4" />
@@ -776,26 +719,6 @@ export function ManageCollaborators() {
                                 <Label htmlFor="city">Cidade</Label>
                                 <Input id="city" {...register('city')} disabled={isFormSubmitting}/>
                                 {errors.city && <p className="text-sm text-destructive mt-1">{errors.city.message}</p>}
-                            </div>
-                        </div>
-                        <Separator/>
-                        <div>
-                            <Label>Links Consulta Pessoal (opcional)</Label>
-                            <div className="space-y-3 mt-2">
-                                {(['mesa', 'cliente', 'cx'] as const).map((field) => (
-                                    <div key={field} className="space-y-1.5">
-                                        <Label htmlFor={`consultaLinks.${field}`} className="capitalize">{field === 'cx' ? 'CX' : field.charAt(0).toUpperCase() + field.slice(1)}</Label>
-                                        <Input
-                                            id={`consultaLinks.${field}`}
-                                            {...register(`consultaLinks.${field}`)}
-                                            placeholder="Cole a URL ou o código de incorporação do iframe"
-                                            disabled={isFormSubmitting}
-                                        />
-                                        {errors.consultaLinks?.[field] && (
-                                            <p className="text-xs text-destructive mt-1">{errors.consultaLinks[field]?.message}</p>
-                                        )}
-                                    </div>
-                                ))}
                             </div>
                         </div>
                         <DialogFooter className="mt-6">

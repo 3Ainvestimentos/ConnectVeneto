@@ -35,12 +35,6 @@ export interface CollaboratorPermissions {
   canViewDirectoria: boolean;
 }
 
-export interface ConsultaLinks {
-  mesa: string;
-  cliente: string;
-  cx: string;
-}
-
 export interface Collaborator {
   id: string;
   idVeneto: string; // Identificador principal
@@ -56,7 +50,6 @@ export interface Collaborator {
   city: string;      // Cidade
   permissions: CollaboratorPermissions;
   googleDriveLinks?: string[];
-  consultaLinks?: ConsultaLinks;
   acceptedTermsVersion?: number; // Versão dos termos aceitos pelo usuário
   createdAt?: string; // ISO String for creation timestamp
   authUid?: string; // Firebase Auth UID
@@ -129,7 +122,7 @@ const bumpCollaboratorTableVersion = async (): Promise<void> => {
  */
 const PROFILE_FIELDS = [
   'idVeneto', 'name', 'email', 'photoURL', 'axis', 'area', 'position',
-  'segment', 'leader', 'lideranca', 'city', 'consultaLinks',
+  'segment', 'leader', 'lideranca', 'city',
 ] as const satisfies ReadonlyArray<keyof Collaborator>;
 
 const defaultPermissions: CollaboratorPermissions = {
