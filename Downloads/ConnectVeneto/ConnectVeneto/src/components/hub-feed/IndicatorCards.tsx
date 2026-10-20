@@ -2,9 +2,25 @@
 
 import { ArrowDownRight, ArrowUpRight, Building2, Minus, type LucideIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { STRATEGIC_INDICATORS } from '@/lib/hub-mock/data';
-import type { Indicator } from '@/lib/hub-mock/types';
 import { ExampleDataBadge } from './HubPilotGate';
+
+interface Indicator {
+  label: string;
+  /** Período ou referência curta (ex.: "12 meses"). */
+  hint?: string;
+  value: string;
+  delta: string;
+  trend: 'up' | 'down' | 'flat';
+  /** Leitura da variação: boa, ruim ou neutra. */
+  tone: 'positive' | 'negative' | 'neutral';
+}
+
+/** Exemplo até a API do dados-estrategicos (pedido 2026-10-19) entregar o fechamento real. */
+const STRATEGIC_INDICATORS: Indicator[] = [
+  { label: 'AUM', hint: 'patrimônio sob gestão', value: 'R$ 4,82 bi', delta: '+2,1% no mês', trend: 'up', tone: 'positive' },
+  { label: 'Churn', hint: '12 meses', value: '1,9%', delta: '−0,3 p.p. vs. ano anterior', trend: 'down', tone: 'positive' },
+  { label: 'ROA', hint: 'trimestre', value: '0,62%', delta: 'estável', trend: 'flat', tone: 'neutral' },
+];
 
 const TONE = {
   positive: 'text-emerald-700 dark:text-emerald-300',

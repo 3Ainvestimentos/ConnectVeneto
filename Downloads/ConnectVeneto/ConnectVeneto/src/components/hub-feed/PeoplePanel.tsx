@@ -2,34 +2,29 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { ArrowRight, Cake, CalendarDays, Plane, Plus, TreePalm, Users, type LucideIcon } from 'lucide-react';
+import { ArrowRight, Cake, Plane, Plus, TreePalm, Users, type LucideIcon } from 'lucide-react';
 import { Card } from '@/components/ui/card';
-import { BIRTHDAYS, UPCOMING_EVENTS } from '@/lib/hub-mock/data';
-import { useHubMock } from '@/lib/hub-mock/store';
-import { ExampleDataBadge } from './HubPilotGate';
+import { useAuth } from '@/contexts/AuthContext';
+import { useApprovedVacations, useHubPeople, useHubTrips } from '@/hooks/useHubPeople';
+import { isBirthdayOn, normalizeCity, overlapsRange, parseLocalDate } from '@/lib/hub/people';
 import { PersonAvatar } from './PersonAvatar';
 import { TripDialog } from './TripDialog';
-import { VacationDialog } from './VacationDialog';
-import { overlaps, period, relativeDay, shortDate } from './format';
+import { initialsOf } from './UserAvatar';
 
 const DAY = 24 * 60 * 60 * 1000;
+const MAX_ROWS = 4;
 
-function Section({
-  icon: Icon,
-  title,
-  action,
-  boxed,
-  children,
-}: {
-  icon: LucideIcon;
-  title: string;
-  action?: React.ReactNode;
-  /** Em colunas (Home): cada seção vira um bloco próprio, com respiro. */
-  boxed?: boolean;
-  children: React.ReactNode;
-}) {
+/** "AAAA-MM-DD" → "dd/mm" no fuso local. */
+const dm = (iso: string) => parseLocalDate(iso)?.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }) ?? '';
+const span = (a: string, b: string) => (a === b ? dm(a) : `${dm(a)} a ${dm(b)}`);
+const dayAfter = (iso: string) => {
+  const d = parseLocalDate(iso);
+  return d ? new Date(d.getTime() + DAY).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }) : '';
+};
+
+function Section({ icon: Icon, title, action, children }: { icon: LucideIcon; title: string; action?: React.ReactNode; children: React.ReactNode }) {
   return (
-    <section className={boxed ? 'grid content-start gap-4 rounded-xl border bg-muted/30 p-4' : 'grid gap-3.5 px-5 py-5'}>
+    <section className="grid content-start gap-4 rounded-xl border bg-muted/30 p-4">
       <div className="flex items-center justify-between gap-2">
         <h4 className="inline-flex items-center gap-2 text-base font-semibold">
           <Icon className="h-5 w-5 text-primary" aria-hidden />
@@ -42,96 +37,78 @@ function Section({
   );
 }
 
-/** `stacked` (colunas estreitas): a informação da direita desce para uma terceira linha. */
-function Row({
-  left,
-  title,
-  subtitle,
-  right,
-  stacked,
-}: {
-  left?: React.ReactNode;
-  title: React.ReactNode;
-  subtitle?: React.ReactNode;
-  right?: React.ReactNode;
-  stacked?: boolean;
-}) {
+function Row({ left, title, subtitle, detail }: { left: React.ReactNode; title: React.ReactNode; subtitle?: React.ReactNode; detail?: React.ReactNode }) {
   return (
-    <div className={stacked ? 'flex min-w-0 items-start gap-3 text-base' : 'flex min-w-0 items-center gap-3 text-base'}>
+    <div className="flex min-w-0 items-start gap-3 text-base">
       {left}
       <div className="min-w-0 flex-1 leading-snug">
         <div className="truncate font-medium">{title}</div>
         {subtitle && <div className="truncate text-sm text-muted-foreground">{subtitle}</div>}
-        {stacked && right && <div className="mt-1 text-sm font-medium tabular-nums text-foreground/80">{right}</div>}
+        {detail && <div className="mt-1 text-sm font-medium tabular-nums text-foreground/80">{detail}</div>}
       </div>
-      {!stacked && right && <div className="shrink-0 text-sm tabular-nums text-muted-foreground">{right}</div>}
     </div>
   );
 }
 
+const Empty = ({ children }: { children: React.ReactNode }) => <p className="text-sm text-muted-foreground">{children}</p>;
+
+/** Avatar quando a pessoa da viagem não foi achada no cadastro (nome digitado no admin). */
+const NameAvatar = ({ name }: { name: string }) => (
+  <span className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-slate-500 font-headline text-sm font-bold text-white">{initialsOf(name)}</span>
+);
+
 /** "Ana", "Ana e Bruno", "Ana, Bruno e Carla". */
 const joinNames = (names: string[]) => (names.length <= 1 ? (names[0] ?? '') : `${names.slice(0, -1).join(', ')} e ${names[names.length - 1]}`);
 
-const Empty = ({ children }: { children: React.ReactNode }) => <p className="text-sm text-muted-foreground">{children}</p>;
-
-const ActionLink = ({ onClick, children }: { onClick: () => void; children: React.ReactNode }) => (
-  <button type="button" onClick={onClick} className="inline-flex items-center gap-1 text-sm font-medium text-primary hover:underline">
-    <Plus className="h-4 w-4" /> {children}
-  </button>
-);
-
 /**
- * Pessoas e equipes: o que está acontecendo com os colegas. `stack` empilha viagens, férias, eventos
- * e aniversários; `columns` (Home) põe viagens e férias lado a lado, com uma faixa "Hoje é o
- * aniversário de…" só nos dias em que há aniversariante. Os eventos ficam na Agenda.
+ * Pessoas e equipes na Home: aniversariantes do dia (faixa, só quando há), viagens dos colegas nos
+ * próximos 30 dias (quem vem para a sua cidade primeiro) e férias aprovadas nas próximas 2 semanas.
  */
-export function PeoplePanel({ variant = 'stack' }: { variant?: 'stack' | 'columns' }) {
-  const columns = variant === 'columns';
-  const { vacations, trips, posts, personById, me, meId } = useHubMock();
+export function PeoplePanel() {
+  const { user, permissions } = useAuth();
+  const { people, me } = useHubPeople();
+  const { trips } = useHubTrips();
+  const { vacations } = useApprovedVacations();
   const [tripOpen, setTripOpen] = useState(false);
-  const [vacationOpen, setVacationOpen] = useState(false);
 
   const now = new Date();
-  const in14 = new Date(Date.now() + 14 * DAY);
-  const in30 = new Date(Date.now() + 30 * DAY);
+  const in14 = new Date(now.getTime() + 14 * DAY);
+  const in30 = new Date(now.getTime() + 30 * DAY);
 
-  const onVacation = vacations.filter((v) => v.status === 'approved' && overlaps(v.start, v.end, now, in14)).slice(0, 3);
-  const upcomingTrips = trips.filter((t) => t.personId !== meId && overlaps(t.start, t.end, now, in30)).sort((a, b) => a.start.localeCompare(b.start));
-  // Quem vem para a sua cidade aparece primeiro.
-  const trips30 = [...upcomingTrips.filter((t) => t.destination === me.city), ...upcomingTrips.filter((t) => t.destination !== me.city)].slice(0, 4);
+  const birthdaysToday = people.filter((p) => isBirthdayOn(p.birthDate, now));
 
-  const birthdaysToday = BIRTHDAYS.filter((b) => relativeDay(b.date) === 'hoje').map((b) => personById(b.personId));
+  const upcomingTrips = trips
+    .filter((t) => t.responsavelUid !== user?.uid && t.person?.id !== me?.id && overlapsRange(t.startDate, t.endDate, now, in30))
+    .sort((a, b) => a.startDate.localeCompare(b.startDate));
+  const myCity = normalizeCity(me?.city);
+  const tripsShown = [
+    ...upcomingTrips.filter((t) => myCity && normalizeCity(t.destinationBranch) === myCity),
+    ...upcomingTrips.filter((t) => !myCity || normalizeCity(t.destinationBranch) !== myCity),
+  ].slice(0, MAX_ROWS);
 
-  const events = [
-    ...posts.filter((p) => p.event && new Date(p.event.date) >= now).map((p) => ({ id: p.id, title: p.title, date: p.event!.date, audience: p.event!.audience })),
-    ...UPCOMING_EVENTS.filter((e) => !e.postId),
-  ]
-    .sort((a, b) => a.date.localeCompare(b.date))
-    .slice(0, 3);
+  const away = vacations
+    .filter((v) => overlapsRange(v.startDate, v.endDate, now, in14))
+    .sort((a, b) => a.startDate.localeCompare(b.startDate))
+    .slice(0, MAX_ROWS);
 
   return (
-    <Card className={columns ? 'shadow-sm' : 'divide-y shadow-sm'}>
-      <div className="px-5 pt-5 pb-4">
-        <div className="flex items-center justify-between gap-2">
-          <div className="flex flex-wrap items-center gap-2">
-            <h3 className="inline-flex items-center gap-2 font-headline text-lg font-semibold">
-              <Users className="h-5 w-5 text-primary" aria-hidden /> Pessoas e equipes
-            </h3>
-            <ExampleDataBadge />
-          </div>
-          <Link href="/pessoas" className="inline-flex items-center gap-1 text-sm font-medium text-primary hover:underline">
-            ver organograma <ArrowRight className="h-4 w-4" />
-          </Link>
-        </div>
+    <Card className="shadow-sm">
+      <div className="flex items-center justify-between gap-2 px-5 pb-4 pt-5">
+        <h3 className="inline-flex items-center gap-2 font-headline text-lg font-semibold">
+          <Users className="h-5 w-5 text-primary" aria-hidden /> Pessoas e equipes
+        </h3>
+        <Link href="/pessoas" className="inline-flex items-center gap-1 text-sm font-medium text-primary hover:underline">
+          ver organograma <ArrowRight className="h-4 w-4" />
+        </Link>
       </div>
 
-      <div className={columns ? 'grid gap-4 px-5 pb-5 md:grid-cols-2' : 'divide-y'}>
-        {columns && birthdaysToday.length > 0 && (
+      <div className="grid gap-4 px-5 pb-5 md:grid-cols-2">
+        {birthdaysToday.length > 0 && (
           <div className="flex items-center gap-3 rounded-xl border border-primary/30 bg-primary/[0.06] p-4 md:col-span-2" role="status">
             <Cake className="h-6 w-6 shrink-0 text-primary" aria-hidden />
             <div className="flex shrink-0 -space-x-2">
-              {birthdaysToday.map((p) => (
-                <PersonAvatar key={p.id} person={p} size="md" link />
+              {birthdaysToday.slice(0, 5).map((p) => (
+                <PersonAvatar key={p.id} person={p} size="md" link className="ring-2 ring-card" />
               ))}
             </div>
             <p className="min-w-0 text-base">
@@ -139,73 +116,58 @@ export function PeoplePanel({ variant = 'stack' }: { variant?: 'stack' | 'column
             </p>
           </div>
         )}
-        <Section boxed={columns} icon={Plane} title="Viagens" action={<ActionLink onClick={() => setTripOpen(true)}>viagem</ActionLink>}>
-          {trips30.length === 0 && <Empty>Nenhuma viagem nos próximos 30 dias.</Empty>}
-          {trips30.map((t) => {
-            const p = personById(t.personId);
-            return (
-              <Row stacked={columns} key={t.id} left={<PersonAvatar person={p} size="md" link />} title={p.name} subtitle={t.destination} right={period(t.start, t.end)} />
-            );
-          })}
+
+        <Section
+          icon={Plane}
+          title="Viagens"
+          action={
+            me && (
+              <button type="button" onClick={() => setTripOpen(true)} className="inline-flex items-center gap-1 text-sm font-medium text-primary hover:underline">
+                <Plus className="h-4 w-4" /> viagem
+              </button>
+            )
+          }
+        >
+          {tripsShown.length === 0 && <Empty>Nenhuma viagem de colegas nos próximos 30 dias.</Empty>}
+          {tripsShown.map((t) => (
+            <Row
+              key={t.id}
+              left={t.person ? <PersonAvatar person={t.person} size="md" link /> : <NameAvatar name={t.leaderName} />}
+              title={t.person?.name ?? t.leaderName}
+              subtitle={t.destinationBranch.split(' - ')[0]}
+              detail={span(t.startDate, t.endDate)}
+            />
+          ))}
         </Section>
 
-        <Section boxed={columns} icon={TreePalm} title="Férias" action={<ActionLink onClick={() => setVacationOpen(true)}>férias</ActionLink>}>
-          {onVacation.length === 0 && <Empty>Ninguém de férias nas próximas duas semanas.</Empty>}
-          {onVacation.map((v) => {
-            const p = personById(v.personId);
-            const started = new Date(v.start) <= now;
+        <Section
+          icon={TreePalm}
+          title="Férias"
+          action={
+            permissions.canManageVacation && (
+              <Link href="/admin/travel-birthdays" className="inline-flex items-center gap-1 text-sm font-medium text-primary hover:underline">
+                <Plus className="h-4 w-4" /> férias
+              </Link>
+            )
+          }
+        >
+          {away.length === 0 && <Empty>Ninguém de férias nas próximas duas semanas.</Empty>}
+          {away.map((v) => {
+            const started = (parseLocalDate(v.startDate)?.getTime() ?? 0) <= now.getTime();
             return (
               <Row
-                stacked={columns}
                 key={v.id}
-                left={<PersonAvatar person={p} size="md" link />}
-                title={p.name}
-                subtitle={`${p.area} · ${p.city}`}
-                right={started ? `volta ${shortDate(new Date(new Date(v.end).getTime() + DAY).toISOString())}` : `a partir de ${shortDate(v.start)}`}
+                left={v.person ? <PersonAvatar person={v.person} size="md" link /> : <NameAvatar name={v.requesterName} />}
+                title={v.person?.name ?? v.requesterName}
+                subtitle={v.person ? [v.person.area, v.person.city].filter(Boolean).join(' · ') : undefined}
+                detail={started ? `volta ${dayAfter(v.endDate)}` : `a partir de ${dm(v.startDate)}`}
               />
             );
           })}
         </Section>
-
-        {!columns && (
-          <Section icon={CalendarDays} title="Eventos">
-            {events.length === 0 && <Empty>Nenhum evento marcado.</Empty>}
-            {events.map((e) => (
-              <Row
-                key={e.id}
-                title={e.title}
-                subtitle={relativeDay(e.date)}
-                right={
-                  <span className={e.audience === 'Clientes' ? 'rounded bg-sky-100 px-2 py-0.5 text-xs font-semibold text-sky-800 dark:bg-sky-950 dark:text-sky-200' : 'rounded bg-muted px-2 py-0.5 text-xs font-semibold'}>
-                    {e.audience}
-                  </span>
-                }
-              />
-            ))}
-          </Section>
-        )}
-
-        {!columns && (
-          <Section icon={Cake} title="Aniversários">
-            {BIRTHDAYS.map((b) => {
-              const p = personById(b.personId);
-              const today = relativeDay(b.date) === 'hoje';
-              return (
-                <Row
-                  key={b.personId}
-                  left={<PersonAvatar person={p} size="md" link />}
-                  title={p.name}
-                  subtitle={p.area}
-                  right={today ? <span className="rounded-full bg-primary/10 px-2 py-0.5 font-semibold text-primary">hoje</span> : shortDate(b.date)}
-                />
-              );
-            })}
-          </Section>
-        )}
       </div>
 
       <TripDialog open={tripOpen} onOpenChange={setTripOpen} />
-      <VacationDialog open={vacationOpen} onOpenChange={setVacationOpen} />
     </Card>
   );
 }

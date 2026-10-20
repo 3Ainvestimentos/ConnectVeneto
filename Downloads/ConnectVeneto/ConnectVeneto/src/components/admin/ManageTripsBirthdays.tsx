@@ -18,23 +18,11 @@ import { Edit, Loader2, PlusCircle, Trash2, Upload, Gift, Plane, ChevronUp, Chev
 import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/contexts/AuthContext";
 import * as XLSX from "xlsx";
+import { TRIP_DESTINATIONS } from "@/lib/trips";
 
 const ENABLE_BIRTHDAYS_UI = false;
 
-const destinations = [
-  "Belo Horizonte - MG",
-  "Campinas - SP",
-  "Florianópolis - SC",
-  "Itajubá - MG",
-  "João Monlevade - MG",
-  "Jundiaí - SP",
-  "Limeira - SP",
-  "Pouso Alegre - MG",
-  "Rio de Janeiro - RJ",
-  "São José dos Campos - SP",
-  "São Paulo - SP",
-  "Varginha - MG",
-];
+const destinations: readonly string[] = TRIP_DESTINATIONS;
 
 const tripSchema = z
   .object({

@@ -99,9 +99,9 @@ export default function InicioPage() {
                   <TodoCard />
                 </WidgetErrorBoundary>
               </div>
-              {/* Ainda com dados de exemplo: pessoas, viagens e férias entram numa etapa seguinte. */}
+              {/* Viagens (leaderTrips), férias aprovadas e aniversários vêm do cadastro real. */}
               <div className="order-4 min-w-0 lg:order-none">
-                <PeoplePanel variant="columns" />
+                <PeoplePanel />
               </div>
               <div className={STRETCH_LAST + ' order-5'}>
                 <PublicacoesFeedCard />

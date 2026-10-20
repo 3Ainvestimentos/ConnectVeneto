@@ -75,7 +75,7 @@ _Avoid_: newsletter, inscrever-se, assinar
 Página de um colaborador que reúne Dados oficiais e Dados pessoais.
 
 **Dados oficiais**:
-Cargo, área, equipe, eixo, unidade, Gestor, data de entrada e Histórico de cargos — só o RH altera.
+Cargo, área, equipe, eixo, unidade, Gestor, data de nascimento, data de entrada e Histórico de cargos — só o RH altera (cadastro de colaboradores ou planilha "Atualizar perfis").
 
 **Dados pessoais**:
 Foto, bio, atribuições, interesses e contatos — só a própria pessoa altera.
@@ -85,7 +85,7 @@ Sequência datada dos cargos que um colaborador ocupou na Vêneto.
 _Avoid_: carreira, trajetória
 
 **Gestor**:
-Colaborador a quem outro colaborador reporta diretamente.
+Colaborador a quem outro colaborador reporta diretamente. Guardado pelo ID Veneto do gestor (ADR 0001); o nome em "Líder" é legado.
 _Avoid_: líder (quando usado como nome em texto livre), chefe
 
 **Equipe**:

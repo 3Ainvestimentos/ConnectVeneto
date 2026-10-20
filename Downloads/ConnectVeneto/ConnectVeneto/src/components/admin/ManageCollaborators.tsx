@@ -20,6 +20,7 @@ import { Badge } from '../ui/badge';
 import { DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '../ui/dropdown-menu';
 import { useSystemSettings } from '@/contexts/SystemSettingsContext';
 import { CollaboratorAuditLogModal } from './CollaboratorAuditLogModal';
+import { ProfileImportDialog } from './ProfileImportDialog';
 
 /** Quando a planilha não traz eixo/segmento. */
 const DEFAULT_AXIS_SEGMENT_IMPORT = '—';
@@ -187,9 +188,29 @@ const collaboratorSchema = z.object({
     leader: z.string().min(1, "Líder é obrigatório"),
     lideranca: z.string().optional().or(z.literal('')),
     city: z.string().min(1, "Cidade é obrigatória"),
+    // Perfil (Hub): dados oficiais mantidos pelo RH.
+    team: z.string().max(120).optional().or(z.literal('')),
+    leaderIdVeneto: z.string().max(60).optional().or(z.literal('')),
+    birthDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Data inválida").optional().or(z.literal('')),
+    admissionDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Data inválida").optional().or(z.literal('')),
+    /** Uma linha por cargo: "Cargo | período" (ex.: "Analista | 2022–2024"). */
+    careerHistoryText: z.string().max(4000).optional().or(z.literal('')),
 });
 
 type CollaboratorFormValues = z.infer<typeof collaboratorSchema>;
+
+/** "Cargo | período" por linha <-> lista do Perfil. */
+const historyToText = (h?: Collaborator['careerHistory']) => (h ?? []).map((s) => (s.period ? `${s.position} | ${s.period}` : s.position)).join('\n');
+const textToHistory = (t?: string) =>
+    (t ?? '')
+        .split('\n')
+        .map((line) => line.trim())
+        .filter(Boolean)
+        .map((line) => {
+            const [position, ...rest] = line.split('|');
+            return { position: position.trim(), period: rest.join('|').trim() };
+        })
+        .filter((s) => s.position);
 
 type CsvRow = { [key: string]: string };
 
@@ -253,6 +274,7 @@ export function ManageCollaborators() {
     const { settings } = useSystemSettings();
     const [isFormOpen, setIsFormOpen] = useState(false);
     const [isImportOpen, setIsImportOpen] = useState(false);
+    const [isProfileImportOpen, setIsProfileImportOpen] = useState(false);
     const [isAuditLogOpen, setIsAuditLogOpen] = useState(false);
     const [isImporting, setIsImporting] = useState(false);
     const [editingCollaborator, setEditingCollaborator] = useState<Collaborator | null>(null);
@@ -356,7 +378,14 @@ export function ManageCollaborators() {
     const handleFormDialogOpen = (collaborator: Collaborator | null) => {
         setEditingCollaborator(collaborator);
         if (collaborator) {
-            reset({ ...collaborator });
+            reset({
+                ...collaborator,
+                team: collaborator.team ?? '',
+                leaderIdVeneto: collaborator.leaderIdVeneto ?? '',
+                birthDate: collaborator.birthDate ?? '',
+                admissionDate: collaborator.admissionDate ?? '',
+                careerHistoryText: historyToText(collaborator.careerHistory),
+            });
         } else {
             reset({
                 id: undefined,
@@ -371,6 +400,11 @@ export function ManageCollaborators() {
                 leader: '',
                 lideranca: '',
                 city: '',
+                team: '',
+                leaderIdVeneto: '',
+                birthDate: '',
+                admissionDate: '',
+                careerHistoryText: '',
             });
         }
         setIsFormOpen(true);
@@ -389,10 +423,19 @@ export function ManageCollaborators() {
     };
     
     const onSubmit = async (data: CollaboratorFormValues) => {
+        const { careerHistoryText, ...rest } = data;
+        const manager = collaborators.find((c) => c.idVeneto === rest.leaderIdVeneto?.trim());
         const processedData = {
-          ...data,
+          ...rest,
           idVeneto: data.idVeneto,
           lideranca: data.lideranca?.trim() || undefined,
+          team: rest.team?.trim() ?? '',
+          leaderIdVeneto: rest.leaderIdVeneto?.trim() ?? '',
+          // O nome legado acompanha o gestor escolhido (outras telas ainda leem `leader`).
+          leader: manager?.name ?? rest.leader,
+          birthDate: rest.birthDate ?? '',
+          admissionDate: rest.admissionDate ?? '',
+          careerHistory: textToHistory(careerHistoryText),
           permissions: editingCollaborator?.permissions || defaultPermissions,
         };
         
@@ -513,6 +556,10 @@ export function ManageCollaborators() {
             leader: c.leader,
             lideranca: c.lideranca || '',
             city: c.city,
+            team: c.team || '',
+            leaderIdVeneto: c.leaderIdVeneto || '',
+            birthDate: c.birthDate || '',
+            admissionDate: c.admissionDate || '',
         }));
 
         const csv = Papa.unparse(dataToExport);
@@ -587,6 +634,7 @@ export function ManageCollaborators() {
                         <div className="flex gap-2">
                             <Button onClick={() => setIsAuditLogOpen(true)} variant="outline" className="flex-grow"><History className="mr-2 h-4 w-4" />Histórico</Button>
                             <Button onClick={() => setIsImportOpen(true)} variant="outline" className="flex-grow"><Upload className="mr-2 h-4 w-4" />Importar</Button>
+                            <Button onClick={() => setIsProfileImportOpen(true)} variant="outline" className="flex-grow" title="Nascimento, entrada, equipe e gestor de quem já está cadastrado"><Upload className="mr-2 h-4 w-4" />Atualizar perfis</Button>
                             <Button onClick={handleExportCSV} variant="outline" className="flex-grow"><FileDown className="mr-2 h-4 w-4" />Exportar</Button>
                             <Button onClick={() => handleFormDialogOpen(null)} className="bg-admin-primary hover:bg-admin-primary/90 flex-grow"><PlusCircle className="mr-2 h-4 w-4" />Adicionar</Button>
                         </div>
@@ -647,6 +695,7 @@ export function ManageCollaborators() {
             </Card>
 
             <CollaboratorAuditLogModal isOpen={isAuditLogOpen} onClose={() => setIsAuditLogOpen(false)} />
+            <ProfileImportDialog open={isProfileImportOpen} onOpenChange={setIsProfileImportOpen} />
 
             <Dialog open={isFormOpen} onOpenChange={(isOpen) => { if (!isOpen) setEditingCollaborator(null); setIsFormOpen(isOpen); }}>
                 <DialogContent className="max-w-2xl">
@@ -709,6 +758,28 @@ export function ManageCollaborators() {
                                 {errors.leader && <p className="text-sm text-destructive mt-1">{errors.leader.message}</p>}
                             </div>
                             <div>
+                                <Label htmlFor="leaderIdVeneto">Gestor no organograma</Label>
+                                <select
+                                    id="leaderIdVeneto"
+                                    {...register('leaderIdVeneto')}
+                                    disabled={isFormSubmitting}
+                                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                                >
+                                    <option value="">— sem gestor (topo) —</option>
+                                    {[...collaborators]
+                                        .filter((c) => c.idVeneto && c.id !== editingCollaborator?.id)
+                                        .sort((a, b) => a.name.localeCompare(b.name, 'pt-BR'))
+                                        .map((c) => (
+                                            <option key={c.id} value={c.idVeneto}>{c.name} · {c.position}</option>
+                                        ))}
+                                </select>
+                                <p className="text-xs text-muted-foreground mt-1">Gravado pelo ID. Ao escolher, o campo Líder acompanha o nome.</p>
+                            </div>
+                            <div>
+                                <Label htmlFor="team">Equipe</Label>
+                                <Input id="team" {...register('team')} disabled={isFormSubmitting} placeholder="Ex.: Comercial SP"/>
+                            </div>
+                            <div>
                                 <Label htmlFor="lideranca">Liderança (SIM / NÃO ou texto livre)</Label>
                                 <Input id="lideranca" {...register('lideranca')} disabled={isFormSubmitting} placeholder="SIM, NÃO…"/>
                                 {errors.lideranca && <p className="text-sm text-destructive mt-1">{errors.lideranca.message}</p>}
@@ -719,6 +790,29 @@ export function ManageCollaborators() {
                                 <Label htmlFor="city">Cidade</Label>
                                 <Input id="city" {...register('city')} disabled={isFormSubmitting}/>
                                 {errors.city && <p className="text-sm text-destructive mt-1">{errors.city.message}</p>}
+                            </div>
+                        </div>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <Label htmlFor="birthDate">Data de nascimento</Label>
+                                <Input id="birthDate" type="date" {...register('birthDate')} disabled={isFormSubmitting}/>
+                                {errors.birthDate && <p className="text-sm text-destructive mt-1">{errors.birthDate.message}</p>}
+                            </div>
+                            <div>
+                                <Label htmlFor="admissionDate">Na Vêneto desde</Label>
+                                <Input id="admissionDate" type="date" {...register('admissionDate')} disabled={isFormSubmitting}/>
+                                {errors.admissionDate && <p className="text-sm text-destructive mt-1">{errors.admissionDate.message}</p>}
+                            </div>
+                            <div className="md:col-span-2">
+                                <Label htmlFor="careerHistoryText">Histórico de cargos</Label>
+                                <textarea
+                                    id="careerHistoryText"
+                                    {...register('careerHistoryText')}
+                                    disabled={isFormSubmitting}
+                                    rows={3}
+                                    placeholder={"Uma linha por cargo, do mais recente: Cargo | período\nAnalista Sênior | 2024–hoje"}
+                                    className="flex w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                                />
                             </div>
                         </div>
                         <DialogFooter className="mt-6">
