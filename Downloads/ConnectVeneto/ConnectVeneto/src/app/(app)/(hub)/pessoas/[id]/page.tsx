@@ -9,10 +9,11 @@ import { EditProfileDialog } from '@/components/hub-feed/EditProfileDialog';
 import { HubBreadcrumb, HubPage } from '@/components/hub-feed/HubPage';
 import { MyAgenda } from '@/components/hub-feed/MyAgenda';
 import { PersonAvatar } from '@/components/hub-feed/PersonAvatar';
-import { WireframeBar } from '@/components/hub-feed/WireframeBar';
-import { period, shortDate, timeAgo } from '@/components/hub-feed/format';
-import { teamsOf } from '@/components/hub-feed/org';
-import { useHubMock } from '@/lib/hub-mock/store';
+import { timeAgo } from '@/components/hub-feed/format';
+import { useHubFeed } from '@/hooks/useHubFeed';
+import { useApprovedVacations, useHubPeople, useHubTrips } from '@/hooks/useHubPeople';
+import { normalizeEmail } from '@/lib/email-utils';
+import { parseLocalDate, teamsOf } from '@/lib/hub/people';
 
 const Box = ({ title, badge, children, id }: { title: string; badge?: React.ReactNode; children: React.ReactNode; id?: string }) => (
   <section id={id} className="grid gap-5 rounded-xl border bg-card p-6 shadow-sm">
@@ -35,41 +36,50 @@ const Personal = () => (
   </span>
 );
 
+const dm = (iso: string) => parseLocalDate(iso)?.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }) ?? '';
+const todayIso = () => {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+};
+
 export default function PerfilPage() {
   const { id } = useParams<{ id: string }>();
-  const { people, personById, meId, trips, vacations, posts, channelById } = useHubMock();
+  const { people, byId, me, loading } = useHubPeople();
+  const { trips } = useHubTrips();
+  const { vacations } = useApprovedVacations();
+  const { data: feed } = useHubFeed();
   const [editOpen, setEditOpen] = useState(false);
-  const person = people.find((p) => p.id === id);
-  const myPosts = posts.filter((p) => p.authorId === id).sort((a, b) => b.createdAt.localeCompare(a.createdAt)).slice(0, 5);
+  const person = byId.get(id);
 
   if (!person) {
     return (
       <HubPage>
-        <HubBreadcrumb items={[{ label: 'Início', href: '/inicio' }, { label: 'Pessoas e equipes', href: '/pessoas' }, { label: 'Não encontrado' }]} />
-        <p className="text-muted-foreground">Pessoa não encontrada.</p>
+        <HubBreadcrumb items={[{ label: 'Início', href: '/inicio' }, { label: 'Pessoas e equipes', href: '/pessoas' }, { label: loading ? 'Carregando…' : 'Não encontrado' }]} />
+        {!loading && <p className="text-muted-foreground">Pessoa não encontrada.</p>}
       </HubPage>
     );
   }
 
-  const isMe = person.id === meId;
-  const manager = person.managerId ? personById(person.managerId) : null;
+  const isMe = person.id === me?.id;
+  const manager = person.managerId ? byId.get(person.managerId) ?? null : null;
   const teams = teamsOf(people, person.id);
-  const now = Date.now();
-  const nextTrip = trips
-    .filter((t) => t.personId === person.id && new Date(t.end).getTime() >= now)
-    .sort((a, b) => a.start.localeCompare(b.start))[0];
-  const vacationNow = vacations.find(
-    (v) => v.personId === person.id && v.status === 'approved' && new Date(v.start).getTime() <= now && new Date(v.end).getTime() >= now,
-  );
-  const email = `${person.name.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(' ', '.')}@venetomfo.com.br`;
-  const chat = person.chat ?? email;
+  const today = todayIso();
+  const nextTrip = trips.filter((t) => t.person?.id === person.id && t.endDate >= today).sort((a, b) => a.startDate.localeCompare(b.startDate))[0];
+  const vacationNow = vacations.find((v) => v.person?.id === person.id && v.startDate <= today && v.endDate >= today);
+  const target = normalizeEmail(person.email);
+  const posts = (feed?.posts ?? [])
+    .filter((p) => normalizeEmail(p.authorEmail) === target)
+    .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
+    .slice(0, 5);
+  const channelName = (cid: string) => feed?.channels.find((c) => c.id === cid)?.name ?? '';
+  const chat = person.chat ?? person.email;
   // Google Chat não tem link direto por e-mail; abre o Chat e a pessoa busca o nome.
   const chatHref = 'https://chat.google.com/';
+  const since = parseLocalDate(person.since);
 
   return (
     <HubPage>
       <HubBreadcrumb items={[{ label: 'Início', href: '/inicio' }, { label: 'Pessoas e equipes', href: '/pessoas' }, { label: person.name }]} />
-      <WireframeBar />
 
       <div className="overflow-hidden rounded-xl border bg-card shadow-sm">
         <div className="h-20 bg-gradient-to-r from-slate-800 via-slate-700 to-primary sm:h-28" />
@@ -77,18 +87,16 @@ export default function PerfilPage() {
           <PersonAvatar person={person} size="xl" className="-mt-10 border-4 border-card sm:-mt-12" />
           <div className="min-w-[200px] flex-1">
             <h1 className="font-headline text-2xl font-bold">{person.name}</h1>
-            <p className="text-base text-muted-foreground">
-              {person.position} · {person.team ?? person.area} · {person.city}
-            </p>
+            <p className="text-base text-muted-foreground">{[person.position, person.team ?? person.area, person.city].filter(Boolean).join(' · ')}</p>
             <div className="mt-2 flex flex-wrap gap-2">
               {vacationNow && (
                 <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-100 px-2.5 py-0.5 text-sm font-semibold text-emerald-800 dark:bg-emerald-950 dark:text-emerald-200">
-                  <TreePalm className="h-3.5 w-3.5" /> De férias até {shortDate(vacationNow.end)}
+                  <TreePalm className="h-3.5 w-3.5" /> De férias até {dm(vacationNow.endDate)}
                 </span>
               )}
               {nextTrip && (
                 <span className="inline-flex items-center gap-1.5 rounded-full bg-sky-100 px-2.5 py-0.5 text-sm font-semibold text-sky-800 dark:bg-sky-950 dark:text-sky-200">
-                  <Plane className="h-3.5 w-3.5" /> Em {nextTrip.destination} · {period(nextTrip.start, nextTrip.end)}
+                  <Plane className="h-3.5 w-3.5" /> Em {nextTrip.destinationBranch.split(' - ')[0]} · {dm(nextTrip.startDate)} a {dm(nextTrip.endDate)}
                 </span>
               )}
             </div>
@@ -111,7 +119,7 @@ export default function PerfilPage() {
         <div className="grid content-start gap-6">
           <Box title="Sobre" badge={<Personal />}>
             {person.bio ? (
-              <p className="text-base">{person.bio}</p>
+              <p className="whitespace-pre-line text-base">{person.bio}</p>
             ) : isMe ? (
               <button type="button" onClick={() => setEditOpen(true)} className="rounded-lg border border-dashed p-3 text-left text-base text-muted-foreground hover:bg-muted">
                 Conte em uma frase o que você faz e no que pode ajudar. Clique para escrever.
@@ -119,7 +127,7 @@ export default function PerfilPage() {
             ) : (
               <p className="text-base text-muted-foreground">{person.name.split(' ')[0]} ainda não escreveu sobre si.</p>
             )}
-            {person.responsibilities && (
+            {person.responsibilities.length > 0 && (
               <div>
                 <div className="mb-1.5 text-xs font-bold uppercase tracking-wider text-muted-foreground">No que trabalho</div>
                 <div className="flex flex-wrap gap-1.5">
@@ -131,7 +139,7 @@ export default function PerfilPage() {
                 </div>
               </div>
             )}
-            {person.interests && (
+            {person.interests.length > 0 && (
               <div>
                 <div className="mb-1.5 text-xs font-bold uppercase tracking-wider text-muted-foreground">Interesses</div>
                 <div className="flex flex-wrap gap-1.5">
@@ -146,7 +154,7 @@ export default function PerfilPage() {
           </Box>
 
           {teams.length > 0 && (
-            <Box title={`Lidera ${teams.length > 1 ? `${teams.length} equipes` : teams[0].team}`}>
+            <Box title={`Lidera ${teams.length > 1 ? `${teams.length} equipes` : teams[0].team === 'Sem equipe' ? `${teams[0].members.length} pessoas` : teams[0].team}`}>
               <div className="grid gap-3 sm:grid-cols-2">
                 {teams.map(({ team, members }) => (
                   <div key={team} className="rounded-lg border p-3">
@@ -168,22 +176,20 @@ export default function PerfilPage() {
           {isMe && <MyAgenda />}
 
           <Box title="Publicações">
-            {myPosts.length === 0 ? (
+            {posts.length === 0 ? (
               <p className="text-base text-muted-foreground">{person.name.split(' ')[0]} ainda não publicou nada.</p>
             ) : (
               <ul className="grid gap-1.5">
-                {myPosts.map((p) => (
+                {posts.map((p) => (
                   <li key={p.id}>
-                    <Link href="/publicacoes" className="flex items-start justify-between gap-3 rounded-lg border px-3 py-2 text-base hover:bg-muted">
+                    <Link href={`/publicacoes?p=${p.id}`} className="flex items-start justify-between gap-3 rounded-lg border px-3 py-2 text-base hover:bg-muted">
                       <span className="min-w-0">
                         <span className="block truncate font-medium">{p.title}</span>
                         <span className="text-sm text-muted-foreground">
-                          {channelById(p.channelId).name} · {timeAgo(p.createdAt)}
+                          {channelName(p.channelId)} · {timeAgo(p.createdAt)}
                         </span>
                       </span>
-                      <span className="shrink-0 text-sm text-muted-foreground">
-                        {Object.values(p.reactions).reduce((a, b) => a + b, 0)} reações
-                      </span>
+                      <span className="shrink-0 text-sm text-muted-foreground">{Object.values(p.reactionCounts ?? {}).reduce((a, b) => a + b, 0)} reações</span>
                     </Link>
                   </li>
                 ))}
@@ -196,15 +202,15 @@ export default function PerfilPage() {
           <Box title="Dados oficiais" badge={<Official />}>
             <dl className="grid grid-cols-[120px_1fr] gap-x-3 gap-y-2 text-base">
               <dt className="text-muted-foreground">Cargo</dt>
-              <dd>{person.position}</dd>
+              <dd>{person.position || '—'}</dd>
               <dt className="text-muted-foreground">Área</dt>
-              <dd>{person.area}</dd>
+              <dd>{person.area || '—'}</dd>
               <dt className="text-muted-foreground">Equipe</dt>
               <dd>{person.team ?? '—'}</dd>
               <dt className="text-muted-foreground">Eixo</dt>
-              <dd>{person.axis}</dd>
+              <dd>{person.axis || '—'}</dd>
               <dt className="text-muted-foreground">Unidade</dt>
-              <dd>{person.city}</dd>
+              <dd>{person.city || '—'}</dd>
               <dt className="text-muted-foreground">Reporta a</dt>
               <dd>
                 {manager ? (
@@ -215,23 +221,23 @@ export default function PerfilPage() {
                   '—'
                 )}
               </dd>
-              {person.since && (
+              {since && (
                 <>
                   <dt className="text-muted-foreground">Na Vêneto desde</dt>
-                  <dd>{new Date(person.since).toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })}</dd>
+                  <dd>{since.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })}</dd>
                 </>
               )}
             </dl>
           </Box>
 
-          {person.history && (
+          {person.history.length > 0 && (
             <Box title="Histórico de cargos" badge={<Official />}>
               <ol className="ml-1.5 grid border-l-2 pl-4">
                 {person.history.map((h, i) => (
-                  <li key={h.position} className="relative pb-3 text-base last:pb-0">
+                  <li key={`${h.position}-${i}`} className="relative pb-3 text-base last:pb-0">
                     <span className={`absolute -left-[23px] top-1 h-3 w-3 rounded-full border-2 border-primary ${i === 0 ? 'bg-primary' : 'bg-card'}`} />
                     <div className="font-medium">{h.position}</div>
-                    <div className="text-sm text-muted-foreground">{h.period}</div>
+                    {h.period && <div className="text-sm text-muted-foreground">{h.period}</div>}
                   </li>
                 ))}
               </ol>
@@ -242,7 +248,7 @@ export default function PerfilPage() {
             <dl className="grid gap-2.5 text-base">
               {(
                 [
-                  [Mail, 'E-mail', email],
+                  [Mail, 'E-mail', person.email],
                   [MessageCircle, 'Google Chat', chat],
                   ...(person.phone ? [[Phone, 'Telefone / WhatsApp', person.phone] as const] : []),
                 ] as const
@@ -259,7 +265,7 @@ export default function PerfilPage() {
           </Box>
         </div>
       </div>
-      {isMe && <EditProfileDialog open={editOpen} onOpenChange={setEditOpen} />}
+      {isMe && <EditProfileDialog open={editOpen} onOpenChange={setEditOpen} person={person} />}
     </HubPage>
   );
 }

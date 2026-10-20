@@ -55,6 +55,18 @@ export interface Collaborator {
   authUid?: string; // Firebase Auth UID
   modulePermissions?: Record<string, string[]>; // ex: { 'portal-repasse': ['portal-repasse:view', 'portal-repasse:tickets:view'] }
   accessType?: string; // Ex.: comercial / normal / admin / superadmin — usado para permissionamento futuro
+  // Dados oficiais do Perfil (mantidos pelo RH):
+  team?: string;            // Equipe (grupo sob um Gestor; um Gestor pode ter várias)
+  leaderIdVeneto?: string;  // Gestor pelo idVeneto (ADR 0001); `leader` fica como nome legado
+  birthDate?: string;       // AAAA-MM-DD
+  admissionDate?: string;   // AAAA-MM-DD (na Vêneto desde)
+  careerHistory?: { position: string; period: string }[];
+  // Dados pessoais (editados pela própria pessoa via /api/me/profile):
+  bio?: string;
+  responsibilities?: string[];
+  interests?: string[];
+  phone?: string;
+  googleChat?: string;
 }
 
 export const getCollaboratorUserId = (collaborator: Partial<Collaborator> | null | undefined): string | null => {
@@ -123,6 +135,7 @@ const bumpCollaboratorTableVersion = async (): Promise<void> => {
 const PROFILE_FIELDS = [
   'idVeneto', 'name', 'email', 'photoURL', 'axis', 'area', 'position',
   'segment', 'leader', 'lideranca', 'city',
+  'team', 'leaderIdVeneto', 'birthDate', 'admissionDate', 'careerHistory',
 ] as const satisfies ReadonlyArray<keyof Collaborator>;
 
 const defaultPermissions: CollaboratorPermissions = {

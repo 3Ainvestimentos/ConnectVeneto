@@ -132,14 +132,19 @@ service cloud.firestore {
     match /collaborators/{userId} {
       allow read: if isAuthenticated();
 
+      // Autocadastro não pode trazer permissões (o servidor acha a pessoa pelo authUid primeiro).
       allow create: if isSuperAdmin()
                     || isCollaboratorImporter()
                     || (
                       isAuthenticated()
                       && request.resource.data.authUid is string
                       && request.resource.data.authUid == request.auth.uid
+                      && !request.resource.data.keys().hasAny(['permissions', 'modulePermissions', 'accessType'])
                     );
 
+      // MUDANCA 2026-10-20: a própria pessoa só grava o vínculo do login (authUid = o dela) e o
+      // aceite dos termos. Antes podia gravar qualquer campo, inclusive permissions. Dados do
+      // Perfil vão por API (Admin SDK): /api/me/profile (pessoais) e /api/admin/collaborators (RH).
       allow update: if isSuperAdmin()
                     || (
                       isAuthenticated()
@@ -151,6 +156,8 @@ service cloud.firestore {
                           && resource.data.email == request.auth.token.email
                         )
                       )
+                      && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['authUid', 'acceptedTermsVersion'])
+                      && (!('authUid' in request.resource.data) || request.resource.data.authUid == request.auth.uid)
                     );
 
       allow delete: if isSuperAdmin();

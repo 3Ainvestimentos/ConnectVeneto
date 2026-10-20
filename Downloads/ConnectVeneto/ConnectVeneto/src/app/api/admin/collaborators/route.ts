@@ -29,6 +29,9 @@ const optionalUrl = z.string().trim().max(2048).refine(
   'URL inválida.'
 );
 
+/** Vazio (apaga) ou data AAAA-MM-DD. */
+const optionalDate = z.string().trim().refine((v) => v === '' || /^d{4}-d{2}-d{2}$/.test(v), 'Data inválida (use AAAA-MM-DD).');
+
 const requiredText = (label: string) =>
   z.string().trim().min(1, `${label} é obrigatório.`).max(300);
 
@@ -45,6 +48,14 @@ const profilePatchSchema = z
     leader: requiredText('Líder'),
     lideranca: z.string().trim().max(50),
     city: requiredText('Cidade'),
+    // Perfil (Hub): dados oficiais mantidos pelo RH.
+    team: z.string().trim().max(120),
+    leaderIdVeneto: z.string().trim().max(60),
+    birthDate: optionalDate,
+    admissionDate: optionalDate,
+    careerHistory: z
+      .array(z.object({ position: z.string().trim().min(1).max(160), period: z.string().trim().max(80) }).strict())
+      .max(30),
   })
   .strict()
   .partial()
