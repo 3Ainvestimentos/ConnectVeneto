@@ -20,6 +20,7 @@ import { ConfirmDeleteDialog } from './ConfirmDeleteDialog';
 import { LinkTypesDialog } from './LinkTypesDialog';
 import { TypedLinkDialog } from './TypedLinkDialog';
 import { IndividualUrlsTable } from './IndividualUrlsTable';
+import { TypeAdminsList } from './TypeAdminsList';
 
 /**
  * Visão do administrador de um tipo de link (MESA, CX...): links Individual (cada
@@ -121,14 +122,14 @@ export function ConsultaAdminPanel({ session }: { session: ConsultaLinksSession 
         </div>
       </div>
 
-      {activeType && activeType.adminEmails.length + activeType.adminAreas.length > 0 && (
-        <p className="text-xs text-muted-foreground">
-          Administradores de {activeType.name}:{' '}
-          {[
-            ...activeType.adminAreas.map((area) => `área ${area}`),
-            ...activeType.adminEmails.map((email) => people.get(email)?.name ?? email),
-          ].join(', ')}
-        </p>
+      {activeType && (
+        <div className="space-y-1.5 rounded-lg border bg-muted/30 p-3">
+          <p className="text-xs text-muted-foreground">
+            Administradores de <strong className="text-foreground">{activeType.name}</strong>
+            {activeType.adminAreas.length > 0 && <> · {activeType.adminAreas.length > 1 ? 'áreas' : 'área'} {activeType.adminAreas.join(', ')}</>}
+          </p>
+          <TypeAdminsList type={activeType} />
+        </div>
       )}
 
       {isLoading ? (
