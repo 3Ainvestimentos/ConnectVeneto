@@ -85,15 +85,29 @@ Sequência datada dos cargos que um colaborador ocupou na Vêneto.
 _Avoid_: carreira, trajetória
 
 **Gestor**:
-Colaborador a quem outro colaborador reporta diretamente. Guardado pelo ID Veneto do gestor (ADR 0001); o nome em "Líder" é legado.
+Colaborador a quem outro colaborador reporta diretamente. Vem da Estrutura: o Responsável da Unidade da pessoa ou, se for ela mesma, o da Unidade de cima (ADR 0004). Exceções ficam marcadas na pessoa; sem Unidade, vale o gestor do cadastro (ADR 0001).
 _Avoid_: líder (quando usado como nome em texto livre), chefe
 
+**Estrutura**:
+Árvore de Unidades da Vêneto em três níveis: Diretoria › Área › Equipe. Mantida pelo RH em Pessoas › Estrutura.
+_Avoid_: hierarquia (para a árvore de pessoas), organização
+
+**Unidade**:
+Nó da Estrutura (uma Diretoria, Área ou Equipe), com um Responsável. Cada colaborador pertence a uma Unidade, normalmente uma Equipe.
+_Avoid_: departamento, setor (não são níveis da Estrutura)
+
+**Responsável**:
+Colaborador que responde por uma Unidade; é o Gestor de quem está nela.
+
+**Área**:
+Unidade que reúne Equipes (por exemplo, várias equipes sob a mesma gestora), dentro de uma Diretoria.
+
 **Equipe**:
-Grupo nomeado de colaboradores sob um mesmo Gestor. Um Gestor pode liderar várias Equipes.
+Unidade mais baixa da Estrutura: grupo de colaboradores sob um Responsável. Um Gestor pode responder por várias Equipes, normalmente reunidas numa Área.
 _Avoid_: time, squad, célula
 
 **Organograma**:
-Árvore de colaboradores formada pelas relações de Gestor, com os reportes de cada Gestor agrupados por Equipe.
+Visão das pessoas em /pessoas, de dois jeitos: "Por estrutura" (Diretorias, Áreas e Equipes com Responsável e pessoas) e "Por pessoa" (quem reporta a quem).
 
 ### Agenda
 

@@ -2,9 +2,11 @@
  * Pessoas do Hub a partir do cadastro de colaboradores (`collaborators`). Regras puras: montar o
  * Perfil, resolver o Gestor e as Equipes, e as datas que o Hub usa (aniversário, viagens, férias).
  *
- * Gestor (ADR 0001): `leaderIdVeneto` aponta para o `idVeneto` do gestor. Enquanto a migração não
- * cobre todo mundo, cai para o nome em `leader` (como na planilha do RH), só se o nome for único.
+ * Gestor, nesta ordem: exceção manual (`managerOverrideIdVeneto`); estrutura (ADR 0004: responsável
+ * da unidade da pessoa ou, se for ela, da unidade-mãe); `leaderIdVeneto` (ADR 0001, legado); e por
+ * fim o nome em `leader` (planilha do RH), só se o nome for único.
  */
+import { managerFromStructure, unitChain, type OrgUnit } from './org-units';
 
 export interface CareerStep {
   position: string;
@@ -24,6 +26,10 @@ export interface CollaboratorLike {
   city?: string;
   leader?: string;
   leaderIdVeneto?: string;
+  /** Unidade da estrutura (ADR 0004), normalmente uma Equipe. */
+  unitId?: string;
+  /** Gestor fora da regra da estrutura (exceção manual), pelo idVeneto. */
+  managerOverrideIdVeneto?: string;
   team?: string;
   birthDate?: string;
   admissionDate?: string;
@@ -48,10 +54,12 @@ export interface HubPerson {
   axis: string;
   city: string;
   team?: string;
+  /** Unidade da estrutura (ou undefined, se ainda não encaixada). */
+  unitId?: string;
   /** `id` do gestor no Hub (null = sem gestor encontrado). */
   managerId: string | null;
-  /** Como o gestor foi encontrado: pelo ID (ADR 0001) ou, provisoriamente, pelo nome. */
-  managerMatch: 'id' | 'name' | null;
+  /** Como o gestor foi encontrado: exceção manual, estrutura, ID legado ou nome. */
+  managerMatch: 'override' | 'structure' | 'id' | 'name' | null;
   birthDate?: string;
   since?: string;
   history: CareerStep[];
@@ -89,7 +97,8 @@ export function normalizeCity(city: string | undefined | null): string {
 
 const blankToUndef = (v?: string) => (v && v.trim() && v.trim() !== '—' ? v.trim() : undefined);
 
-export function buildPeople(collaborators: CollaboratorLike[]): HubPerson[] {
+export function buildPeople(collaborators: CollaboratorLike[], orgUnits: OrgUnit[] = []): HubPerson[] {
+  const units = new Map(orgUnits.map((u) => [u.id, u]));
   const byIdVeneto = new Map<string, CollaboratorLike>();
   const byName = new Map<string, CollaboratorLike[]>();
   for (const c of collaborators) {
@@ -101,7 +110,15 @@ export function buildPeople(collaborators: CollaboratorLike[]): HubPerson[] {
   return collaborators.map((c) => {
     let manager: CollaboratorLike | undefined;
     let managerMatch: HubPerson['managerMatch'] = null;
-    if (c.leaderIdVeneto && byIdVeneto.has(c.leaderIdVeneto.trim())) {
+    const unitId = c.unitId && units.has(c.unitId) ? c.unitId : undefined;
+    const fromStructure = unitId ? managerFromStructure(units, unitId, (c.idVeneto ?? '').trim()) : null;
+    if (c.managerOverrideIdVeneto && byIdVeneto.has(c.managerOverrideIdVeneto.trim())) {
+      manager = byIdVeneto.get(c.managerOverrideIdVeneto.trim());
+      managerMatch = 'override';
+    } else if (fromStructure && byIdVeneto.has(fromStructure)) {
+      manager = byIdVeneto.get(fromStructure);
+      managerMatch = 'structure';
+    } else if (c.leaderIdVeneto && byIdVeneto.has(c.leaderIdVeneto.trim())) {
       manager = byIdVeneto.get(c.leaderIdVeneto.trim());
       managerMatch = 'id';
     } else {
@@ -126,7 +143,9 @@ export function buildPeople(collaborators: CollaboratorLike[]): HubPerson[] {
       area: c.area ?? '',
       axis: c.axis ?? '',
       city: c.city ?? '',
-      team: blankToUndef(c.team),
+      // Na estrutura, a equipe é a unidade do tipo Equipe da cadeia; sem estrutura, o texto do cadastro.
+      team: unitChain(units, unitId).find((u) => u.type === 'equipe')?.name ?? blankToUndef(c.team),
+      unitId,
       managerId: manager?.id ?? null,
       managerMatch,
       birthDate: blankToUndef(c.birthDate),

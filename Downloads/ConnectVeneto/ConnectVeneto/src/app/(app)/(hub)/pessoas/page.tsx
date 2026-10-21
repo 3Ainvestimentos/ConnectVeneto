@@ -2,13 +2,16 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
-import { Info, Loader2, Search } from 'lucide-react';
+import { FolderTree, Info, Loader2, Search } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { PageHeader } from '@/components/layout/PageHeader';
 import { HubBreadcrumb, HubPage } from '@/components/hub-feed/HubPage';
+import { OrgStructureView } from '@/components/hub-feed/OrgStructureView';
 import { PersonAvatar } from '@/components/hub-feed/PersonAvatar';
 import { useAuth } from '@/contexts/AuthContext';
 import { useHubPeople } from '@/hooks/useHubPeople';
+import { useCanEditStructure, useOrgUnits } from '@/hooks/useOrgUnits';
 import { directReports, normalizeName, teamsOf, topLeaders, type HubPerson } from '@/lib/hub/people';
 import { cn } from '@/lib/utils';
 
@@ -19,6 +22,11 @@ export default function PessoasPage() {
   const { people, loading } = useHubPeople();
   const [axis, setAxis] = useState(ALL);
   const [query, setQuery] = useState('');
+  const { units } = useOrgUnits();
+  const canEditStructure = useCanEditStructure();
+  // Com estrutura cadastrada, o organograma abre por estrutura; sem ela, por pessoa (quem reporta a quem).
+  const [view, setView] = useState<'estrutura' | 'pessoa' | null>(null);
+  const effectiveView = view ?? (units.length > 0 ? 'estrutura' : 'pessoa');
 
   const axes = useMemo(() => [ALL, ...[...new Set(people.map((p) => p.axis).filter((a) => a && a !== '—'))].sort((a, b) => a.localeCompare(b, 'pt-BR'))], [people]);
 
@@ -45,7 +53,16 @@ export default function PessoasPage() {
   return (
     <HubPage>
       <HubBreadcrumb items={[{ label: 'Início', href: '/inicio' }, { label: 'Pessoas e equipes' }]} />
-      <PageHeader title="Pessoas e equipes" description="Quem é quem na Vêneto, por liderança e por equipe." />
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <PageHeader title="Pessoas e equipes" description="Quem é quem na Vêneto, por estrutura e por liderança." />
+        {canEditStructure && (
+          <Button asChild variant="outline">
+            <Link href="/pessoas/estrutura">
+              <FolderTree className="mr-2 h-4 w-4" /> Editar estrutura
+            </Link>
+          </Button>
+        )}
+      </div>
 
       <div className="flex flex-wrap items-center gap-3">
         <div className="relative w-full max-w-xs">
@@ -76,7 +93,31 @@ export default function PessoasPage() {
         </p>
       )}
 
-      {query ? (
+      {!query && units.length > 0 && (
+        <div className="inline-flex justify-self-start rounded-lg bg-muted p-1 text-sm" role="tablist" aria-label="Vista do organograma">
+          {(
+            [
+              ['estrutura', 'Por estrutura'],
+              ['pessoa', 'Por pessoa'],
+            ] as const
+          ).map(([value, label]) => (
+            <button
+              key={value}
+              type="button"
+              role="tab"
+              aria-selected={effectiveView === value}
+              onClick={() => setView(value)}
+              className={cn('rounded-md px-3 py-1.5 font-medium', effectiveView === value ? 'bg-card shadow-sm' : 'text-muted-foreground hover:text-foreground')}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+      )}
+
+      {!query && effectiveView === 'estrutura' && units.length > 0 ? (
+        <OrgStructureView units={units} people={people} />
+      ) : query ? (
         <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
           {searchResults.length === 0 && <p className="text-base text-muted-foreground">Ninguém encontrado para “{query}”.</p>}
           {searchResults.map((p) => (

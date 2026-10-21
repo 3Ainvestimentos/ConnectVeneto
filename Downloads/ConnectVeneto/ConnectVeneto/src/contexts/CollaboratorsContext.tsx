@@ -57,7 +57,9 @@ export interface Collaborator {
   accessType?: string; // Ex.: comercial / normal / admin / superadmin — usado para permissionamento futuro
   // Dados oficiais do Perfil (mantidos pelo RH):
   team?: string;            // Equipe (grupo sob um Gestor; um Gestor pode ter várias)
-  leaderIdVeneto?: string;  // Gestor pelo idVeneto (ADR 0001); `leader` fica como nome legado
+  leaderIdVeneto?: string;  // Gestor pelo idVeneto (ADR 0001, legado); `leader` fica como nome legado
+  unitId?: string;          // Unidade da estrutura (ADR 0004): o gestor vem do responsável dela
+  managerOverrideIdVeneto?: string; // Gestor fora da regra da estrutura (exceção manual)
   birthDate?: string;       // AAAA-MM-DD
   admissionDate?: string;   // AAAA-MM-DD (na Vêneto desde)
   careerHistory?: { position: string; period: string }[];
@@ -135,7 +137,7 @@ const bumpCollaboratorTableVersion = async (): Promise<void> => {
 const PROFILE_FIELDS = [
   'idVeneto', 'name', 'email', 'photoURL', 'axis', 'area', 'position',
   'segment', 'leader', 'lideranca', 'city',
-  'team', 'leaderIdVeneto', 'birthDate', 'admissionDate', 'careerHistory',
+  'team', 'leaderIdVeneto', 'birthDate', 'admissionDate', 'careerHistory', 'unitId', 'managerOverrideIdVeneto',
 ] as const satisfies ReadonlyArray<keyof Collaborator>;
 
 const defaultPermissions: CollaboratorPermissions = {

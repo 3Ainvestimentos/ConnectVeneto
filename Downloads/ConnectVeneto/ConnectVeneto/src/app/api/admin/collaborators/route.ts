@@ -51,6 +51,8 @@ const profilePatchSchema = z
     // Perfil (Hub): dados oficiais mantidos pelo RH.
     team: z.string().trim().max(120),
     leaderIdVeneto: z.string().trim().max(60),
+    unitId: z.string().trim().max(80),
+    managerOverrideIdVeneto: z.string().trim().max(60),
     birthDate: optionalDate,
     admissionDate: optionalDate,
     careerHistory: z
@@ -128,6 +130,11 @@ export async function PATCH(request: Request) {
       if (!sameEmail.empty && sameEmail.docs[0].id !== id) {
         return invalidRequest('Já existe outro colaborador com este e-mail.');
       }
+    }
+
+    if (payload.unitId) {
+      const unit = await db.collection('orgUnits').doc(payload.unitId).get();
+      if (!unit.exists) return invalidRequest('A unidade escolhida não existe mais.');
     }
 
     const changes = Object.entries(payload)
