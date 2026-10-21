@@ -1,6 +1,6 @@
 ---
 tipo: nota
-atualizado: 2026-10-19
+atualizado: 2026-10-21
 tags: [hot-cache]
 ---
 
@@ -12,11 +12,13 @@ tags: [hot-cache]
   ConnectVeneto" (cadastro de módulo, `HUB_JWT_SECRET`, Sandbox, notificações) eram só por canal
   humano. Os do `projeto-trader-rf` (itens A e B do pedido de 15/10 ao db-guardian) seguem com o
   Victor.
-- 2026-10-19 — 🟢 **Hub de Comunicação Interna** em produção (PRs #29–#42): Home `/inicio` sem feed
-  (To-do, Pessoas e equipes, Publicações | Indicadores Estratégicos, Avisos, Agenda e Eventos) e
-  `/publicacoes`. Ainda com dados de exemplo: Pessoas/viagens/férias/aniversários e Indicadores.
-  Em andamento: dados reais e `/pessoas` com organograma (ADR 0001). Piloto ainda sem `inicio:view`.
-- 2026-10-19 — pedido aberto → dados-estrategicos: API com AuM/Churn/ROA para a Home
-  (`dados-estrategicos/vault/pedidos/2026-10-19-api-indicadores-home-connect.md`).
-- 2026-10-19 — ⚠️ **Rule de `collaborators`** deixa a pessoa editar o próprio doc sem restrição de
-  campo (pode se dar `permissions`). Correção proposta junto com `/pessoas`; deploy só com aprovação.
+- 2026-10-21 — 🟢 **Hub com dados reais** (PRs #43–#50): viagens, férias (`hubVacations`),
+  Indicadores Estratégicos (API do dados-estrategicos, pedido concluído), gestor por ID (66/84) e
+  estrutura `orgUnits` (18 Áreas sem responsável, ADR 0004). Piloto ainda sem `inicio:view`.
+- 2026-10-21 — ✅ Rule de `collaborators` endurecida (PR #45, ruleset `a9db4fa4…`).
+- 2026-10-21 — 🟡 **Organograma refeito** (PR #51, aguardando merge do Victor): vista "Por
+  liderança" navegável e estrutura em cartões. Em produção a vista por pessoa estava **vazia**
+  porque Carlos Pessoa e Fernando Damasceno são gestor um do outro (agora o ciclo vira o topo).
+- 2026-10-21 — Dados para o RH: campo Eixo só tem lixo ("-", "--", "IA", "ti"); contas de teste
+  no cadastro ("Desenvolvedor", "ti", "Teste Inteligência Comercial"); 18 pessoas sem gestor
+  (CSV `gestores-para-revisar-2026-10-21.csv`); Áreas sem responsável; birthDate/team vazios.
