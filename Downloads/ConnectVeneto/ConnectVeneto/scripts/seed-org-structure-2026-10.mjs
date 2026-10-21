@@ -35,7 +35,7 @@ const STRUCTURE = [
   { name: 'Gestão de Patrimônio', leader: 'Henrique Galvão', members: ['Camila Martins', 'Alice Passos', 'Victor Rocha', 'Daniela Ferrari'] },
   { name: 'Recursos Humanos', leader: 'Fernanda Adami', members: ['Bruna Loren Barbosa Martinuzzo'] },
   {
-    name: 'Corporativo',
+    name: 'Estratégia e Governança',
     leader: 'Ana Catarina',
     teams: [
       { name: 'CX', leader: 'Ana Catarina', members: ['Daniela Soares'] },
