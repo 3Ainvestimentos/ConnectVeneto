@@ -40,6 +40,15 @@ describe('hub/people', () => {
     expect(managerChain(socios, 'cp')).toEqual([]);
   });
 
+  it('quem está oculto no Hub não aparece nem serve de gestor', () => {
+    const list = buildPeople([
+      c({ id: 'ok', idVeneto: '20', name: 'Ok', leaderIdVeneto: '21' }),
+      c({ id: 'teste', idVeneto: '21', name: 'ti', hubHidden: true }),
+    ]);
+    expect(list.map((p) => p.id)).toEqual(['ok']);
+    expect(list[0].managerId).toBeNull();
+  });
+
   it('datas: aniversário pelo dia/mês local, cidade sem UF, período que cruza a janela', () => {
     expect(isBirthdayOn('1990-10-19', new Date(2026, 9, 19, 8))).toBe(true);
     expect(isBirthdayOn('1990-10-20', new Date(2026, 9, 19, 23))).toBe(false);
