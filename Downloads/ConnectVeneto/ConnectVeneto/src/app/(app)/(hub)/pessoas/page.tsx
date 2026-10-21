@@ -1,13 +1,13 @@
 "use client";
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { FolderTree, Info, Loader2, Search } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { PageHeader } from '@/components/layout/PageHeader';
 import { HubBreadcrumb, HubPage } from '@/components/hub-feed/HubPage';
-import { OrgStructureView } from '@/components/hub-feed/OrgStructureView';
+import { OrgStructureView, STRUCTURE_VARIANTS, type StructureVariant } from '@/components/hub-feed/OrgStructureView';
 import { PersonAvatar } from '@/components/hub-feed/PersonAvatar';
 import { ReportingChart } from '@/components/hub-feed/ReportingChart';
 import { useAuth } from '@/contexts/AuthContext';
@@ -17,6 +17,7 @@ import { normalizeName, topLeaders, type HubPerson } from '@/lib/hub/people';
 import { cn } from '@/lib/utils';
 
 const ALL = 'Todos';
+const VARIANT_KEY = 'pessoas:estrutura-visual';
 
 export default function PessoasPage() {
   const { isSuperAdmin } = useAuth();
@@ -28,6 +29,24 @@ export default function PessoasPage() {
   // Abre por estrutura quando ela já diz algo (responsável ou hierarquia); antes disso, por pessoa (quem reporta a quem).
   const [view, setView] = useState<'estrutura' | 'pessoa' | null>(null);
   const effectiveView = view ?? (units.some((u) => u.leaderIdVeneto || u.parentId) ? 'estrutura' : 'pessoa');
+  // Visual da estrutura em teste: lembra a escolha de cada pessoa neste navegador.
+  const [variant, setVariant] = useState<StructureVariant>('organograma');
+  useEffect(() => {
+    try {
+      const saved = window.localStorage.getItem(VARIANT_KEY);
+      if (saved && STRUCTURE_VARIANTS.some(([v]) => v === saved)) setVariant(saved as StructureVariant);
+    } catch {
+      // sem localStorage: fica o padrão
+    }
+  }, []);
+  const chooseVariant = (value: StructureVariant) => {
+    setVariant(value);
+    try {
+      window.localStorage.setItem(VARIANT_KEY, value);
+    } catch {
+      // ignora
+    }
+  };
 
   // Eixo só vira filtro quando é dado de verdade: ignora traços e valores de uma pessoa só.
   const axes = useMemo(() => {
@@ -121,8 +140,25 @@ export default function PessoasPage() {
         </p>
       )}
 
+      {!query && effectiveView === 'estrutura' && units.length > 0 && (
+        <div className="flex flex-wrap items-center gap-1.5 text-sm" role="group" aria-label="Visual da estrutura (em teste)">
+          <span className="mr-1 text-xs font-bold uppercase tracking-wider text-muted-foreground">Visual (em teste)</span>
+          {STRUCTURE_VARIANTS.map(([value, label]) => (
+            <button
+              key={value}
+              type="button"
+              aria-pressed={variant === value}
+              onClick={() => chooseVariant(value)}
+              className={cn('rounded-full border px-3 py-1', variant === value ? 'border-foreground bg-foreground text-background' : 'hover:bg-muted')}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+      )}
+
       {!query && effectiveView === 'estrutura' && units.length > 0 ? (
-        <OrgStructureView units={units} people={people} canEdit={canEditStructure} />
+        <OrgStructureView units={units} people={people} canEdit={canEditStructure} variant={variant} />
       ) : query ? (
         <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
           {searchResults.length === 0 && <p className="text-base text-muted-foreground">Ninguém encontrado para “{query}”.</p>}
