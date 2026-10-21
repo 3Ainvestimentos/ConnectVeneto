@@ -174,10 +174,42 @@ export function teamsOf(people: HubPerson[], managerId: string): { team: string;
   return [...groups.entries()].map(([team, members]) => ({ team, members })).sort((a, b) => a.team.localeCompare(b.team, 'pt-BR'));
 }
 
-/** Topo do organograma: quem não tem gestor encontrado e lidera alguém. */
+/**
+ * Topo do organograma: quem não tem gestor encontrado e lidera alguém. Gestão em ciclo (A reporta a B
+ * e B a A, como sócios cadastrados um como gestor do outro) também vira topo; senão a árvore fica sem raiz.
+ */
 export function topLeaders(people: HubPerson[]): HubPerson[] {
+  const byId = new Map(people.map((p) => [p.id, p]));
   const leads = new Set(people.map((p) => p.managerId).filter(Boolean));
-  return people.filter((p) => p.managerId === null && leads.has(p.id)).sort((a, b) => a.name.localeCompare(b.name, 'pt-BR'));
+  const tops = new Set<string>();
+  for (const p of people) {
+    if (p.managerId === null) {
+      if (leads.has(p.id)) tops.add(p.id);
+      continue;
+    }
+    const path: string[] = [];
+    let current: string | null = p.id;
+    while (current && !path.includes(current)) {
+      path.push(current);
+      current = byId.get(current)?.managerId ?? null;
+    }
+    if (current) for (const id of path.slice(path.indexOf(current))) tops.add(id);
+  }
+  return people.filter((p) => tops.has(p.id)).sort((a, b) => a.name.localeCompare(b.name, 'pt-BR'));
+}
+
+/** Gestores acima da pessoa, do mais próximo ao topo. Para no topo do organograma e em ciclos. */
+export function managerChain(people: HubPerson[], personId: string, tops: Set<string> = new Set(topLeaders(people).map((p) => p.id))): HubPerson[] {
+  const byId = new Map(people.map((p) => [p.id, p]));
+  const chain: HubPerson[] = [];
+  let current = byId.get(personId);
+  while (current && !tops.has(current.id) && current.managerId) {
+    const manager = byId.get(current.managerId);
+    if (!manager || manager.id === personId || chain.includes(manager)) break;
+    chain.push(manager);
+    current = manager;
+  }
+  return chain;
 }
 
 /** "AAAA-MM-DD" como data local (meio-dia), sem virar o dia pelo fuso. Aceita ISO completo também. */

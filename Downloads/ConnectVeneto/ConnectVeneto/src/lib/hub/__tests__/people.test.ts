@@ -1,4 +1,4 @@
-import { buildPeople, isBirthdayOn, normalizeCity, overlapsRange, teamsOf, topLeaders } from '@/lib/hub/people';
+import { buildPeople, isBirthdayOn, managerChain, normalizeCity, overlapsRange, teamsOf, topLeaders } from '@/lib/hub/people';
 
 const c = (over: Record<string, unknown>) => ({ id: 'x', name: 'X', email: 'x@v.com', ...over });
 
@@ -25,6 +25,19 @@ describe('hub/people', () => {
     expect(teamsOf(people, 'ana')).toEqual([{ team: 'Comercial SP', members: [byId.bia, byId.caio] }]);
     expect(teamsOf(people, 'bia')[0].team).toBe('Sem equipe');
     expect(topLeaders(people).map((p) => p.id)).toEqual(['ana']);
+    expect(managerChain(people, 'dan').map((p) => p.id)).toEqual(['bia', 'ana']);
+  });
+
+  it('sócios cadastrados um como gestor do outro viram o topo, e a cadeia para neles', () => {
+    const socios = buildPeople([
+      c({ id: 'cp', idVeneto: '10', name: 'Carlos', leaderIdVeneto: '11' }),
+      c({ id: 'fd', idVeneto: '11', name: 'Fernando', leaderIdVeneto: '10' }),
+      c({ id: 'pr', idVeneto: '12', name: 'Paulo', leaderIdVeneto: '11' }),
+      c({ id: 'zé', idVeneto: '13', name: 'Zé', leaderIdVeneto: '12' }),
+    ]);
+    expect(topLeaders(socios).map((p) => p.id)).toEqual(['cp', 'fd']);
+    expect(managerChain(socios, 'zé').map((p) => p.id)).toEqual(['pr', 'fd']);
+    expect(managerChain(socios, 'cp')).toEqual([]);
   });
 
   it('datas: aniversário pelo dia/mês local, cidade sem UF, período que cruza a janela', () => {
