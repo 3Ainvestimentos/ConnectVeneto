@@ -5,7 +5,6 @@ import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Lock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { canAccessEmbeddedModule } from '@/components/layout/navigation';
 import { WidgetErrorBoundary } from '@/components/error/WidgetErrorBoundary';
 import { AgendaCard } from '@/components/hub-feed/AgendaCard';
 import { AvisosCard } from '@/components/hub-feed/AvisosCard';
@@ -16,13 +15,8 @@ import { PublicacoesFeedCard } from '@/components/hub-feed/PublicacoesFeedCard';
 import { TodoCard } from '@/components/hub-feed/TodoCard';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCollaborators } from '@/contexts/CollaboratorsContext';
-import { isEmbeddedModule } from '@/config/modules';
 import { HubApiError, useHubFeed } from '@/hooks/useHubFeed';
-import { useHubModules } from '@/hooks/useHubModules';
 import { findCollaboratorByEmail } from '@/lib/email-utils';
-
-/** Módulo "Dados Estratégicos" (id histórico: portal-repasse). */
-const STRATEGIC_MODULE_ID = 'portal-repasse';
 
 /** Último card de cada coluna: estica (lg) para as duas colunas terminarem na mesma altura. */
 const STRETCH_LAST = 'min-w-0 lg:order-none lg:flex-1 lg:[&>*]:h-full';
@@ -42,9 +36,8 @@ function useGreeting() {
  * guardadas em /publicacoes.
  */
 export default function InicioPage() {
-  const { user, permissions, isSuperAdmin } = useAuth();
+  const { user } = useAuth();
   const { collaborators } = useCollaborators();
-  const { modules } = useHubModules();
   const { error } = useHubFeed();
   const greeting = useGreeting();
   const router = useRouter();
@@ -58,11 +51,6 @@ export default function InicioPage() {
   const collab = useMemo(() => (user ? findCollaboratorByEmail(collaborators, user.email) ?? null : null), [user, collaborators]);
   const firstName = collab?.name?.split(' ')[0] || user?.displayName?.split(' ')[0] || '';
 
-  const canSeeStrategic = useMemo(() => {
-    const mod = modules.find((m) => m.id === STRATEGIC_MODULE_ID);
-    if (!mod || !isEmbeddedModule(mod)) return isSuperAdmin;
-    return canAccessEmbeddedModule(mod, { permissions, modulePermissions: collab?.modulePermissions, isSuperAdmin });
-  }, [modules, permissions, collab, isSuperAdmin]);
 
   const todayRaw = new Date().toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' });
   const today = todayRaw.charAt(0).toUpperCase() + todayRaw.slice(1);
@@ -109,11 +97,10 @@ export default function InicioPage() {
             </div>
 
             <aside className="contents lg:flex lg:min-w-0 lg:flex-col lg:gap-6">
-              {canSeeStrategic && (
-                <div className="order-6 min-w-0 empty:hidden lg:order-none">
-                  <StrategicIndicators />
-                </div>
-              )}
+              {/* Números da Vêneto como um todo: valem para todo mundo (decisão de 2026-10-21). */}
+              <div className="order-6 min-w-0 empty:hidden lg:order-none">
+                <StrategicIndicators />
+              </div>
               <div className="order-1 min-w-0 lg:order-none">
                 <AvisosCard />
               </div>
