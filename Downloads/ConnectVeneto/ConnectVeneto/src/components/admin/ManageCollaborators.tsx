@@ -21,6 +21,8 @@ import { DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMe
 import { useSystemSettings } from '@/contexts/SystemSettingsContext';
 import { CollaboratorAuditLogModal } from './CollaboratorAuditLogModal';
 import { ProfileImportDialog } from './ProfileImportDialog';
+import { useOrgUnits } from '@/hooks/useOrgUnits';
+import { unitPathLabel } from '@/lib/hub/org-units';
 
 /** Quando a planilha não traz eixo/segmento. */
 const DEFAULT_AXIS_SEGMENT_IMPORT = '—';
@@ -191,6 +193,8 @@ const collaboratorSchema = z.object({
     // Perfil (Hub): dados oficiais mantidos pelo RH.
     team: z.string().max(120).optional().or(z.literal('')),
     leaderIdVeneto: z.string().max(60).optional().or(z.literal('')),
+    unitId: z.string().max(80).optional().or(z.literal('')),
+    managerOverrideIdVeneto: z.string().max(60).optional().or(z.literal('')),
     birthDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Data inválida").optional().or(z.literal('')),
     admissionDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Data inválida").optional().or(z.literal('')),
     /** Uma linha por cargo: "Cargo | período" (ex.: "Analista | 2022–2024"). */
@@ -285,7 +289,8 @@ export function ManageCollaborators() {
     const [sortDirection, setSortDirection] = useState<SortDirection>('asc');
     const [filters, setFilters] = useState<{ area: string[], position: string[], axis: string[], segment: string[], leader: string[], lideranca: string[], city: string[] }>({ area: [], position: [], axis: [], segment: [], leader: [], lideranca: [], city: [] });
 
-    const { register, handleSubmit, reset, formState: { errors, isSubmitting: isFormSubmitting } } = useForm<CollaboratorFormValues>({
+    const { units: orgUnits, byId: orgUnitsById } = useOrgUnits();
+    const { register, handleSubmit, reset, watch, formState: { errors, isSubmitting: isFormSubmitting } } = useForm<CollaboratorFormValues>({
         resolver: zodResolver(collaboratorSchema),
     });
 
@@ -382,6 +387,8 @@ export function ManageCollaborators() {
                 ...collaborator,
                 team: collaborator.team ?? '',
                 leaderIdVeneto: collaborator.leaderIdVeneto ?? '',
+                unitId: collaborator.unitId ?? '',
+                managerOverrideIdVeneto: collaborator.managerOverrideIdVeneto ?? '',
                 birthDate: collaborator.birthDate ?? '',
                 admissionDate: collaborator.admissionDate ?? '',
                 careerHistoryText: historyToText(collaborator.careerHistory),
@@ -402,6 +409,8 @@ export function ManageCollaborators() {
                 city: '',
                 team: '',
                 leaderIdVeneto: '',
+                unitId: '',
+                managerOverrideIdVeneto: '',
                 birthDate: '',
                 admissionDate: '',
                 careerHistoryText: '',
@@ -424,13 +433,16 @@ export function ManageCollaborators() {
     
     const onSubmit = async (data: CollaboratorFormValues) => {
         const { careerHistoryText, ...rest } = data;
-        const manager = collaborators.find((c) => c.idVeneto === rest.leaderIdVeneto?.trim());
+        const managerId = rest.unitId ? rest.managerOverrideIdVeneto?.trim() : rest.leaderIdVeneto?.trim();
+        const manager = managerId ? collaborators.find((c) => c.idVeneto === managerId) : undefined;
         const processedData = {
           ...rest,
           idVeneto: data.idVeneto,
           lideranca: data.lideranca?.trim() || undefined,
           team: rest.team?.trim() ?? '',
           leaderIdVeneto: rest.leaderIdVeneto?.trim() ?? '',
+          unitId: rest.unitId ?? '',
+          managerOverrideIdVeneto: rest.unitId ? (rest.managerOverrideIdVeneto?.trim() ?? '') : '',
           // O nome legado acompanha o gestor escolhido (outras telas ainda leem `leader`).
           leader: manager?.name ?? rest.leader,
           birthDate: rest.birthDate ?? '',
@@ -758,6 +770,33 @@ export function ManageCollaborators() {
                                 {errors.leader && <p className="text-sm text-destructive mt-1">{errors.leader.message}</p>}
                             </div>
                             <div>
+                                <Label htmlFor="unitId">Unidade (estrutura)</Label>
+                                <select id="unitId" {...register('unitId')} disabled={isFormSubmitting} className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm">
+                                    <option value="">— sem unidade —</option>
+                                    {[...orgUnits]
+                                        .sort((a, b) => unitPathLabel(orgUnitsById, a.id).localeCompare(unitPathLabel(orgUnitsById, b.id), 'pt-BR'))
+                                        .map((u) => (
+                                            <option key={u.id} value={u.id}>{unitPathLabel(orgUnitsById, u.id)}</option>
+                                        ))}
+                                </select>
+                                <p className="text-xs text-muted-foreground mt-1">Com unidade, o gestor vem do responsável dela (ver Pessoas › Editar estrutura).</p>
+                            </div>
+                            {watch('unitId') ? (
+                            <div>
+                                <Label htmlFor="managerOverrideIdVeneto">Gestor fora da estrutura (exceção)</Label>
+                                <select id="managerOverrideIdVeneto" {...register('managerOverrideIdVeneto')} disabled={isFormSubmitting} className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm">
+                                    <option value="">— segue a estrutura —</option>
+                                    {[...collaborators]
+                                        .filter((c) => c.idVeneto && c.id !== editingCollaborator?.id)
+                                        .sort((a, b) => a.name.localeCompare(b.name, 'pt-BR'))
+                                        .map((c) => (
+                                            <option key={c.id} value={c.idVeneto}>{c.name} · {c.position}</option>
+                                        ))}
+                                </select>
+                                <p className="text-xs text-muted-foreground mt-1">Só quando a pessoa reporta a alguém diferente do responsável da unidade.</p>
+                            </div>
+                            ) : (
+                            <div>
                                 <Label htmlFor="leaderIdVeneto">Gestor no organograma</Label>
                                 <select
                                     id="leaderIdVeneto"
@@ -775,6 +814,7 @@ export function ManageCollaborators() {
                                 </select>
                                 <p className="text-xs text-muted-foreground mt-1">Gravado pelo ID. Ao escolher, o campo Líder acompanha o nome.</p>
                             </div>
+                            )}
                             <div>
                                 <Label htmlFor="team">Equipe</Label>
                                 <Input id="team" {...register('team')} disabled={isFormSubmitting} placeholder="Ex.: Comercial SP"/>

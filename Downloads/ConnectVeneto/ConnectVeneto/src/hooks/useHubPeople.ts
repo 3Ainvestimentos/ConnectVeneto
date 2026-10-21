@@ -7,20 +7,22 @@ import { useCollaborators } from '@/contexts/CollaboratorsContext';
 import { useTripsBirthdays, type LeaderTripType } from '@/contexts/TripsBirthdaysContext';
 import { normalizeEmail } from '@/lib/email-utils';
 import { buildPeople, normalizeName, type HubPerson, type HubVacationItem } from '@/lib/hub/people';
+import { useOrgUnits } from './useOrgUnits';
 
 /** Pessoas do Hub (cadastro de colaboradores) + quem é a pessoa logada. */
 export function useHubPeople() {
   const { user } = useAuth();
   const { collaborators, loading } = useCollaborators();
+  const { units } = useOrgUnits();
   return useMemo(() => {
-    const people = buildPeople(collaborators);
+    const people = buildPeople(collaborators, units);
     const byId = new Map(people.map((p) => [p.id, p]));
     const byAuthUid = new Map(people.filter((p) => p.authUid).map((p) => [p.authUid!, p]));
     const byName = new Map(people.map((p) => [normalizeName(p.name), p]));
     const target = normalizeEmail(user?.email);
     const me = (user && byAuthUid.get(user.uid)) || people.find((p) => normalizeEmail(p.email) === target) || null;
     return { people, byId, byAuthUid, byName, me, loading };
-  }, [collaborators, user, loading]);
+  }, [collaborators, units, user, loading]);
 }
 
 export interface HubTrip extends LeaderTripType {

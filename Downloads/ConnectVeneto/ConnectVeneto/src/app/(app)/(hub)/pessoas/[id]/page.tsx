@@ -14,6 +14,8 @@ import { useHubFeed } from '@/hooks/useHubFeed';
 import { useApprovedVacations, useHubPeople, useHubTrips } from '@/hooks/useHubPeople';
 import { normalizeEmail } from '@/lib/email-utils';
 import { parseLocalDate, teamsOf } from '@/lib/hub/people';
+import { unitPathLabel } from '@/lib/hub/org-units';
+import { useOrgUnits } from '@/hooks/useOrgUnits';
 
 const Box = ({ title, badge, children, id }: { title: string; badge?: React.ReactNode; children: React.ReactNode; id?: string }) => (
   <section id={id} className="grid gap-5 rounded-xl border bg-card p-6 shadow-sm">
@@ -48,6 +50,7 @@ export default function PerfilPage() {
   const { trips } = useHubTrips();
   const { vacations } = useApprovedVacations();
   const { data: feed } = useHubFeed();
+  const { byId: unitsById } = useOrgUnits();
   const [editOpen, setEditOpen] = useState(false);
   const person = byId.get(id);
 
@@ -206,7 +209,7 @@ export default function PerfilPage() {
               <dt className="text-muted-foreground">Área</dt>
               <dd>{person.area || '—'}</dd>
               <dt className="text-muted-foreground">Equipe</dt>
-              <dd>{person.team ?? '—'}</dd>
+              <dd>{person.unitId ? unitPathLabel(unitsById, person.unitId) : person.team ?? '—'}</dd>
               <dt className="text-muted-foreground">Eixo</dt>
               <dd>{person.axis || '—'}</dd>
               <dt className="text-muted-foreground">Unidade</dt>
