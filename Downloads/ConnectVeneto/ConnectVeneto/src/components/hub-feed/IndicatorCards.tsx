@@ -1,26 +1,10 @@
 "use client";
 
 import { ArrowDownRight, ArrowUpRight, Building2, Minus, type LucideIcon } from 'lucide-react';
+import { useQuery } from '@tanstack/react-query';
+import { useAuth } from '@/contexts/AuthContext';
+import { competenciaLabel, toIndicators, type Indicator, type StrategicSummary } from '@/lib/hub/strategic';
 import { cn } from '@/lib/utils';
-import { ExampleDataBadge } from './HubPilotGate';
-
-interface Indicator {
-  label: string;
-  /** Período ou referência curta (ex.: "12 meses"). */
-  hint?: string;
-  value: string;
-  delta: string;
-  trend: 'up' | 'down' | 'flat';
-  /** Leitura da variação: boa, ruim ou neutra. */
-  tone: 'positive' | 'negative' | 'neutral';
-}
-
-/** Exemplo até a API do dados-estrategicos (pedido 2026-10-19) entregar o fechamento real. */
-const STRATEGIC_INDICATORS: Indicator[] = [
-  { label: 'AUM', hint: 'patrimônio sob gestão', value: 'R$ 4,82 bi', delta: '+2,1% no mês', trend: 'up', tone: 'positive' },
-  { label: 'Churn', hint: '12 meses', value: '1,9%', delta: '−0,3 p.p. vs. ano anterior', trend: 'down', tone: 'positive' },
-  { label: 'ROA', hint: 'trimestre', value: '0,62%', delta: 'estável', trend: 'flat', tone: 'neutral' },
-];
 
 const TONE = {
   positive: 'text-emerald-700 dark:text-emerald-300',
@@ -67,7 +51,6 @@ function IndicatorGroup({
           <Icon className="h-5 w-5 text-primary" aria-hidden />
           {title}
         </h2>
-        <ExampleDataBadge />
       </div>
       <div className={cn('grid gap-2', gridClassName)}>
         {items.map((i) => (
@@ -79,14 +62,37 @@ function IndicatorGroup({
   );
 }
 
-/** Indicadores Estratégicos da Vêneto (só com acesso a Dados Estratégicos). Na coluna lateral, na largura dos Avisos. */
+/**
+ * Indicadores Estratégicos da Vêneto: AuM, Churn e ROA do último fechamento, vindos do Dados
+ * Estratégicos (`/api/modules/portal-repasse/summary`). Na coluna lateral, na largura dos Avisos.
+ * Sem acesso, fora da ACL do dashboard ou com o serviço fora do ar, o card não aparece.
+ */
 export function StrategicIndicators() {
+  const { user } = useAuth();
+  const { data, isLoading } = useQuery({
+    queryKey: ['strategic-summary'],
+    enabled: !!user,
+    retry: false,
+    staleTime: 60 * 60_000,
+    queryFn: async (): Promise<StrategicSummary | null> => {
+      const token = await user?.getIdToken();
+      const res = await fetch('/api/modules/portal-repasse/summary', { headers: token ? { Authorization: `Bearer ${token}` } : {} });
+      if (!res.ok) return null;
+      const body = await res.json().catch(() => ({}));
+      return body?.summary ?? null;
+    },
+  });
+
+  if (isLoading) return <div className="h-[188px] animate-pulse rounded-xl border bg-muted/40" aria-label="Carregando indicadores" />;
+  const items = data ? toIndicators(data) : [];
+  if (!data || items.length === 0) return null;
+
   return (
     <IndicatorGroup
       icon={Building2}
       title="Indicadores Estratégicos"
-      note="Fechamento do mês anterior · Dados Estratégicos"
-      items={STRATEGIC_INDICATORS}
+      note={`Fechamento de ${competenciaLabel(data.competencia)} · Dados Estratégicos`}
+      items={items}
       className="border-primary/30 bg-primary/[0.06]"
       gridClassName="grid-cols-3"
       dense

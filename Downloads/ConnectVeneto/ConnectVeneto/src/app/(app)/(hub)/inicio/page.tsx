@@ -110,7 +110,7 @@ export default function InicioPage() {
 
             <aside className="contents lg:flex lg:min-w-0 lg:flex-col lg:gap-6">
               {canSeeStrategic && (
-                <div className="order-6 min-w-0 lg:order-none">
+                <div className="order-6 min-w-0 empty:hidden lg:order-none">
                   <StrategicIndicators />
                 </div>
               )}
