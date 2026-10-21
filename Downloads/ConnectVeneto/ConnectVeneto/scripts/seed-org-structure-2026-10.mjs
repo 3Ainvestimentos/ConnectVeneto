@@ -78,7 +78,9 @@ const STRUCTURE = [
 /** Contas de teste: somem do Hub (Pessoas, organograma, aniversários), o login continua igual. */
 const HIDDEN = ['ti', 'Desenvolvedor', 'Teste Inteligência Comercial'];
 /** Fora da lista, mas não saiu: sócio. */
-const KEEP = ['Carlos Pessoa'];
+const KEEP = [];
+/** Topo da estrutura: a Diretoria com os sócios; todas as Áreas ficam dentro dela. */
+const ROOT = { name: 'Diretoria', leader: null, members: ['Carlos Pessoa', 'Fernando Damasceno'] };
 /** Nome da lista → nome no cadastro, quando nenhuma palavra bate (confirmado pelo idVeneto e pelos liderados). */
 const ALIASES = { 'Ana Catarina': 'Ana Daldegan' };
 
@@ -147,8 +149,10 @@ function addUnit(def, type, parentKey) {
   return { key, leaderDoc };
 }
 
+const { key: rootKey } = addUnit(ROOT, 'diretoria', null);
+for (const m of ROOT.members) place(m, rootKey, ROOT.name);
 for (const area of STRUCTURE) {
-  const { key: areaKey, leaderDoc } = addUnit(area, 'area', null);
+  const { key: areaKey, leaderDoc } = addUnit(area, 'area', rootKey);
   // Líder de várias equipes fica na Área; líder de uma só, na própria unidade.
   if (leaderDoc && !placement.has(leaderDoc.id)) placement.set(leaderDoc.id, areaKey);
   for (const m of area.members ?? []) {
@@ -183,7 +187,8 @@ const label = (key) => units.find((u) => u.key === key)?.name;
 console.log(`${APPLY ? 'APLICANDO' : 'SIMULAÇÃO'} — ${units.length} unidades, ${placement.size} pessoas, ${overrides.size} exceções de gestor`);
 for (const u of units) {
   const people = docs.filter((d) => placement.get(d.id) === u.key).map((d) => d.get('name'));
-  console.log(`${u.type === 'area' ? '' : '    '}${u.type === 'area' ? 'Área' : 'Equipe'} "${u.name}" · responsável: ${u.leaderName ?? '—'} · ${people.length}: ${people.join(', ')}`);
+  const depth = u.key.split('/').length - 2;
+  console.log(`${'    '.repeat(depth)}${{ diretoria: 'Diretoria', area: 'Área', equipe: 'Equipe' }[u.type]} "${u.name}" · responsável: ${u.leaderName ?? '—'} · ${people.length}: ${people.join(', ')}`);
 }
 console.log('\nExceções de gestor:');
 for (const [id, idV] of overrides) console.log(`  ${docs.find((d) => d.id === id).get('name')} → ${docs.find((d) => String(d.get('idVeneto')).trim() === idV)?.get('name')}`);
@@ -211,11 +216,12 @@ if (problems.length) {
 const now = new Date().toISOString();
 const by = 'script:seed-org-structure-2026-10';
 const idOf = new Map();
-const existingByKey = new Map(unitSnap.docs.map((d) => [`${d.get('parentId') ?? ''}|${norm(d.get('name'))}`, d.id]));
-// Áreas primeiro (a equipe precisa do id da mãe). Reaproveita uma unidade antiga de mesmo nome no topo.
-for (const u of [...units].sort((a, b) => (a.parentKey ? 1 : 0) - (b.parentKey ? 1 : 0))) {
+// Reaproveita a unidade de mesmo tipo e nome (mesmo que mude de mãe), para o id não mudar a cada rodada.
+const existingByKey = new Map(unitSnap.docs.map((d) => [`${d.get('type')}|${norm(d.get('name'))}`, d.id]));
+// Do topo para baixo (cada unidade precisa do id da mãe).
+for (const u of [...units].sort((a, b) => a.key.split('/').length - b.key.split('/').length)) {
   const parentId = u.parentKey ? idOf.get(u.parentKey) : null;
-  const reuse = existingByKey.get(`${parentId ?? ''}|${norm(u.name)}`);
+  const reuse = existingByKey.get(`${u.type}|${norm(u.name)}`);
   const data = { name: u.name, type: u.type, parentId, leaderIdVeneto: u.leaderIdVeneto, updatedAt: now, updatedBy: by };
   if (reuse) {
     await db.collection('orgUnits').doc(reuse).set(data, { merge: true });
