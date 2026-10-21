@@ -18,6 +18,8 @@ tags: [hot-cache]
 - 2026-10-21 — ✅ Rule de `collaborators` endurecida (PR #45, ruleset `a9db4fa4…`).
 - 2026-10-21 — 🟢 **Organograma + estrutura real** (PRs #51, #52): 9 Áreas / 12 Equipes com
   responsável (lista do Victor); 10 ocultos no Hub (`hubHidden`: testes + 7 que saíram — acesso
-  deles ao Connect **não** foi removido, pendente de decisão). Ver changelog.
+  deles ao Connect **não** foi removido, pendente de decisão). Sócios no topo (Diretoria). Ver changelog.
+- 2026-10-21 — 🟡 `/pessoas` › Por estrutura com **4 visuais em teste** (PR #53): esperar o Victor
+  escolher e apagar os outros de `OrgStructureView.tsx` (e o seletor "Visual (em teste)").
 - 2026-10-21 — Pendências de dados: campo Eixo só tem lixo; Área Comercial e Canal 3ARiva sem
   responsável; birthDate/team vazios; confirmar nomes "Operações" e "Corporativo".
