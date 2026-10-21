@@ -22,4 +22,4 @@ tags: [hot-cache]
 - 2026-10-21 — 🟡 `/pessoas` › Por estrutura com **4 visuais em teste** (PR #53): esperar o Victor
   escolher e apagar os outros de `OrgStructureView.tsx` (e o seletor "Visual (em teste)").
 - 2026-10-21 — Pendências de dados: campo Eixo só tem lixo; Área Comercial e Canal 3ARiva sem
-  responsável; birthDate/team vazios; confirmar nomes "Operações" e "Corporativo".
+  responsável; birthDate/team vazios; confirmar o nome "Operações" (Corporativo virou "Estratégia e Governança").
