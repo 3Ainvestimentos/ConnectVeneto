@@ -62,6 +62,16 @@ export interface HubPerson {
   chat?: string;
 }
 
+/** Férias aprovadas como a API `/api/feed/vacations` devolve. */
+export interface HubVacationItem {
+  id: string;
+  /** Firebase uid de quem sai de férias (casa com `collaborators.authUid`). */
+  uid: string;
+  name: string;
+  startDate: string;
+  endDate: string;
+}
+
 /** Nome comparável: sem acento, minúsculo, espaços simples. */
 export function normalizeName(name: string | undefined | null): string {
   return (name ?? '')

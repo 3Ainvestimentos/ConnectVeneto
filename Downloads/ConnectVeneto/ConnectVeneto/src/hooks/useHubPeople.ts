@@ -1,13 +1,12 @@
 "use client";
 
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCollaborators } from '@/contexts/CollaboratorsContext';
 import { useTripsBirthdays, type LeaderTripType } from '@/contexts/TripsBirthdaysContext';
-import { listenToCollectionWithQuery } from '@/lib/firestore-service';
 import { normalizeEmail } from '@/lib/email-utils';
-import { buildPeople, normalizeName, type HubPerson } from '@/lib/hub/people';
-import { VACATION_REQUESTS_COLLECTION, type VacationRequest } from '@/types/vacation';
+import { buildPeople, normalizeName, type HubPerson, type HubVacationItem } from '@/lib/hub/people';
 
 /** Pessoas do Hub (cadastro de colaboradores) + quem é a pessoa logada. */
 export function useHubPeople() {
@@ -40,34 +39,29 @@ export function useHubTrips() {
   return { trips: items, loading };
 }
 
-export interface HubVacation extends VacationRequest {
+export interface HubVacation extends HubVacationItem {
   person: HubPerson | null;
 }
 
 /**
- * Férias aprovadas de todo mundo (`vacation_requests` com status aprovado), para mostrar quem
- * está fora. As solicitações da própria pessoa continuam no contexto de férias.
+ * Férias aprovadas de todo mundo nos próximos 60 dias, lidas pelo servidor (`/api/feed/vacations`):
+ * o registro oficial (`vacations`) não é legível pelo navegador de quem não é o dono.
  */
 export function useApprovedVacations() {
   const { user } = useAuth();
   const { byAuthUid } = useHubPeople();
-  const [raw, setRaw] = useState<VacationRequest[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    if (!user) return;
-    const unsubscribe = listenToCollectionWithQuery<VacationRequest>(
-      VACATION_REQUESTS_COLLECTION,
-      (data) => {
-        setRaw(data as VacationRequest[]);
-        setLoading(false);
-      },
-      () => setLoading(false),
-      [{ field: 'status', operator: '==', value: 'approved' }],
-    );
-    return () => unsubscribe();
-  }, [user]);
-
-  const vacations = useMemo<HubVacation[]>(() => raw.map((v) => ({ ...v, person: byAuthUid.get(v.requesterUid) ?? null })), [raw, byAuthUid]);
-  return { vacations, loading };
+  const query = useQuery({
+    queryKey: ['hub-vacations'],
+    enabled: !!user,
+    staleTime: 5 * 60_000,
+    queryFn: async (): Promise<HubVacationItem[]> => {
+      const token = await user?.getIdToken();
+      const res = await fetch('/api/feed/vacations', { headers: token ? { Authorization: `Bearer ${token}` } : {}, cache: 'no-store' });
+      if (!res.ok) return [];
+      const body = await res.json().catch(() => ({}));
+      return Array.isArray(body.vacations) ? body.vacations : [];
+    },
+  });
+  const vacations = useMemo<HubVacation[]>(() => (query.data ?? []).map((v) => ({ ...v, person: byAuthUid.get(v.uid) ?? null })), [query.data, byAuthUid]);
+  return { vacations, loading: query.isLoading };
 }

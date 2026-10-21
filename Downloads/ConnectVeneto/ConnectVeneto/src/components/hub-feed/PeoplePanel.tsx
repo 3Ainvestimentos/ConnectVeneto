@@ -157,8 +157,8 @@ export function PeoplePanel() {
             return (
               <Row
                 key={v.id}
-                left={v.person ? <PersonAvatar person={v.person} size="md" link /> : <NameAvatar name={v.requesterName} />}
-                title={v.person?.name ?? v.requesterName}
+                left={v.person ? <PersonAvatar person={v.person} size="md" link /> : <NameAvatar name={v.name} />}
+                title={v.person?.name ?? v.name}
                 subtitle={v.person ? [v.person.area, v.person.city].filter(Boolean).join(' · ') : undefined}
                 detail={started ? `volta ${dayAfter(v.endDate)}` : `a partir de ${dm(v.startDate)}`}
               />
