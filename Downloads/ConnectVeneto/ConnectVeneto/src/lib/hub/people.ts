@@ -30,6 +30,8 @@ export interface CollaboratorLike {
   unitId?: string;
   /** Gestor fora da regra da estrutura (exceção manual), pelo idVeneto. */
   managerOverrideIdVeneto?: string;
+  /** Fora do Hub (contas de teste, quem saiu): não entra em nenhuma lista nem resolve gestor. */
+  hubHidden?: boolean;
   team?: string;
   birthDate?: string;
   admissionDate?: string;
@@ -97,7 +99,8 @@ export function normalizeCity(city: string | undefined | null): string {
 
 const blankToUndef = (v?: string) => (v && v.trim() && v.trim() !== '—' ? v.trim() : undefined);
 
-export function buildPeople(collaborators: CollaboratorLike[], orgUnits: OrgUnit[] = []): HubPerson[] {
+export function buildPeople(allCollaborators: CollaboratorLike[], orgUnits: OrgUnit[] = []): HubPerson[] {
+  const collaborators = allCollaborators.filter((c) => !c.hubHidden);
   const units = new Map(orgUnits.map((u) => [u.id, u]));
   const byIdVeneto = new Map<string, CollaboratorLike>();
   const byName = new Map<string, CollaboratorLike[]>();

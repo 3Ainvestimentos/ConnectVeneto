@@ -195,6 +195,7 @@ const collaboratorSchema = z.object({
     leaderIdVeneto: z.string().max(60).optional().or(z.literal('')),
     unitId: z.string().max(80).optional().or(z.literal('')),
     managerOverrideIdVeneto: z.string().max(60).optional().or(z.literal('')),
+    hubHidden: z.boolean().optional(),
     birthDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Data inválida").optional().or(z.literal('')),
     admissionDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Data inválida").optional().or(z.literal('')),
     /** Uma linha por cargo: "Cargo | período" (ex.: "Analista | 2022–2024"). */
@@ -389,6 +390,7 @@ export function ManageCollaborators() {
                 leaderIdVeneto: collaborator.leaderIdVeneto ?? '',
                 unitId: collaborator.unitId ?? '',
                 managerOverrideIdVeneto: collaborator.managerOverrideIdVeneto ?? '',
+                hubHidden: collaborator.hubHidden ?? false,
                 birthDate: collaborator.birthDate ?? '',
                 admissionDate: collaborator.admissionDate ?? '',
                 careerHistoryText: historyToText(collaborator.careerHistory),
@@ -411,6 +413,7 @@ export function ManageCollaborators() {
                 leaderIdVeneto: '',
                 unitId: '',
                 managerOverrideIdVeneto: '',
+                hubHidden: false,
                 birthDate: '',
                 admissionDate: '',
                 careerHistoryText: '',
@@ -443,6 +446,7 @@ export function ManageCollaborators() {
           leaderIdVeneto: rest.leaderIdVeneto?.trim() ?? '',
           unitId: rest.unitId ?? '',
           managerOverrideIdVeneto: rest.unitId ? (rest.managerOverrideIdVeneto?.trim() ?? '') : '',
+          hubHidden: rest.hubHidden ?? false,
           // O nome legado acompanha o gestor escolhido (outras telas ainda leem `leader`).
           leader: manager?.name ?? rest.leader,
           birthDate: rest.birthDate ?? '',
@@ -854,6 +858,13 @@ export function ManageCollaborators() {
                                     className="flex w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
                                 />
                             </div>
+                            <label className="md:col-span-2 flex items-start gap-2 text-sm">
+                                <input type="checkbox" {...register('hubHidden')} disabled={isFormSubmitting} className="mt-0.5 h-4 w-4" />
+                                <span>
+                                    <span className="font-medium">Não mostrar no Hub</span>
+                                    <span className="block text-xs text-muted-foreground">Some de Pessoas, do organograma e dos aniversários (contas de teste, quem saiu). O acesso ao Connect não muda.</span>
+                                </span>
+                            </label>
                         </div>
                         <DialogFooter className="mt-6">
                             <DialogClose asChild><Button type="button" variant="outline" disabled={isFormSubmitting}>Cancelar</Button></DialogClose>

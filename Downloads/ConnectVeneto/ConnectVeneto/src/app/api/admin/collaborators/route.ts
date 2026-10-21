@@ -53,6 +53,7 @@ const profilePatchSchema = z
     leaderIdVeneto: z.string().trim().max(60),
     unitId: z.string().trim().max(80),
     managerOverrideIdVeneto: z.string().trim().max(60),
+    hubHidden: z.boolean(),
     birthDate: optionalDate,
     admissionDate: optionalDate,
     careerHistory: z

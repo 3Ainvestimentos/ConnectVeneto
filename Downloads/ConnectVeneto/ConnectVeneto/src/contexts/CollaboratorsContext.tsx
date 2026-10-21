@@ -60,6 +60,7 @@ export interface Collaborator {
   leaderIdVeneto?: string;  // Gestor pelo idVeneto (ADR 0001, legado); `leader` fica como nome legado
   unitId?: string;          // Unidade da estrutura (ADR 0004): o gestor vem do responsável dela
   managerOverrideIdVeneto?: string; // Gestor fora da regra da estrutura (exceção manual)
+  hubHidden?: boolean;      // Não aparece no Hub (Pessoas, organograma, aniversários): contas de teste, quem saiu
   birthDate?: string;       // AAAA-MM-DD
   admissionDate?: string;   // AAAA-MM-DD (na Vêneto desde)
   careerHistory?: { position: string; period: string }[];
@@ -137,7 +138,7 @@ const bumpCollaboratorTableVersion = async (): Promise<void> => {
 const PROFILE_FIELDS = [
   'idVeneto', 'name', 'email', 'photoURL', 'axis', 'area', 'position',
   'segment', 'leader', 'lideranca', 'city',
-  'team', 'leaderIdVeneto', 'birthDate', 'admissionDate', 'careerHistory', 'unitId', 'managerOverrideIdVeneto',
+  'team', 'leaderIdVeneto', 'birthDate', 'admissionDate', 'careerHistory', 'unitId', 'managerOverrideIdVeneto', 'hubHidden',
 ] as const satisfies ReadonlyArray<keyof Collaborator>;
 
 const defaultPermissions: CollaboratorPermissions = {
