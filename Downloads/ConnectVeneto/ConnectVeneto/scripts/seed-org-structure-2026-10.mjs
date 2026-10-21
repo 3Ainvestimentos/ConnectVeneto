@@ -64,7 +64,7 @@ const STRUCTURE = [
       {
         name: 'Comerciais – SP',
         leader: 'Eduardo Oliveira',
-        members: ['Breno Campos', ['Gustavo França', 'Breno Campos'], 'Camila Shimizu', 'Caco Santos', 'Daniel Urbani', 'Douglas Latorre', 'Felipe Milano', 'João Meirelles', 'Lucia Penteado', 'Thiago Samu'],
+        members: ['Breno Campos', ['Gustavo França', 'Breno Campos'], 'Camila Shimizu', 'Caco Santos', 'Daniel Urbani', 'Douglas Latorre', 'Felipe Milano', 'João Meirelles', 'Lucia Penteado', 'Thiago Samu', 'Ligia Andrade', 'Alexandre Dal Mas'],
       },
     ],
   },
