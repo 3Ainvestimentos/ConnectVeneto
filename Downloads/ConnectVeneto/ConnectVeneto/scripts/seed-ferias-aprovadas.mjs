@@ -1,10 +1,11 @@
 /**
- * Lança férias já aprovadas (fora do Connect) como registros oficiais em `vacations`, para
- * aparecerem na Home e nos Perfis. A pessoa é achada pelo ID Veneto; o registro usa o
- * `authUid` dela (mesmo formato que a aprovação pelo Connect grava).
+ * Lança férias já aprovadas fora do Connect só para EXIBIÇÃO no Hub (Home e Perfis), em
+ * `hubVacations`. Não entra em `vacations` (registro oficial), então não mexe no saldo de férias
+ * nem no fluxo de solicitação/aprovação. Coleção fechada ao navegador (regra padrão); quem lê é
+ * `GET /api/feed/vacations`, pelo servidor.
  *
- * Idempotente: o id do documento é `import-<idVeneto>-<início>`; rodar de novo atualiza.
- * `businessDays` = dias úteis (seg–sex) do período, sem descontar feriados.
+ * A pessoa é achada pelo ID Veneto; o registro guarda o `authUid` dela para a Home ligar ao Perfil.
+ * Idempotente: o id do documento é `<idVeneto>-<início>`; rodar de novo atualiza.
  *
  * Usage:
  *   node --env-file=.env.local scripts/seed-ferias-aprovadas.mjs            # simulação
@@ -14,6 +15,7 @@ import { initializeApp, cert, getApps } from 'firebase-admin/app';
 import { getFirestore } from 'firebase-admin/firestore';
 
 const APPLY = process.argv.includes('--apply');
+const COLLECTION = 'hubVacations';
 
 /** Férias informadas pelo Victor em 2026-10-21 (já aprovadas). */
 const FERIAS = [
@@ -36,31 +38,16 @@ if (!getApps().length) {
 }
 const db = getFirestore();
 
-function businessDays(start, end) {
-  let n = 0;
-  for (let d = new Date(`${start}T12:00:00`); d <= new Date(`${end}T12:00:00`); d.setDate(d.getDate() + 1)) {
-    const wd = d.getDay();
-    if (wd !== 0 && wd !== 6) n += 1;
-  }
-  return n;
-}
-
 const collaborators = (await db.collection('collaborators').get()).docs;
 const now = new Date().toISOString();
 const writes = [];
 let problems = 0;
 
-console.log(`${APPLY ? 'APLICANDO' : 'SIMULAÇÃO'} — ${FERIAS.length} períodos de férias em \`vacations\``);
+console.log(`${APPLY ? 'APLICANDO' : 'SIMULAÇÃO'} — ${FERIAS.length} períodos de férias em \`${COLLECTION}\` (só exibição, fora do saldo)`);
 for (const f of FERIAS) {
   const c = collaborators.find((d) => String(d.get('idVeneto') ?? '').trim() === f.idVeneto);
   if (!c) {
     console.log(`  ! ${f.idVeneto}: não encontrado no cadastro`);
-    problems += 1;
-    continue;
-  }
-  const uid = String(c.get('authUid') ?? '').trim();
-  if (!uid) {
-    console.log(`  ! ${c.get('name')}: sem authUid (nunca entrou no Connect); não dá para ligar o registro`);
     problems += 1;
     continue;
   }
@@ -69,21 +56,23 @@ for (const f of FERIAS) {
     problems += 1;
     continue;
   }
-  const id = `import-${f.idVeneto}-${f.start}`;
-  const ref = db.collection('vacations').doc(id);
+  const ref = db.collection(COLLECTION).doc(`${f.idVeneto}-${f.start}`);
   const exists = (await ref.get()).exists;
-  const doc = {
-    collaboratorUid: uid,
-    collaboratorName: c.get('name'),
-    startDate: f.start,
-    endDate: f.end,
-    businessDays: businessDays(f.start, f.end),
-    source: 'import-2026-10-21',
-    updatedAt: now,
-    ...(exists ? {} : { createdAt: now }),
-  };
-  writes.push([ref, doc]);
-  console.log(`  ${exists ? '~ atualiza' : '+ cria'} ${c.get('name')}: ${f.start} a ${f.end} (${doc.businessDays} dias úteis)`);
+  const uid = String(c.get('authUid') ?? '').trim();
+  writes.push([
+    ref,
+    {
+      idVeneto: f.idVeneto,
+      uid,
+      name: c.get('name'),
+      startDate: f.start,
+      endDate: f.end,
+      source: 'informado-2026-10-21',
+      updatedAt: now,
+      ...(exists ? {} : { createdAt: now }),
+    },
+  ]);
+  console.log(`  ${exists ? '~ atualiza' : '+ cria'} ${c.get('name')}: ${f.start} a ${f.end}${uid ? '' : ' (sem authUid: aparece sem link para o Perfil)'}`);
 }
 
 if (!APPLY) {
@@ -93,4 +82,4 @@ if (!APPLY) {
 const batch = db.batch();
 for (const [ref, doc] of writes) batch.set(ref, doc, { merge: true });
 await batch.commit();
-console.log(`\nOK: ${writes.length} registros em vacations.`);
+console.log(`\nOK: ${writes.length} registros em ${COLLECTION}.`);

@@ -12,7 +12,8 @@ const iso = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart
 /**
  * Férias aprovadas de todo mundo numa janela (padrão: de hoje até 60 dias), para a Home e os Perfis.
  * Lê pelo servidor porque o registro oficial (`vacations`) só é legível pelo dono e pelo super
- * admin; junta as solicitações aprovadas que ainda não viraram registro. Só nome e datas saem daqui.
+ * admin; junta as solicitações aprovadas que ainda não viraram registro e as férias informadas só
+ * para exibição no Hub (`hubVacations`, fora do saldo de férias). Só nome e datas saem daqui.
  */
 export const GET = hubRoute('vacations:list', async ({ request }) => {
   const days = Math.min(MAX_DAYS, Math.max(1, Number(new URL(request.url).searchParams.get('days')) || 60));
@@ -23,9 +24,10 @@ export const GET = hubRoute('vacations:list', async ({ request }) => {
 
   const db = getFirestore(getFirebaseAdminApp());
   // Filtro de data em memória: as duas coleções são pequenas e assim não exige índice composto.
-  const [official, requests] = await Promise.all([
+  const [official, requests, hubOnly] = await Promise.all([
     db.collection('vacations').get(),
     db.collection(VACATION_REQUESTS_COLLECTION).where('status', '==', 'approved').get(),
+    db.collection('hubVacations').get(),
   ]);
 
   const items = new Map<string, HubVacationItem>();
@@ -37,6 +39,13 @@ export const GET = hubRoute('vacations:list', async ({ request }) => {
     if (items.has(d.id)) continue;
     const r = d.data();
     items.set(d.id, { id: d.id, uid: String(r.requesterUid ?? ''), name: String(r.requesterName ?? ''), startDate: String(r.startDate ?? ''), endDate: String(r.endDate ?? '') });
+  }
+
+  for (const d of hubOnly.docs) {
+    const h = d.data();
+    // Mesmo período já registrado oficialmente para a pessoa: fica o oficial.
+    const dup = [...items.values()].some((v) => v.uid === h.uid && v.startDate === h.startDate);
+    if (!dup) items.set(`hub-${d.id}`, { id: d.id, uid: String(h.uid ?? ''), name: String(h.name ?? ''), startDate: String(h.startDate ?? ''), endDate: String(h.endDate ?? '') });
   }
 
   const vacations = [...items.values()]

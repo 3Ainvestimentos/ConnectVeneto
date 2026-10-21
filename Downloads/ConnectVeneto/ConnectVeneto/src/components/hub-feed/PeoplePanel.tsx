@@ -62,7 +62,7 @@ const joinNames = (names: string[]) => (names.length <= 1 ? (names[0] ?? '') : `
 
 /**
  * Pessoas e equipes na Home: aniversariantes do dia (faixa, só quando há), viagens dos colegas nos
- * próximos 30 dias (quem vem para a sua cidade primeiro) e férias aprovadas nas próximas 2 semanas.
+ * próximos 30 dias (quem vem para a sua cidade primeiro) e férias aprovadas nos próximos 30 dias.
  */
 export function PeoplePanel() {
   const { user, permissions } = useAuth();
@@ -72,7 +72,6 @@ export function PeoplePanel() {
   const [tripOpen, setTripOpen] = useState(false);
 
   const now = new Date();
-  const in14 = new Date(now.getTime() + 14 * DAY);
   const in30 = new Date(now.getTime() + 30 * DAY);
 
   const birthdaysToday = people.filter((p) => isBirthdayOn(p.birthDate, now));
@@ -87,9 +86,9 @@ export function PeoplePanel() {
   ].slice(0, MAX_ROWS);
 
   const away = vacations
-    .filter((v) => overlapsRange(v.startDate, v.endDate, now, in14))
-    .sort((a, b) => a.startDate.localeCompare(b.startDate))
-    .slice(0, MAX_ROWS);
+    .filter((v) => overlapsRange(v.startDate, v.endDate, now, in30))
+    .sort((a, b) => a.startDate.localeCompare(b.startDate));
+  const awayShown = away.slice(0, MAX_ROWS);
 
   return (
     <Card className="shadow-sm">
@@ -151,8 +150,8 @@ export function PeoplePanel() {
             )
           }
         >
-          {away.length === 0 && <Empty>Ninguém de férias nas próximas duas semanas.</Empty>}
-          {away.map((v) => {
+          {away.length === 0 && <Empty>Ninguém de férias nos próximos 30 dias.</Empty>}
+          {awayShown.map((v) => {
             const started = (parseLocalDate(v.startDate)?.getTime() ?? 0) <= now.getTime();
             return (
               <Row
@@ -164,6 +163,7 @@ export function PeoplePanel() {
               />
             );
           })}
+          {away.length > awayShown.length && <Empty>+ {away.length - awayShown.length} de férias no período</Empty>}
         </Section>
       </div>
 
