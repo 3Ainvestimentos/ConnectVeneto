@@ -3,18 +3,18 @@
  * AuM, Churn e ROA do último fechamento, para o card "Indicadores Estratégicos" da Home.
  * Contrato: dados-estrategicos/vault/api-summary.md.
  *
- * Assina um Module Token de 60 s (aud = portal-repasse) e chama o serviço de servidor para
- * servidor. Qualquer resposta que não seja 200 (sem acesso, fora da ACL, timeout) volta como
- * `{ summary: null }`: a Home simplesmente esconde o card.
+ * Os números são da Vêneto como um todo e valem para todo usuário do Connect, mesmo sem acesso ao
+ * módulo (decisão de 2026-10-21; o serviço só valida o token). Assina um Module Token de 60 s
+ * (aud = portal-repasse) e chama o serviço de servidor para servidor. Qualquer resposta que não
+ * seja 200 (timeout, serviço fora do ar) volta como `{ summary: null }` e a Home esconde o card.
  */
 import { NextResponse } from 'next/server';
 import { SignJWT } from 'jose';
 import { getFirestore } from 'firebase-admin/firestore';
-import { resolveModuleAccess } from '@/config/modules';
 import { getFirebaseAdminApp } from '@/lib/firebase-admin';
 import { getHubJwtSecret } from '@/lib/hub-jwt';
 import { getHubModuleServer } from '@/lib/hub-modules/server';
-import { isSuperAdminAddress, requireCorporateUser } from '@/lib/security';
+import { requireCorporateUser } from '@/lib/security';
 
 const MODULE_ID = 'portal-repasse';
 /** A primeira chamada a frio do serviço leva ~27 s; acima disso, desiste e esconde o card. */
@@ -35,22 +35,13 @@ export async function GET(request: Request) {
     if (snap.empty && context.email) snap = await db.collection('collaborators').where('email', '==', context.email).limit(1).get();
     const collab = snap.empty ? null : snap.docs[0].data();
 
-    const superAdmin = await isSuperAdminAddress(context.email);
-    let permissions: string[];
-    if (superAdmin) {
-      permissions = mod.adminPermissions;
-    } else {
-      const access = resolveModuleAccess(mod, (collab?.modulePermissions as Record<string, string[]> | undefined)?.[MODULE_ID]);
-      if (!access.hasAccess) return hidden('no-module-access');
-      permissions = access.permissions;
-    }
-
     const now = Math.floor(Date.now() / 1000);
     const token = await new SignJWT({
       email: context.email,
       name: (collab?.name as string | undefined) ?? context.email?.split('@')[0] ?? '',
-      role: superAdmin ? 'superadmin' : 'member',
-      permissions,
+      role: 'member',
+      // Só para o resumo da Home: não dá acesso ao dashboard (o serviço não consulta permissões aqui).
+      permissions: [],
     })
       .setProtectedHeader({ alg: 'HS256' })
       .setSubject(context.uid)
