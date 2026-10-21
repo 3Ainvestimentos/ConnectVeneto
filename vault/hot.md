@@ -16,9 +16,8 @@ tags: [hot-cache]
   Indicadores Estratégicos (API do dados-estrategicos, pedido concluído), gestor por ID (66/84) e
   estrutura `orgUnits` (18 Áreas sem responsável, ADR 0004). Piloto ainda sem `inicio:view`.
 - 2026-10-21 — ✅ Rule de `collaborators` endurecida (PR #45, ruleset `a9db4fa4…`).
-- 2026-10-21 — 🟡 **Organograma refeito** (PR #51, aguardando merge do Victor): vista "Por
-  liderança" navegável e estrutura em cartões. Em produção a vista por pessoa estava **vazia**
-  porque Carlos Pessoa e Fernando Damasceno são gestor um do outro (agora o ciclo vira o topo).
-- 2026-10-21 — Dados para o RH: campo Eixo só tem lixo ("-", "--", "IA", "ti"); contas de teste
-  no cadastro ("Desenvolvedor", "ti", "Teste Inteligência Comercial"); 18 pessoas sem gestor
-  (CSV `gestores-para-revisar-2026-10-21.csv`); Áreas sem responsável; birthDate/team vazios.
+- 2026-10-21 — 🟢 **Organograma + estrutura real** (PRs #51, #52): 9 Áreas / 12 Equipes com
+  responsável (lista do Victor); 12 ocultos no Hub (`hubHidden`: testes + 9 que saíram — acesso
+  deles ao Connect **não** foi removido, pendente de decisão). Ver changelog.
+- 2026-10-21 — Pendências de dados: campo Eixo só tem lixo; Área Comercial e Canal 3ARiva sem
+  responsável; birthDate/team vazios; confirmar nomes "Operações" e "Corporativo".
