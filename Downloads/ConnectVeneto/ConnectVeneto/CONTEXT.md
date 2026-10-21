@@ -107,7 +107,7 @@ Unidade mais baixa da Estrutura: grupo de colaboradores sob um Responsável. Um 
 _Avoid_: time, squad, célula
 
 **Organograma**:
-Visão das pessoas em /pessoas, de dois jeitos: "Por estrutura" (Diretorias, Áreas e Equipes com Responsável e pessoas) e "Por pessoa" (quem reporta a quem).
+Visão das pessoas em /pessoas, de dois jeitos: "Por estrutura" (Diretorias, Áreas e Equipes com Responsável e pessoas) e "Por liderança" (quem reporta a quem, navegável a partir do topo).
 
 ### Agenda
 
