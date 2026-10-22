@@ -57,7 +57,7 @@ export default function PerfilPage() {
   if (!person) {
     return (
       <HubPage>
-        <HubBreadcrumb items={[{ label: 'Início', href: '/inicio' }, { label: 'Pessoas e equipes', href: '/pessoas' }, { label: loading ? 'Carregando…' : 'Não encontrado' }]} />
+        <HubBreadcrumb items={[{ label: 'Pessoas e equipes', href: '/pessoas' }, { label: loading ? 'Carregando…' : 'Não encontrado' }]} />
         {!loading && <p className="text-muted-foreground">Pessoa não encontrada.</p>}
       </HubPage>
     );
@@ -82,7 +82,7 @@ export default function PerfilPage() {
 
   return (
     <HubPage>
-      <HubBreadcrumb items={[{ label: 'Início', href: '/inicio' }, { label: 'Pessoas e equipes', href: '/pessoas' }, { label: person.name }]} />
+      <HubBreadcrumb items={[{ label: 'Pessoas e equipes', href: '/pessoas' }, { label: person.name }]} />
 
       <div className="overflow-hidden rounded-xl border bg-card shadow-sm">
         <div className="h-20 bg-gradient-to-r from-slate-800 via-slate-700 to-primary sm:h-28" />

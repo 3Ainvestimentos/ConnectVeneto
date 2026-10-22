@@ -2,10 +2,12 @@
 
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
+import { Anchor as PopoverAnchor } from '@radix-ui/react-popover';
 import { ArrowUp, ChevronRight, Maximize2, Minus, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@/components/ui/sheet';
-import { childUnits, UNIT_TYPE_LABEL, type OrgUnit } from '@/lib/hub/org-units';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Popover, PopoverContent } from '@/components/ui/popover';
+import { childUnits, type OrgUnit } from '@/lib/hub/org-units';
 import type { HubPerson } from '@/lib/hub/people';
 import { cn } from '@/lib/utils';
 import { PersonAvatar } from './PersonAvatar';
@@ -126,29 +128,116 @@ function TopBand({ node, onSelect }: { node: UnitNode; onSelect: (id: string) =>
   );
 }
 
-/* ───────────── Organograma (telas largas): árvore de cima para baixo, com zoom e arrasto ───────────── */
+/* ───────────── Hover: prévia rápida da unidade ───────────── */
 
-function UnitBox({ node, selected, onSelect }: { node: UnitNode; selected: boolean; onSelect: (id: string) => void }) {
+const PREVIEW_PEOPLE = 8;
+
+function UnitPreview({ node }: { node: UnitNode }) {
+  const rest = node.members.length - PREVIEW_PEOPLE;
   return (
-    <button
-      type="button"
-      onClick={() => onSelect(node.unit.id)}
-      aria-pressed={selected}
-      className={cn(
-        'w-full rounded-xl border p-3 text-left shadow-sm transition-colors hover:border-primary/50 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
-        node.unit.type === 'equipe' ? 'bg-background shadow-none' : 'bg-card',
-        selected && 'border-primary ring-4 ring-primary/10',
+    <div className="grid gap-2">
+      <div>
+        <div className="font-headline text-sm font-bold leading-tight">{node.unit.name}</div>
+        <div className="text-xs text-muted-foreground">{summary(node)}</div>
+      </div>
+      {node.leader && <PersonRow person={node.leader} detail="Responsável" />}
+      {node.children.length > 0 && (
+        <ul className="grid gap-0.5 border-t pt-2">
+          {node.children.map((c) => (
+            <li key={c.unit.id} className="flex items-baseline justify-between gap-2 px-1.5 text-sm">
+              <span className="truncate">{c.unit.name}</span>
+              <span className="shrink-0 text-xs text-muted-foreground">{c.total}</span>
+            </li>
+          ))}
+        </ul>
       )}
-    >
-      <div className="text-[11px] font-bold uppercase tracking-wider text-primary">{UNIT_TYPE_LABEL[node.unit.type]}</div>
-      <div className="font-headline text-sm font-bold leading-tight">{node.unit.name}</div>
-      {node.showLeader && node.leader && (
-        <div className="mt-2">
-          <LeaderLine person={node.leader} />
+      {node.members.length > 0 && (
+        <div className="grid gap-0.5 border-t pt-2">
+          {node.members.slice(0, PREVIEW_PEOPLE).map((m) => (
+            <PersonRow key={m.id} person={m} size="xs" />
+          ))}
         </div>
       )}
-      <div className="mt-2 text-xs text-muted-foreground">{summary(node)}</div>
-    </button>
+      <p className="px-1.5 text-xs text-muted-foreground">{rest > 0 ? `+${rest} · clique para ver todos` : 'Clique para abrir'}</p>
+    </div>
+  );
+}
+
+/** Abre a prévia depois de um instante com o mouse parado em cima (não pisca ao atravessar o desenho). */
+function useHoverPreview(disabled: boolean) {
+  const [open, setOpen] = useState(false);
+  const timer = useRef<number>();
+  const clear = () => window.clearTimeout(timer.current);
+  useEffect(() => clear, []);
+  useEffect(() => {
+    if (disabled) {
+      clear();
+      setOpen(false);
+    }
+  }, [disabled]);
+  const show = (e: React.PointerEvent) => {
+    if (disabled || e.pointerType !== 'mouse') return;
+    clear();
+    timer.current = window.setTimeout(() => setOpen(true), 300);
+  };
+  const hide = () => {
+    clear();
+    timer.current = window.setTimeout(() => setOpen(false), 150);
+  };
+  const keep = () => clear();
+  const close = () => {
+    clear();
+    setOpen(false);
+  };
+  return { open, show, hide, keep, close };
+}
+
+/* ───────────── Organograma (telas largas): árvore de cima para baixo, com zoom e arrasto ───────────── */
+
+function UnitBox({ node, selected, dragging, onSelect }: { node: UnitNode; selected: boolean; dragging: boolean; onSelect: (id: string) => void }) {
+  const hover = useHoverPreview(dragging || selected);
+  return (
+    <Popover open={hover.open}>
+      <PopoverAnchor asChild>
+        <button
+          type="button"
+          onPointerEnter={hover.show}
+          onPointerLeave={hover.hide}
+          onClick={() => {
+            hover.close();
+            onSelect(node.unit.id);
+          }}
+          aria-pressed={selected}
+          className={cn(
+            'w-full rounded-xl border p-3 text-left transition-colors hover:border-primary/50 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+            node.unit.type === 'equipe' ? 'bg-background' : 'bg-card shadow-sm',
+            selected && 'border-primary ring-4 ring-primary/10',
+          )}
+        >
+          <div className={cn('font-headline font-bold leading-tight', node.unit.type === 'equipe' ? 'text-sm' : 'text-[15px]')}>{node.unit.name}</div>
+          {node.showLeader && node.leader && (
+            <div className="mt-2">
+              <LeaderLine person={node.leader} />
+            </div>
+          )}
+          <div className="mt-2 text-xs text-muted-foreground">{summary(node)}</div>
+        </button>
+      </PopoverAnchor>
+      <PopoverContent
+        side="right"
+        align="start"
+        sideOffset={8}
+        collisionPadding={12}
+        className="w-72 p-3"
+        onPointerEnter={hover.keep}
+        onPointerLeave={hover.hide}
+        onOpenAutoFocus={(e) => e.preventDefault()}
+        onCloseAutoFocus={(e) => e.preventDefault()}
+        onEscapeKeyDown={hover.close}
+      >
+        <UnitPreview node={node} />
+      </PopoverContent>
+    </Popover>
   );
 }
 
@@ -166,6 +255,7 @@ function OrgChart({ roots, selectedId, onSelect }: { roots: UnitNode[]; selected
   const [zoom, setZoom] = useState(1);
   const [natural, setNatural] = useState({ w: 0, h: 0 });
   const [edges, setEdges] = useState({ left: false, right: false });
+  const [dragging, setDragging] = useState(false);
   const fitted = useRef(false);
 
   // Tamanho do desenho sem escala (a transformação não muda o layout, então offsetWidth é o natural).
@@ -182,10 +272,10 @@ function OrgChart({ roots, selectedId, onSelect }: { roots: UnitNode[]; selected
   const fit = useCallback(() => {
     const vp = viewport.current;
     if (!vp || !natural.w) return;
-    setZoom(clamp(Math.min(1, (vp.clientWidth - 16) / natural.w)));
+    setZoom(clamp(Math.min(1, (vp.clientWidth - 32) / natural.w)));
   }, [natural.w]);
 
-  // Primeira abertura: cabe na tela. Depois a pessoa manda no zoom.
+  // Primeira abertura: cabe na largura. Depois a pessoa manda no zoom.
   useEffect(() => {
     if (fitted.current || !natural.w) return;
     fitted.current = true;
@@ -203,13 +293,14 @@ function OrgChart({ roots, selectedId, onSelect }: { roots: UnitNode[]; selected
     return () => window.removeEventListener('resize', updateEdges);
   }, [updateEdges]);
 
-  // Arrastar com o mouse move o desenho (as caixas continuam clicáveis).
+  // Arrastar com o mouse no fundo move o desenho (as caixas continuam clicáveis).
   const drag = useRef<{ x: number; y: number; left: number; top: number } | null>(null);
   const onPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
     if (e.button !== 0 || (e.target as HTMLElement).closest('a,button')) return;
     const vp = viewport.current!;
     drag.current = { x: e.clientX, y: e.clientY, left: vp.scrollLeft, top: vp.scrollTop };
     vp.setPointerCapture(e.pointerId);
+    setDragging(true);
   };
   const onPointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
     if (!drag.current) return;
@@ -219,69 +310,66 @@ function OrgChart({ roots, selectedId, onSelect }: { roots: UnitNode[]; selected
   };
   const endDrag = () => {
     drag.current = null;
+    setDragging(false);
   };
 
   return (
-    <div className="grid min-w-0 gap-2">
-      <div className="flex flex-wrap items-center justify-between gap-2 text-sm text-muted-foreground">
-        <span>Clique numa unidade para ver as pessoas. Arraste para mover.</span>
-        <div className="flex items-center gap-1" role="group" aria-label="Zoom">
-          <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => setZoom((z) => clamp(z - 0.1))} disabled={zoom <= ZOOM_MIN} aria-label="Diminuir">
-            <Minus className="h-4 w-4" />
-          </Button>
-          <span className="w-12 text-center tabular-nums">{Math.round(zoom * 100)}%</span>
-          <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => setZoom((z) => clamp(z + 0.1))} disabled={zoom >= ZOOM_MAX} aria-label="Aumentar">
-            <Plus className="h-4 w-4" />
-          </Button>
-          <Button variant="outline" size="sm" className="h-8" onClick={fit}>
-            <Maximize2 className="mr-1.5 h-3.5 w-3.5" /> Ajustar à tela
-          </Button>
-        </div>
-      </div>
-
-      <div className="relative min-w-0">
-        <div
-          ref={viewport}
-          onScroll={updateEdges}
-          onPointerDown={onPointerDown}
-          onPointerMove={onPointerMove}
-          onPointerUp={endDrag}
-          onPointerCancel={endDrag}
-          className="min-w-0 overflow-auto rounded-xl border bg-muted/20 p-4 [cursor:grab] active:[cursor:grabbing]"
-          style={{ maxHeight: '75vh' }}
-        >
-          <div className="mx-auto" style={{ width: natural.w * zoom || undefined, height: natural.h * zoom || undefined }}>
-            <div ref={content} className="w-max origin-top-left" style={{ transform: `scale(${zoom})` }}>
-              <div className="flex flex-col items-center">
-                {tops.map((t) => (
-                  <TopBand key={t.unit.id} node={t} onSelect={onSelect} />
+    <div className="relative min-w-0">
+      <div
+        ref={viewport}
+        onScroll={updateEdges}
+        onPointerDown={onPointerDown}
+        onPointerMove={onPointerMove}
+        onPointerUp={endDrag}
+        onPointerCancel={endDrag}
+        className="h-[calc(100dvh-9.5rem)] min-h-[420px] min-w-0 overflow-auto rounded-xl border bg-muted/20 p-4 [cursor:grab] active:[cursor:grabbing]"
+      >
+        <div className="mx-auto" style={{ width: natural.w * zoom || undefined, height: natural.h * zoom || undefined }}>
+          <div ref={content} className="w-max origin-top-left" style={{ transform: `scale(${zoom})` }}>
+            <div className="flex flex-col items-center">
+              {tops.map((t) => (
+                <TopBand key={t.unit.id} node={t} onSelect={onSelect} />
+              ))}
+              {tops.length > 0 && areas.length > 0 && <span className="h-6 w-px bg-border" aria-hidden />}
+              <ul className="flex items-start">
+                {areas.map((a) => (
+                  <li key={a.unit.id} className={BRANCH}>
+                    <div className="flex w-52 flex-col">
+                      <UnitBox node={a} selected={selectedId === a.unit.id} dragging={dragging} onSelect={onSelect} />
+                      {a.children.length > 0 && (
+                        <div className="ml-4 grid gap-2 border-l pl-3 pt-2">
+                          {a.children.map((c) => (
+                            <div key={c.unit.id} className="relative before:absolute before:-left-3 before:top-6 before:w-3 before:border-t before:border-border before:content-['']">
+                              <UnitBox node={c} selected={selectedId === c.unit.id} dragging={dragging} onSelect={onSelect} />
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </li>
                 ))}
-                {tops.length > 0 && areas.length > 0 && <span className="h-6 w-px bg-border" aria-hidden />}
-                <ul className="flex items-start">
-                  {areas.map((a) => (
-                    <li key={a.unit.id} className={BRANCH}>
-                      <div className="flex w-56 flex-col">
-                        <UnitBox node={a} selected={selectedId === a.unit.id} onSelect={onSelect} />
-                        {a.children.length > 0 && (
-                          <div className="ml-4 grid gap-2 border-l pl-3 pt-2">
-                            {a.children.map((c) => (
-                              <div key={c.unit.id} className="relative before:absolute before:-left-3 before:top-6 before:w-3 before:border-t before:border-border before:content-['']">
-                                <UnitBox node={c} selected={selectedId === c.unit.id} onSelect={onSelect} />
-                              </div>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                    </li>
-                  ))}
-                </ul>
-              </div>
+              </ul>
             </div>
           </div>
         </div>
-        {/* Sombras nas bordas: há mais desenho para aquele lado. */}
-        <div aria-hidden className={cn('pointer-events-none absolute inset-y-0 left-0 w-8 rounded-l-xl bg-gradient-to-r from-background/90 to-transparent transition-opacity', edges.left ? 'opacity-100' : 'opacity-0')} />
-        <div aria-hidden className={cn('pointer-events-none absolute inset-y-0 right-0 w-8 rounded-r-xl bg-gradient-to-l from-background/90 to-transparent transition-opacity', edges.right ? 'opacity-100' : 'opacity-0')} />
+      </div>
+
+      {/* Sombras nas bordas: há mais desenho para aquele lado. */}
+      <div aria-hidden className={cn('pointer-events-none absolute inset-y-0 left-0 w-8 rounded-l-xl bg-gradient-to-r from-background/90 to-transparent transition-opacity', edges.left ? 'opacity-100' : 'opacity-0')} />
+      <div aria-hidden className={cn('pointer-events-none absolute inset-y-0 right-0 w-8 rounded-r-xl bg-gradient-to-l from-background/90 to-transparent transition-opacity', edges.right ? 'opacity-100' : 'opacity-0')} />
+
+      {/* Zoom flutuando sobre o desenho, para não gastar uma linha da página. */}
+      <div className="absolute bottom-3 right-3 flex items-center gap-1 rounded-lg border bg-card/95 p-1 text-sm shadow-md backdrop-blur" role="group" aria-label="Zoom">
+        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setZoom((z) => clamp(z - 0.1))} disabled={zoom <= ZOOM_MIN} aria-label="Diminuir">
+          <Minus className="h-4 w-4" />
+        </Button>
+        <span className="w-11 text-center tabular-nums text-muted-foreground">{Math.round(zoom * 100)}%</span>
+        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setZoom((z) => clamp(z + 0.1))} disabled={zoom >= ZOOM_MAX} aria-label="Aumentar">
+          <Plus className="h-4 w-4" />
+        </Button>
+        <Button variant="ghost" size="sm" className="h-8" onClick={fit} title="Ajustar à largura da tela">
+          <Maximize2 className="mr-1.5 h-3.5 w-3.5" /> Ajustar
+        </Button>
       </div>
     </div>
   );
@@ -299,9 +387,16 @@ function TreeView({ roots, onSelect }: { roots: UnitNode[]; onSelect: (id: strin
       return next;
     });
 
+  const subtitle = (node: UnitNode) => {
+    if (node.unit.type === 'diretoria' && node.members.length > 0) return node.members.map((m) => m.name).join(', ');
+    if (node.showLeader && node.leader) return node.leader.name;
+    return '';
+  };
+
   const Row = ({ node, depth }: { node: UnitNode; depth: number }) => {
     const isOpen = open.has(node.unit.id);
     const hasChildren = node.children.length > 0;
+    const sub = subtitle(node);
     return (
       <li>
         <div className={cn('flex items-center gap-1 rounded-md', depth === 0 && 'bg-muted/40')} style={{ paddingLeft: 4 + depth * 18 }}>
@@ -318,11 +413,7 @@ function TreeView({ roots, onSelect }: { roots: UnitNode[]; onSelect: (id: strin
           <button type="button" onClick={() => onSelect(node.unit.id)} className="flex min-w-0 flex-1 items-center gap-2 py-2 pr-2 text-left hover:bg-muted">
             <span className="min-w-0 flex-1">
               <span className="block truncate font-semibold leading-tight">{node.unit.name}</span>
-              <span className="block truncate text-xs leading-tight text-muted-foreground">
-                {node.unit.type === 'diretoria' && node.members.length > 0
-                  ? node.members.map((m) => m.name).join(', ')
-                  : `${UNIT_TYPE_LABEL[node.unit.type]}${node.showLeader && node.leader ? ` · ${node.leader.name}` : ''}`}
-              </span>
+              {sub && <span className="block truncate text-xs leading-tight text-muted-foreground">{sub}</span>}
             </span>
             <span className="shrink-0 text-xs text-muted-foreground">{node.total}</span>
             <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
@@ -340,18 +431,15 @@ function TreeView({ roots, onSelect }: { roots: UnitNode[]; onSelect: (id: strin
   };
 
   return (
-    <div className="grid gap-2">
-      <p className="text-sm text-muted-foreground">Toque numa unidade para ver as pessoas.</p>
-      <ul className="rounded-xl border bg-card p-1 shadow-sm">
-        {roots.map((r) => (
-          <Row key={r.unit.id} node={r} depth={0} />
-        ))}
-      </ul>
-    </div>
+    <ul className="rounded-xl border bg-card p-1 shadow-sm">
+      {roots.map((r) => (
+        <Row key={r.unit.id} node={r} depth={0} />
+      ))}
+    </ul>
   );
 }
 
-/* ───────────── Painel de uma unidade: responsável, equipes e pessoas ───────────── */
+/* ───────────── Modal de uma unidade: responsável, equipes e pessoas ───────────── */
 
 function UnitPanel({ node, byId, onSelect }: { node: UnitNode; byId: Map<string, UnitNode>; onSelect: (id: string) => void }) {
   const trail: UnitNode[] = [];
@@ -359,7 +447,7 @@ function UnitPanel({ node, byId, onSelect }: { node: UnitNode; byId: Map<string,
   const parent = trail[trail.length - 1];
   return (
     <>
-      <SheetHeader className="text-left">
+      <DialogHeader className="text-left">
         {trail.length > 0 && (
           <nav aria-label="Caminho" className="flex flex-wrap items-center gap-1 text-xs text-muted-foreground">
             {trail.map((t, i) => (
@@ -372,13 +460,11 @@ function UnitPanel({ node, byId, onSelect }: { node: UnitNode; byId: Map<string,
             ))}
           </nav>
         )}
-        <SheetTitle className="font-headline">{node.unit.name}</SheetTitle>
-        <SheetDescription>
-          {UNIT_TYPE_LABEL[node.unit.type]} · {summary(node)}
-        </SheetDescription>
-      </SheetHeader>
+        <DialogTitle className="font-headline text-xl">{node.unit.name}</DialogTitle>
+        <DialogDescription>{summary(node)}</DialogDescription>
+      </DialogHeader>
 
-      <div className="mt-4 grid gap-5">
+      <div className="grid gap-5">
         <section>
           <h4 className="mb-1 text-xs font-bold uppercase tracking-wider text-muted-foreground">Responsável</h4>
           {node.leader ? (
@@ -391,10 +477,10 @@ function UnitPanel({ node, byId, onSelect }: { node: UnitNode; byId: Map<string,
         {node.children.length > 0 && (
           <section>
             <h4 className="mb-1 text-xs font-bold uppercase tracking-wider text-muted-foreground">Equipes</h4>
-            <ul className="grid gap-1">
+            <ul className="grid gap-1 sm:grid-cols-2">
               {node.children.map((c) => (
                 <li key={c.unit.id}>
-                  <button type="button" onClick={() => onSelect(c.unit.id)} className="flex w-full items-center gap-2 rounded-md px-1.5 py-1.5 text-left hover:bg-muted">
+                  <button type="button" onClick={() => onSelect(c.unit.id)} className="flex w-full items-center gap-2 rounded-md border px-2 py-1.5 text-left hover:bg-muted">
                     <span className="min-w-0 flex-1">
                       <span className="block truncate text-sm font-medium leading-tight">{c.unit.name}</span>
                       {c.leader && <span className="block truncate text-xs leading-tight text-muted-foreground">{c.leader.name}</span>}
@@ -408,25 +494,27 @@ function UnitPanel({ node, byId, onSelect }: { node: UnitNode; byId: Map<string,
           </section>
         )}
 
-        <section>
-          <h4 className="mb-1 text-xs font-bold uppercase tracking-wider text-muted-foreground">
-            {node.children.length > 0 ? 'Direto na unidade' : 'Pessoas'} · {node.members.length}
-          </h4>
-          {node.members.length === 0 ? (
-            <p className="px-1.5 text-sm text-muted-foreground">Ninguém cadastrado diretamente aqui.</p>
-          ) : (
-            <ul className="grid gap-0.5">
-              {node.members.map((m) => (
-                <li key={m.id}>
-                  <PersonRow person={m} detail={[m.position, m.city].filter(Boolean).join(' · ') || undefined} />
-                </li>
-              ))}
-            </ul>
-          )}
-        </section>
+        {(node.members.length > 0 || node.children.length === 0) && (
+          <section>
+            <h4 className="mb-1 text-xs font-bold uppercase tracking-wider text-muted-foreground">
+              {node.children.length > 0 ? 'Direto na unidade' : 'Pessoas'} · {node.members.length}
+            </h4>
+            {node.members.length === 0 ? (
+              <p className="px-1.5 text-sm text-muted-foreground">Ninguém cadastrado diretamente aqui.</p>
+            ) : (
+              <ul className="grid gap-0.5 sm:grid-cols-2">
+                {node.members.map((m) => (
+                  <li key={m.id}>
+                    <PersonRow person={m} detail={[m.position, m.city].filter(Boolean).join(' · ') || undefined} />
+                  </li>
+                ))}
+              </ul>
+            )}
+          </section>
+        )}
 
         {parent && (
-          <Button variant="ghost" size="sm" className="justify-start" onClick={() => onSelect(parent.unit.id)}>
+          <Button variant="ghost" size="sm" className="justify-self-start" onClick={() => onSelect(parent.unit.id)}>
             <ArrowUp className="mr-2 h-4 w-4" /> Subir para {parent.unit.name}
           </Button>
         )}
@@ -437,18 +525,20 @@ function UnitPanel({ node, byId, onSelect }: { node: UnitNode; byId: Map<string,
 
 /* ───────────── Vista por estrutura ───────────── */
 
-/** Organograma pela estrutura (ADR 0004): Diretoria › Área › Equipe. Largo: desenho com zoom; estreito: árvore. */
+/**
+ * Organograma pela estrutura (ADR 0004): Diretoria › Área › Equipe. Largo: desenho com zoom, prévia
+ * ao passar o mouse e modal ao clicar; estreito: árvore e modal ao tocar.
+ */
 export function OrgStructureView({ units, people, canEdit = false }: { units: OrgUnit[]; people: HubPerson[]; canEdit?: boolean }) {
   const { roots, byId } = useMemo(() => buildTree(units, people), [units, people]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const selected = selectedId ? (byId.get(selectedId) ?? null) : null;
   const wide = useMediaQuery('(min-width: 1024px)');
-  const phone = useMediaQuery('(max-width: 639px)');
   const unassigned = people.filter((p) => !p.unitId).length;
   const withLeader = units.filter((u) => u.leaderIdVeneto).length;
 
   return (
-    <div className="grid min-w-0 gap-4">
+    <div className="grid min-w-0 gap-3">
       {canEdit && withLeader === 0 && (
         <p className="rounded-lg border border-dashed p-3 text-sm text-muted-foreground">
           Nenhuma unidade tem responsável ainda. Em{' '}
@@ -465,15 +555,15 @@ export function OrgStructureView({ units, people, canEdit = false }: { units: Or
         <TreeView roots={roots} onSelect={setSelectedId} />
       )}
 
-      <Sheet open={!!selected} onOpenChange={(open) => !open && setSelectedId(null)}>
-        <SheetContent side={phone ? 'bottom' : 'right'} className={cn('overflow-y-auto', phone ? 'max-h-[85vh] rounded-t-2xl' : 'w-full sm:max-w-md')}>
+      <Dialog open={!!selected} onOpenChange={(open) => !open && setSelectedId(null)}>
+        <DialogContent className="max-h-[85dvh] w-[calc(100vw-2rem)] max-w-2xl overflow-y-auto">
           {selected && <UnitPanel node={selected} byId={byId} onSelect={setSelectedId} />}
-        </SheetContent>
-      </Sheet>
+        </DialogContent>
+      </Dialog>
 
       {unassigned > 0 && (
         <p className="text-sm text-muted-foreground">
-          {unassigned} {unassigned === 1 ? 'pessoa ainda não está' : 'pessoas ainda não estão'} em nenhuma unidade (aparecem na vista &quot;Por liderança&quot; e na busca).
+          {unassigned} {unassigned === 1 ? 'pessoa ainda não está' : 'pessoas ainda não estão'} em nenhuma unidade (aparecem na busca).
         </p>
       )}
     </div>

@@ -13,6 +13,12 @@ import {
  * guarda as regras de visibilidade.
  */
 
+/**
+ * Itens do menu que não têm acesso próprio: seguem o de outro módulo. Pessoas e equipes é parte do
+ * piloto da nova Home, então aparece para quem tem `inicio:view` (o HubPilotGate barra o resto).
+ */
+const SHARED_ACCESS: Record<string, string> = { pessoas: 'inicio' };
+
 export type NavAccessContext = {
   permissions: CollaboratorPermissions;
   modulePermissions?: Record<string, string[]>;
@@ -34,7 +40,8 @@ export function canSeeHubModule(mod: HubModule, ctx: NavAccessContext): boolean 
 
   // Interno com acesso por pessoa (ex.: piloto da nova Home): mesma regra dos embarcados.
   if (mod.accessMode === 'explicit') {
-    return ctx.isSuperAdmin || resolveModuleAccess(mod, ctx.modulePermissions?.[mod.id]).hasAccess;
+    const accessId = SHARED_ACCESS[mod.id] ?? mod.id;
+    return ctx.isSuperAdmin || resolveModuleAccess({ ...mod, id: accessId }, ctx.modulePermissions?.[accessId]).hasAccess;
   }
 
   if (!mod.permission) return true;
@@ -46,7 +53,7 @@ export function canSeeHubModule(mod: HubModule, ctx: NavAccessContext): boolean 
 const STATIC_NO_ZOOM_ROUTES = ["/admin/crm", "/admin/strategic-panel", "/personal-panel", "/inicio", "/pessoas", "/publicacoes"];
 
 /** Páginas que pertencem a um item do menu sem estar sob o href dele. */
-const NAV_CHILD_ROUTES: Record<string, string[]> = { "/inicio": ["/publicacoes", "/pessoas"] };
+const NAV_CHILD_ROUTES: Record<string, string[]> = { "/inicio": ["/publicacoes"] };
 
 const under = (pathname: string, route: string) => pathname === route || pathname.startsWith(`${route}/`);
 

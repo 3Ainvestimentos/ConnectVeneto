@@ -31,6 +31,23 @@
     "defaultPermissions": []
   },
   {
+    "id": "pessoas",
+    "kind": "internal",
+    "label": "Pessoas e equipes",
+    "description": "Organograma pela estrutura (Diretoria › Área › Equipe) e busca de pessoas. Parte do piloto: aparece para quem tem inicio:view.",
+    "iconName": "Users",
+    "order": 0,
+    "enabled": true,
+    "showInNav": true,
+    "href": "/pessoas",
+    "noZoom": true,
+    "external": false,
+    "permission": null,
+    "altPermissions": [],
+    "accessMode": "explicit",
+    "defaultPermissions": []
+  },
+  {
     "id": "trackflow",
     "kind": "embedded",
     "label": "TrackFlow",
