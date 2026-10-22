@@ -26,4 +26,4 @@ tags: [hot-cache]
   sem trilha. Próximas levas: Diretoria fixa/realce do caminho, link `?unidade=`, linhas em SVG, busca
   no desenho, teclado. Aguardando feedback. (Merge 4b3fcb8 não disparou a Vercel; push novo resolveu.)
 - 2026-10-21 — Pendências de dados: campo Eixo só tem lixo; Área Comercial e Canal 3ARiva sem
-  responsável; team vazio (birthDate/admissão importados em 22/10, falta Caco Santos e Fernanda Adami); confirmar o nome "Operações" (Corporativo virou "Estratégia e Governança").
+  responsável; team vazio (birthDate/admissão importados em 22/10, falta Fernanda Adami); confirmar o nome "Operações" (Corporativo virou "Estratégia e Governança").
