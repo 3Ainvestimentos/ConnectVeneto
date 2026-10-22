@@ -27,6 +27,6 @@ tags: [hot-cache]
   no desenho, teclado. Aguardando feedback. (Merge 4b3fcb8 não disparou a Vercel; push novo resolveu.)
 - 2026-10-22 — 🟢 PR #59: Notícia/Aviso/Evento com botões e regras próprias (`kind`, `postKind`,
   `normalizePostInput`); Publicações no menu; sem "Voltar"; menu recolhe <1280px; embeds sempre tela
-  cheia. 🟡 **Permissionamento por perfis**: proposta enviada ao Victor, aguardando decisão (nada mudou).
+  cheia. 🟡 **Perfis de acesso** (ADR 0005, PR #60, sem merge): perfil por equipe + perfil próprio + ajustes; servidor grava permissions/modulePermissions. Telas antigas apagadas. Migração `migrate-access-profiles.mjs` simulada (3 perfis, 19 equipes, 25 pessoas com ajustes, zero mudança de acesso) — aguardando OK do Victor para merge + --apply juntos.
 - 2026-10-21 — Pendências de dados: campo Eixo só tem lixo; Área Comercial e Canal 3ARiva sem
   responsável; team vazio (birthDate/admissão importados em 22/10, falta Fernanda Adami); confirmar o nome "Operações" (Corporativo virou "Estratégia e Governança").
