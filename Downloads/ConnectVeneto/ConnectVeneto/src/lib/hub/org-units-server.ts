@@ -15,6 +15,7 @@ export async function readOrgUnits(): Promise<OrgUnit[]> {
       type: (UNIT_TYPES as readonly string[]).includes(v.type) ? v.type : 'equipe',
       parentId: v.parentId ? String(v.parentId) : null,
       leaderIdVeneto: v.leaderIdVeneto ? String(v.leaderIdVeneto) : null,
+      accessProfileId: v.accessProfileId ? String(v.accessProfileId) : null,
     };
   });
 }

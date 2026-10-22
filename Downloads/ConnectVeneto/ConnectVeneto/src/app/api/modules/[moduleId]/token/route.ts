@@ -18,14 +18,9 @@ const TOKEN_TTL_SECONDS = 15 * 60; // 15 minutos
 async function isSuperAdmin(uid: string, email: string | null): Promise<boolean> {
   try {
     const db = getFirestore(getFirebaseAdminApp());
-    const [adminDoc, configDoc] = await Promise.all([
-      db.collection('systemSettings').doc('admin_config').get(),
-      db.collection('systemSettings').doc('config').get(),
-    ]);
-    const adminEmails: string[] = [
-      ...((adminDoc.data()?.superAdminEmails ?? []) as string[]),
-      ...((configDoc.data()?.superAdminEmails ?? []) as string[]),
-    ];
+    // Uma lista só: `config` (a mesma das rules e de requireSuperAdmin).
+    const configDoc = await db.collection('systemSettings').doc('config').get();
+    const adminEmails: string[] = (configDoc.data()?.superAdminEmails ?? []) as string[];
     if (!email) return false;
     return adminEmails.some((e) => normalizeEmail(e) === normalizeEmail(email));
   } catch {

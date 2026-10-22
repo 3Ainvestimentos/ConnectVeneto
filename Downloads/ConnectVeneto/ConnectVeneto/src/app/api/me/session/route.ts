@@ -63,20 +63,12 @@ async function readSystemSettingsServerSide(): Promise<RawSettings> {
   const app = getFirebaseAdminApp();
   const db = getFirestore(app);
 
-  // Preferencia: admin_config para campos sensiveis (alvo da migracao do Parcial 7).
-  // Fallback: config (estado atual, ainda mantido para compatibilidade).
-  const [adminDoc, configDoc] = await Promise.all([
-    db.collection('systemSettings').doc('admin_config').get(),
-    db.collection('systemSettings').doc('config').get(),
-  ]);
-
-  const adminData = adminDoc.exists ? adminDoc.data() ?? {} : {};
+  // Uma lista só: `config`, a mesma que as rules e `requireSuperAdmin` leem (`admin_config`
+  // divergia em silêncio: a tela mostrava uma lista e gravava na outra).
+  const configDoc = await db.collection('systemSettings').doc('config').get();
   const configData = configDoc.exists ? configDoc.data() ?? {} : {};
 
-  const pickList = (key: string): string[] =>
-    toStringList(adminData[key]).length
-      ? toStringList(adminData[key])
-      : toStringList(configData[key]);
+  const pickList = (key: string): string[] => toStringList(configData[key]);
 
   return {
     superAdminEmails: pickList('superAdminEmails'),

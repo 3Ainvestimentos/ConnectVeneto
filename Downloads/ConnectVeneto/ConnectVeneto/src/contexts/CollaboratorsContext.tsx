@@ -5,8 +5,10 @@ import React, { createContext, useContext, ReactNode, useMemo } from 'react';
 import { getAuth } from 'firebase/auth';
 import { useQuery, useMutation, useQueryClient, UseMutationResult } from '@tanstack/react-query';
 import { getFirebaseApp } from '@/lib/firebase';
-import { addDocumentToCollection, updateDocumentInCollection, WithId, addMultipleDocumentsToCollection, listenToCollection, getCollection } from '@/lib/firestore-service';
+import { addDocumentToCollection, WithId, addMultipleDocumentsToCollection, listenToCollection, getCollection } from '@/lib/firestore-service';
 import { useAuth } from './AuthContext';
+import { DEFAULT_PERMISSIONS } from '@/lib/access/catalog';
+import type { AccessOverrides } from '@/lib/access/profiles';
 
 export interface CollaboratorPermissions {
   canManageWorkflows: boolean;
@@ -53,7 +55,9 @@ export interface Collaborator {
   leaderIdVeneto?: string;  // Gestor pelo idVeneto (ADR 0001, legado); `leader` fica como nome legado
   unitId?: string;          // Unidade da estrutura (ADR 0004): o gestor vem do responsável dela
   managerOverrideIdVeneto?: string; // Gestor fora da regra da estrutura (exceção manual)
-  hubHidden?: boolean;      // Não aparece no Hub (Pessoas, organograma, aniversários): contas de teste, quem saiu
+  hubHidden?: boolean;
+  accessProfileId?: string; // Perfil de acesso próprio (ADR 0005); sem ele, vale o da unidade
+  accessOverrides?: AccessOverrides; // Ajustes da pessoa sobre o perfil      // Não aparece no Hub (Pessoas, organograma, aniversários): contas de teste, quem saiu
   birthDate?: string;       // AAAA-MM-DD
   admissionDate?: string;   // AAAA-MM-DD (na Vêneto desde)
   careerHistory?: { position: string; period: string }[];
@@ -76,8 +80,6 @@ interface CollaboratorsContextType {
   addCollaborator: (collaborator: Omit<Collaborator, 'id'>) => Promise<WithId<Omit<Collaborator, 'id'>>>;
   addMultipleCollaborators: (collaborators: Omit<Collaborator, 'id'>[]) => Promise<void>;
   updateCollaborator: (currentData: Collaborator, newData: Omit<Collaborator, 'id'>) => Promise<void>;
-  updateCollaboratorPermissions: (id: string, permissions: CollaboratorPermissions) => Promise<void>;
-  updateModulePermissions: (id: string, moduleId: string, modulePerms: string[]) => Promise<void>;
   deleteCollaboratorMutation: UseMutationResult<void, Error, string, unknown>;
 }
 
@@ -134,24 +136,7 @@ const PROFILE_FIELDS = [
   'team', 'leaderIdVeneto', 'birthDate', 'admissionDate', 'careerHistory', 'unitId', 'managerOverrideIdVeneto', 'hubHidden',
 ] as const satisfies ReadonlyArray<keyof Collaborator>;
 
-const defaultPermissions: CollaboratorPermissions = {
-  canManageWorkflows: false,
-  canManageRequests: false,
-  canManageContent: false,
-  canManageTripsBirthdays: false,
-  canManageVacation: false,
-  canViewAudit: false,
-  canManageSystem: false,
-  canViewConsultaPessoal: false,
-  canViewDocuments: true,
-  canViewApplications: true,
-  canViewRegrasComerciais: true,
-  canManageRegrasComerciais: false,
-  // Acervo aberto a toda a empresa, como o repositório interno. Publicar é que
-  // continua restrito a quem cura a biblioteca.
-  canViewBibliotecaComercial: true,
-  canManageBibliotecaComercial: false,
-};
+const defaultPermissions: CollaboratorPermissions = DEFAULT_PERMISSIONS;
 
 export const CollaboratorsProvider = ({ children }: { children: ReactNode }) => {
   const queryClient = useQueryClient();
@@ -228,44 +213,6 @@ export const CollaboratorsProvider = ({ children }: { children: ReactNode }) => 
     },
   });
 
-  const updateCollaboratorPermissionsMutation = useMutation<void, Error, { id: string; permissions: CollaboratorPermissions }>({
-    mutationFn: async ({ id, permissions }) => {
-        const currentCollaborator = collaborators.find(c => c.id === id);
-        if (!currentCollaborator) throw new Error("Colaborador não encontrado");
-        
-        const logEntry = {
-            collaboratorId: id,
-            collaboratorName: currentCollaborator.name,
-            updatedBy: user?.displayName || 'Sistema',
-            updatedAt: new Date().toISOString(),
-            changes: [{
-                field: 'permissions',
-                oldValue: currentCollaborator.permissions,
-                newValue: permissions,
-            }]
-        };
-        await addDocumentToCollection(LOG_COLLECTION_NAME, logEntry);
-        await updateDocumentInCollection(COLLECTION_NAME, id, { permissions });
-    },
-    onSuccess: () => {
-        queryClient.invalidateQueries({ queryKey: [COLLECTION_NAME] });
-        queryClient.invalidateQueries({ queryKey: [LOG_COLLECTION_NAME] });
-    },
-  });
-
-  const updateModulePermissionsMutation = useMutation<void, Error, { id: string; moduleId: string; modulePerms: string[] }>({
-    mutationFn: async ({ id, moduleId, modulePerms }) => {
-      const collab = collaborators.find(c => c.id === id);
-      const current = collab?.modulePermissions ?? {};
-      await updateDocumentInCollection(COLLECTION_NAME, id, {
-        modulePermissions: { ...current, [moduleId]: modulePerms },
-      });
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [COLLECTION_NAME] });
-    },
-  });
-
   const deleteCollaboratorMutation = useMutation<void, Error, string>({
     mutationFn: async (id: string) => {
         await authorizedRequest(`${API_PATH}?id=${encodeURIComponent(id)}`, { method: 'DELETE' });
@@ -282,10 +229,8 @@ export const CollaboratorsProvider = ({ children }: { children: ReactNode }) => 
     addCollaborator: (collaborator: Omit<Collaborator, 'id'>) => addCollaboratorMutation.mutateAsync(collaborator),
     addMultipleCollaborators: (collaborators: Omit<Collaborator, 'id'>[]) => addMultipleCollaboratorsMutation.mutateAsync(collaborators),
     updateCollaborator: (currentData: Collaborator, newData: Omit<Collaborator, 'id'>) => updateCollaboratorMutation.mutateAsync({ currentData, newData }),
-    updateCollaboratorPermissions: (id: string, permissions: CollaboratorPermissions) => updateCollaboratorPermissionsMutation.mutateAsync({ id, permissions }),
-    updateModulePermissions: (id: string, moduleId: string, modulePerms: string[]) => updateModulePermissionsMutation.mutateAsync({ id, moduleId, modulePerms }),
     deleteCollaboratorMutation,
-  }), [collaborators, isFetching, addCollaboratorMutation, addMultipleCollaboratorsMutation, updateCollaboratorMutation, updateCollaboratorPermissionsMutation, deleteCollaboratorMutation]);
+  }), [collaborators, isFetching, addCollaboratorMutation, addMultipleCollaboratorsMutation, updateCollaboratorMutation, deleteCollaboratorMutation]);
 
   return (
     <CollaboratorsContext.Provider value={value}>

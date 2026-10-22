@@ -8,6 +8,7 @@ import { getAuth, signInWithPopup, signOut as firebaseSignOut, onAuthStateChange
 import { useRouter } from 'next/navigation';
 import { toast } from '@/hooks/use-toast';
 import { Collaborator, CollaboratorPermissions, getCollaboratorUserId } from './CollaboratorsContext';
+import { DEFAULT_PERMISSIONS } from '@/lib/access/catalog';
 import { addDocumentToCollection, getCollection, updateDocumentInCollection as updateFirestoreDoc } from '@/lib/firestore-service';
 import { useCollaboratorSync } from '@/hooks/useCollaboratorSync';
 import type { FirebaseError } from 'firebase/app';
@@ -118,22 +119,7 @@ const withTimeout = async <T,>(promise: Promise<T>, timeoutMs: number): Promise<
   }
 };
 
-const defaultPermissions: CollaboratorPermissions = {
-  canManageWorkflows: false,
-  canManageRequests: false,
-  canManageContent: false,
-  canManageTripsBirthdays: false,
-  canManageVacation: false,
-  canViewAudit: false,
-  canManageSystem: false,
-  canViewConsultaPessoal: false,
-  canViewDocuments: true,
-  canViewApplications: true,
-  canViewRegrasComerciais: true,
-  canManageRegrasComerciais: false,
-  canViewBibliotecaComercial: true,
-  canManageBibliotecaComercial: false,
-};
+const defaultPermissions: CollaboratorPermissions = DEFAULT_PERMISSIONS;
 
 /**
  * Permissões que caracterizam um administrador geral (`isAdmin`) — liberam o `AdminGuard`

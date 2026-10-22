@@ -109,6 +109,22 @@ _Avoid_: time, squad, célula
 **Organograma**:
 Visão das pessoas em /pessoas, de dois jeitos: "Por estrutura" (Diretorias, Áreas e Equipes com Responsável e pessoas) e "Por liderança" (quem reporta a quem, navegável a partir do topo).
 
+### Acesso
+
+**Perfil de acesso**:
+Pacote configurável do que uma pessoa acessa: páginas, permissões de gestão e módulos (com as sub-permissões de cada um). Fica numa Unidade da Estrutura e vale para quem está nela e nas de baixo que não tiverem perfil próprio (ADR 0005). Criar e editar perfis é de super admin; atribuir é do RH e dos super admins.
+_Avoid_: papel, role, grupo de permissão
+
+**Perfil próprio**:
+Perfil atribuído direto a uma pessoa, no lugar do da Unidade dela.
+
+**Ajuste**:
+Item ligado ou desligado numa pessoa, por cima do perfil (ex.: um comercial que também edita o Mix de Serviços).
+_Avoid_: exceção de permissão, override
+
+**Acesso ao sistema**:
+Administração do sistema e Auditoria. Só um super admin concede, por perfil ou ajuste.
+
 ### Agenda
 
 **Viagem**:

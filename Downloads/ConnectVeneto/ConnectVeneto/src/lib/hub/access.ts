@@ -24,12 +24,9 @@ export interface HubViewer {
 
 async function superAdminEmails(): Promise<string[]> {
   const db = getFirestore(getFirebaseAdminApp());
-  // Super admin vive em duas listas (front e rules/auth.ts); vale estar em qualquer uma.
-  const [adminDoc, configDoc] = await Promise.all([
-    db.collection('systemSettings').doc('admin_config').get(),
-    db.collection('systemSettings').doc('config').get(),
-  ]);
-  return [...((adminDoc.data()?.superAdminEmails ?? []) as string[]), ...((configDoc.data()?.superAdminEmails ?? []) as string[])]
+  // Uma lista só: `config` (a mesma das rules e de requireSuperAdmin).
+  const configDoc = await db.collection('systemSettings').doc('config').get();
+  return ((configDoc.data()?.superAdminEmails ?? []) as string[])
     .map((e) => normalizeEmail(e))
     .filter((e): e is string => !!e);
 }
