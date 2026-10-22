@@ -22,7 +22,8 @@ tags: [hot-cache]
 - 2026-10-22 — 🟡 **Organograma v2/v3** (PRs #55, #56): visual "Organograma" em tela cheia, zoom
   flutuante, prévia no hover + modal central ao clicar, árvore no celular; sem rótulos Área/Equipe;
   sem o seletor liderança/estrutura; "Pessoas e equipes" no menu (`hubModules/pessoas`, acesso do
-  piloto). Próximas levas: Diretoria fixa/realce do caminho, link `?unidade=`, linhas em SVG, busca
+  piloto). PR #57: assistentes recuados abaixo do comercial (`groupAssistants`) e Perfil/Estrutura
+  sem trilha. Próximas levas: Diretoria fixa/realce do caminho, link `?unidade=`, linhas em SVG, busca
   no desenho, teclado. Aguardando feedback. (Merge 4b3fcb8 não disparou a Vercel; push novo resolveu.)
 - 2026-10-21 — Pendências de dados: campo Eixo só tem lixo; Área Comercial e Canal 3ARiva sem
   responsável; birthDate/team vazios; confirmar o nome "Operações" (Corporativo virou "Estratégia e Governança").
