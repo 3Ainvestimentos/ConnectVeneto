@@ -94,7 +94,7 @@ const db = getFirestore();
 const docs = (await db.collection('collaborators').get()).docs;
 
 /** Nome da planilha → nome no cadastro, quando o primeiro nome muda (confirmado pela equipe e pelo sobrenome). */
-const ALIASES = { 'maria de fatima bicalho lobenwein': 'Fatima Bicalho' };
+const ALIASES = { 'maria de fatima bicalho lobenwein': 'Fatima Bicalho', 'carlos augusto azevedo ferreira dos santos': 'Caco Santos' };
 
 function find(sheetName) {
   const name = ALIASES[norm(sheetName)] ?? sheetName;
