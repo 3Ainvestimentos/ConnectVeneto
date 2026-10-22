@@ -95,9 +95,9 @@ function PersonRow({ person, size = 'sm', detail }: { person: HubPerson; size?: 
 /** Responsável dentro de uma caixa clicável (sem link, porque a caixa inteira é um botão). */
 function LeaderLine({ person }: { person: HubPerson }) {
   return (
-    <div className="flex items-center gap-2 rounded-lg bg-primary/5 px-2 py-1.5">
+    <div className="flex min-w-0 items-center gap-2 rounded-lg bg-primary/5 px-2 py-1.5" title={person.name}>
       <PersonAvatar person={person} size="sm" />
-      <span className="min-w-0">
+      <span className="min-w-0 flex-1">
         <span className="block truncate text-sm font-semibold leading-tight">{person.name}</span>
         <span className="block text-xs leading-tight text-muted-foreground">Responsável</span>
       </span>
@@ -212,7 +212,7 @@ function UnitBox({ node, selected, dragging, onSelect }: { node: UnitNode; selec
           }}
           aria-pressed={selected}
           className={cn(
-            'w-full rounded-xl border p-3 text-left transition-colors hover:border-primary/50 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+            'w-full min-w-0 overflow-hidden rounded-xl border p-3 text-left transition-colors hover:border-primary/50 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
             node.unit.type === 'equipe' ? 'bg-background' : 'bg-card shadow-sm',
             selected && 'border-primary ring-4 ring-primary/10',
           )}
@@ -337,12 +337,12 @@ function OrgChart({ roots, selectedId, onSelect }: { roots: UnitNode[]; selected
               <ul className="flex items-start">
                 {areas.map((a) => (
                   <li key={a.unit.id} className={BRANCH}>
-                    <div className="flex w-52 flex-col">
+                    <div className="flex w-52 min-w-0 flex-col">
                       <UnitBox node={a} selected={selectedId === a.unit.id} dragging={dragging} onSelect={onSelect} />
                       {a.children.length > 0 && (
-                        <div className="ml-4 grid gap-2 border-l pl-3 pt-2">
+                        <div className="ml-4 grid min-w-0 grid-cols-[minmax(0,1fr)] gap-2 border-l pl-3 pt-2">
                           {a.children.map((c) => (
-                            <div key={c.unit.id} className="relative before:absolute before:-left-3 before:top-6 before:w-3 before:border-t before:border-border before:content-['']">
+                            <div key={c.unit.id} className="relative min-w-0 before:absolute before:-left-3 before:top-6 before:w-3 before:border-t before:border-border before:content-['']">
                               <UnitBox node={c} selected={selectedId === c.unit.id} dragging={dragging} onSelect={onSelect} />
                             </div>
                           ))}

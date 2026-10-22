@@ -120,7 +120,7 @@ export const embeddedModuleSchema = z.object({
   permissionCatalog: z
     .array(z.object({ key: permissionKeySchema, label: z.string().trim().min(1).max(60) }))
     .default([]),
-  /** fullscreen = ocupa a área toda; framed = cabeçalho + cartão com borda. */
+  /** Legado: o embed agora é sempre a área de trabalho inteira; o valor é aceito e ignorado. */
   layout: z.enum(['fullscreen', 'framed']).default('fullscreen'),
   /** Tema do skeleton exibido até o módulo sinalizar CV_MODULE_READY. */
   skeletonTheme: z.enum(['light', 'dark']).optional(),

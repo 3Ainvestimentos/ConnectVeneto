@@ -255,7 +255,7 @@ function ModuleEditor({ state, onClose }: { state: EditorState; onClose: () => v
             </Field>
           </div>
 
-          <Field label="Descrição" hint={kind === 'embedded' ? 'Aparece como subtítulo no layout com cabeçalho.' : undefined}>
+          <Field label="Descrição">
             <Input value={form.description} onChange={(e) => set('description', e.target.value)} />
           </Field>
 
@@ -274,22 +274,13 @@ function ModuleEditor({ state, onClose }: { state: EditorState; onClose: () => v
                 <Input value={form.url} onChange={(e) => set('url', e.target.value)} placeholder="https://meu-modulo.azurewebsites.net" />
               </Field>
 
-              <div className="grid grid-cols-3 gap-4">
+              <div className="grid grid-cols-2 gap-4">
                 <Field label="Quem acessa">
                   <Select value={form.accessMode} onValueChange={(v) => set('accessMode', v as FormState['accessMode'])}>
                     <SelectTrigger><SelectValue /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="explicit">Só quem for liberado</SelectItem>
                       <SelectItem value="all">Todos por padrão</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </Field>
-                <Field label="Layout">
-                  <Select value={form.layout} onValueChange={(v) => set('layout', v as FormState['layout'])}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="fullscreen">Tela cheia</SelectItem>
-                      <SelectItem value="framed">Com cabeçalho</SelectItem>
                     </SelectContent>
                   </Select>
                 </Field>

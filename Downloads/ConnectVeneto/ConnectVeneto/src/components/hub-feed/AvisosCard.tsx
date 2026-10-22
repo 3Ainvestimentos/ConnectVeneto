@@ -126,7 +126,7 @@ export function AvisosCard() {
       </div>
       <PostDialog postId={openId} onOpenChange={(o) => !o && setOpenId(null)} />
       {canPublish && data && (
-        <NewPostDialog open={newOpen} onOpenChange={setNewOpen} channels={data.channels} viewer={data.viewer} initialImportance="importante" />
+        <NewPostDialog open={newOpen} onOpenChange={setNewOpen} channels={data.channels} viewer={data.viewer} kind="aviso" />
       )}
     </Card>
   );

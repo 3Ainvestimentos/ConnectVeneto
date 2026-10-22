@@ -1,7 +1,8 @@
 "use client";
 
 import { useMemo, useState } from 'react';
-import { CalendarCheck, CalendarDays, Megaphone } from 'lucide-react';
+import { CalendarCheck, CalendarDays, Megaphone, Plus } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { GoogleEventDetailsModal } from '@/components/dashboard-v2/GoogleEventDetailsModal';
@@ -10,6 +11,7 @@ import { useCompanyCalendar } from '@/hooks/useCompanyCalendar';
 import { useHubFeed } from '@/hooks/useHubFeed';
 import { calendarStart, type CalendarItem } from '@/lib/calendar/types';
 import { happensIn, type DateRange } from '@/lib/hub/periods';
+import { NewPostDialog } from './NewPostDialog';
 import { PostDialog } from './PostDialog';
 
 const DAY = 24 * 60 * 60 * 1000;
@@ -67,6 +69,8 @@ export function AgendaCard() {
   const [openCalendar, setOpenCalendar] = useState<CalendarItem | null>(null);
   const [showAll, setShowAll] = useState(false);
   const [windowId, setWindowId] = useState<WindowId>('60');
+  const [newOpen, setNewOpen] = useState(false);
+  const canPublish = !!data?.channels.some((c) => c.canPublish);
   const current = WINDOWS.find((w) => w.id === windowId)!;
 
   const range = useMemo(() => windowRange(windowId), [windowId]);
@@ -103,6 +107,12 @@ export function AgendaCard() {
         <h2 className="inline-flex items-center gap-2 font-headline text-lg font-semibold">
           <CalendarDays className="h-5 w-5 text-primary" aria-hidden /> Agenda e Eventos
         </h2>
+        <div className="flex items-center gap-2">
+        {canPublish && (
+          <Button size="sm" variant="outline" onClick={() => setNewOpen(true)}>
+            <Plus className="mr-1 h-4 w-4" /> Novo evento
+          </Button>
+        )}
         <Select
           value={windowId}
           onValueChange={(v) => {
@@ -121,6 +131,7 @@ export function AgendaCard() {
             ))}
           </SelectContent>
         </Select>
+        </div>
       </div>
       <div className="px-5 pb-5 pt-4">
         {data && entries.length === 0 && !calendar.isLoading && (
@@ -163,6 +174,7 @@ export function AgendaCard() {
         )}
       </div>
       <PostDialog postId={openPost} onOpenChange={(o) => !o && setOpenPost(null)} />
+      {canPublish && data && <NewPostDialog open={newOpen} onOpenChange={setNewOpen} channels={data.channels} viewer={data.viewer} kind="evento" />}
       <GoogleEventDetailsModal
         isOpen={!!openCalendar}
         onClose={() => setOpenCalendar(null)}

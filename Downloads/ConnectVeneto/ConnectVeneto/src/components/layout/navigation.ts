@@ -14,10 +14,11 @@ import {
  */
 
 /**
- * Itens do menu que não têm acesso próprio: seguem o de outro módulo. Pessoas e equipes é parte do
- * piloto da nova Home, então aparece para quem tem `inicio:view` (o HubPilotGate barra o resto).
+ * Itens do menu que não têm acesso próprio: seguem o de outro módulo. Pessoas e equipes e
+ * Publicações são parte do piloto da nova Home, então aparecem para quem tem `inicio:view` (o
+ * HubPilotGate barra o resto).
  */
-const SHARED_ACCESS: Record<string, string> = { pessoas: 'inicio' };
+const SHARED_ACCESS: Record<string, string> = { pessoas: 'inicio', publicacoes: 'inicio' };
 
 export type NavAccessContext = {
   permissions: CollaboratorPermissions;
@@ -52,16 +53,13 @@ export function canSeeHubModule(mod: HubModule, ctx: NavAccessContext): boolean 
 /** Rotas sem zoom de conteúdo que não são itens do registro. */
 const STATIC_NO_ZOOM_ROUTES = ["/admin/crm", "/admin/strategic-panel", "/personal-panel", "/inicio", "/pessoas", "/publicacoes"];
 
-/** Páginas que pertencem a um item do menu sem estar sob o href dele. */
-const NAV_CHILD_ROUTES: Record<string, string[]> = { "/inicio": ["/publicacoes"] };
-
 const under = (pathname: string, route: string) => pathname === route || pathname.startsWith(`${route}/`);
 
-/** O item do menu fica ativo na própria rota, nas subrotas e nas páginas filhas declaradas acima. */
+/** O item do menu fica ativo na própria rota e nas subrotas. */
 export function isModuleActive(mod: Pick<HubModule, "href" | "external">, pathname: string): boolean {
   if (mod.external) return false;
   if (mod.href === "/dashboard") return pathname === mod.href;
-  return under(pathname, mod.href) || (NAV_CHILD_ROUTES[mod.href] ?? []).some((r) => under(pathname, r));
+  return under(pathname, mod.href);
 }
 
 export function isNoZoomPath(pathname: string, modules: HubModule[]): boolean {

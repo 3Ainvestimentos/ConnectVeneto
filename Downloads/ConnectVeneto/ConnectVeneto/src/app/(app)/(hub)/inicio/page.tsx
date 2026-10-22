@@ -19,7 +19,7 @@ import { HubApiError, useHubFeed } from '@/hooks/useHubFeed';
 import { findCollaboratorByEmail } from '@/lib/email-utils';
 
 /** Último card de cada coluna: estica (lg) para as duas colunas terminarem na mesma altura. */
-const STRETCH_LAST = 'min-w-0 lg:order-none lg:flex-1 lg:[&>*]:h-full';
+const STRETCH_LAST = 'min-w-0 xl:order-none xl:flex-1 xl:[&>*]:h-full';
 
 function useGreeting() {
   const [greeting, setGreeting] = useState('');
@@ -80,15 +80,15 @@ export default function InicioPage() {
           // Duas colunas que terminam juntas: o último card de cada uma (Publicações / Agenda e Eventos)
           // estica até a altura da outra. No celular: Avisos → To-do → Agenda e Eventos → Pessoas →
           // Publicações → Indicadores Estratégicos.
-          <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_360px] xl:grid-cols-[minmax(0,1fr)_400px] 2xl:grid-cols-[minmax(0,1fr)_460px] 2xl:gap-8">
-            <div className="contents lg:flex lg:min-w-0 lg:flex-col lg:gap-6">
-              <div className="order-2 min-w-0 lg:order-none">
+          <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_380px] 2xl:grid-cols-[minmax(0,1fr)_440px] 2xl:gap-8">
+            <div className="contents xl:flex xl:min-w-0 xl:flex-col xl:gap-6">
+              <div className="order-2 min-w-0 xl:order-none">
                 <WidgetErrorBoundary title="To-do indisponível">
                   <TodoCard />
                 </WidgetErrorBoundary>
               </div>
               {/* Viagens (leaderTrips), férias aprovadas e aniversários vêm do cadastro real. */}
-              <div className="order-4 min-w-0 lg:order-none">
+              <div className="order-4 min-w-0 xl:order-none">
                 <PeoplePanel />
               </div>
               <div className={STRETCH_LAST + ' order-5'}>
@@ -96,12 +96,12 @@ export default function InicioPage() {
               </div>
             </div>
 
-            <aside className="contents lg:flex lg:min-w-0 lg:flex-col lg:gap-6">
+            <aside className="contents xl:flex xl:min-w-0 xl:flex-col xl:gap-6">
               {/* Números da Vêneto como um todo: valem para todo mundo (decisão de 2026-10-21). */}
-              <div className="order-6 min-w-0 empty:hidden lg:order-none">
+              <div className="order-6 min-w-0 empty:hidden xl:order-none">
                 <StrategicIndicators />
               </div>
-              <div className="order-1 min-w-0 lg:order-none">
+              <div className="order-1 min-w-0 xl:order-none">
                 <AvisosCard />
               </div>
               <div className={STRETCH_LAST + ' order-3'}>

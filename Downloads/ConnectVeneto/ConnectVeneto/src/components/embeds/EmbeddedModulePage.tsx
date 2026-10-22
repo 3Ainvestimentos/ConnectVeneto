@@ -2,39 +2,19 @@
 
 import { useSearchParams } from 'next/navigation';
 import ModuleEmbed from '@/components/embeds/ModuleEmbed';
-import { PageHeader } from '@/components/layout/PageHeader';
 import type { EmbeddedHubModule } from '@/config/modules';
 
 /**
- * Página de um módulo embarcado, montada a partir do registro `hubModules`.
- * - layout 'framed': cabeçalho + cartão com borda (como o TrackFlow);
- * - layout 'fullscreen': ocupa toda a área abaixo do header (como o Dados Estratégicos).
+ * Página de um módulo embarcado, montada a partir do registro `hubModules`. O módulo é sempre a área
+ * de trabalho inteira abaixo do header, sem título do Connect (o campo `layout` do registro é ignorado).
  */
 export default function EmbeddedModulePage({ module: mod }: { module: EmbeddedHubModule }) {
   const skeleton = mod.skeletonTheme === 'light' ? <LightSkeleton /> : undefined;
   // Deep link: /<slug>?to=/caminho/no/modulo (ex.: clique numa notificação).
   const initialPath = useSearchParams().get('to');
 
-  if (mod.layout === 'framed') {
-    return (
-      <div className="flex flex-col gap-4 p-6 md:p-8 h-full">
-        <PageHeader title={mod.label} description={mod.description ?? ''} />
-        <div className="flex-1 rounded-xl overflow-hidden border border-border bg-background shadow-sm min-h-[75vh]">
-          <ModuleEmbed
-            module={mod}
-            title={mod.label}
-            skeleton={skeleton}
-            className="relative w-full h-full min-h-[calc(100vh-12rem)]"
-            iframeClassName="rounded-lg"
-            initialPath={initialPath}
-          />
-        </div>
-      </div>
-    );
-  }
-
   return (
-    <div className="relative w-full overflow-hidden" style={{ height: 'calc(100vh - 3.5rem)' }}>
+    <div className="relative w-full overflow-hidden" style={{ height: 'calc(100dvh - 3.5rem)' }}>
       <ModuleEmbed
         module={mod}
         title={mod.label}

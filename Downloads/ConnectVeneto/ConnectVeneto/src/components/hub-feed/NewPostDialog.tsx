@@ -29,7 +29,7 @@ import { toast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { useHubFeedActions } from '@/hooks/useHubFeed';
 import { formatBytes, parseVideoUrl } from '@/lib/hub/media';
-import type { CreatePostInput, FeedChannel, FeedPost as FeedPostData, HubButton, HubVideo, Importance } from '@/lib/hub/model';
+import type { CreatePostInput, FeedChannel, FeedPost as FeedPostData, HubButton, HubVideo, PostKind } from '@/lib/hub/model';
 import type { CalendarItem } from '@/lib/calendar/types';
 import { ACCEPT_ATTR, uploadHubFile, validateUpload, type UploadKind } from '@/lib/hub/upload';
 import { FeedPost } from './FeedPost';
@@ -60,16 +60,18 @@ type VideoDraft = (HubVideo & { file?: File }) | null;
 const toTime = (iso: string) => new Date(iso).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', hour12: false });
 const atLocal = (date: string, time: string) => new Date(`${date}T${time || '09:00'}:00`).toISOString();
 
-function Block({ icon: Icon, title, onRemove, children }: { icon: LucideIcon; title: string; onRemove: () => void; children: React.ReactNode }) {
+function Block({ icon: Icon, title, onRemove, children }: { icon: LucideIcon; title: string; onRemove?: () => void; children: React.ReactNode }) {
   return (
     <div className="rounded-lg border bg-muted/30">
       <div className="flex items-center justify-between gap-2 border-b px-3 py-2">
         <span className="inline-flex items-center gap-2 text-sm font-semibold">
           <Icon className="h-4 w-4 text-primary" /> {title}
         </span>
-        <button type="button" onClick={onRemove} className="rounded p-1 text-muted-foreground hover:bg-muted hover:text-foreground" aria-label={`Remover ${title.toLowerCase()}`}>
-          <X className="h-4 w-4" />
-        </button>
+        {onRemove && (
+          <button type="button" onClick={onRemove} className="rounded p-1 text-muted-foreground hover:bg-muted hover:text-foreground" aria-label={`Remover ${title.toLowerCase()}`}>
+            <X className="h-4 w-4" />
+          </button>
+        )}
       </div>
       <div className="grid gap-3 p-3">{children}</div>
     </div>
@@ -171,19 +173,28 @@ function CalendarImport({ onPick }: { onPick: (item: CalendarItem) => void }) {
   );
 }
 
+const KIND_TITLE: Record<PostKind, string> = { noticia: 'Nova notícia', aviso: 'Novo aviso', evento: 'Novo evento' };
+const KIND_HINT: Record<PostKind, string> = {
+  noticia: 'Vai para Publicações e para o Resumo diário.',
+  aviso: 'Vai para Publicações e fica em Avisos, na Home, até o prazo.',
+  evento: 'Vai para Publicações e para a Agenda e Eventos, com confirmação de presença.',
+};
+
+const newEvent = (): EventDraft => ({ date: toDateInput(daysFromNow(14)), start: '09:00', end: '', place: '', audience: 'Interno', addToCompanyCalendar: false });
+
 export function NewPostDialog({
   open,
   onOpenChange,
   channels,
   viewer,
-  initialImportance = 'normal',
+  kind = 'noticia',
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   channels: FeedChannel[];
   viewer: { email: string; name: string };
-  /** Tipo já marcado ao abrir: "Novo aviso" (Home) abre como Aviso. */
-  initialImportance?: Importance;
+  /** Cada tipo tem o seu botão: Notícia (só Feed), Aviso (Feed + Avisos) e Evento (Feed + Agenda). */
+  kind?: PostKind;
 }) {
   const { user } = useAuth();
   const { createPost } = useHubFeedActions();
@@ -192,7 +203,7 @@ export function NewPostDialog({
   const [sending, setSending] = useState<string | null>(null);
   const [title, setTitle] = useState('');
   const [body, setBody] = useState('');
-  const [importance, setImportance] = useState<Importance>(initialImportance);
+  const importance = kind === 'aviso' ? 'importante' : 'normal';
   const [highlightUntil, setHighlightUntil] = useState(toDateInput(daysFromNow(7)));
   const [images, setImages] = useState<LocalFile[]>([]);
   const [video, setVideo] = useState<VideoDraft>(null);
@@ -200,7 +211,7 @@ export function NewPostDialog({
   const [videoLink, setVideoLink] = useState('');
   const [files, setFiles] = useState<LocalFile[]>([]);
   const [buttons, setButtons] = useState<HubButton[] | null>(null);
-  const [event, setEvent] = useState<EventDraft | null>(null);
+  const [event, setEvent] = useState<EventDraft | null>(() => (kind === 'evento' ? newEvent() : null));
   const [poll, setPoll] = useState<string[] | null>(null);
   const [mobileTab, setMobileTab] = useState<'editar' | 'previa'>('editar');
   const [submitted, setSubmitted] = useState(false);
@@ -211,14 +222,13 @@ export function NewPostDialog({
   const reset = () => {
     setTitle('');
     setBody('');
-    setImportance(initialImportance);
     setImages([]);
     setVideo(null);
     setVideoMode(null);
     setVideoLink('');
     setFiles([]);
     setButtons(null);
-    setEvent(null);
+    setEvent(kind === 'evento' ? newEvent() : null);
     setPoll(null);
     setSubmitted(false);
     setMobileTab('editar');
@@ -244,7 +254,7 @@ export function NewPostDialog({
   const validButtons = (buttons ?? []).filter((b) => b.label.trim() && /^https?:\/\//i.test(b.href.trim()));
   const pollOptions = (poll ?? []).map((o) => o.trim()).filter(Boolean);
 
-  const eventInput = event
+  const eventInput = kind === 'evento' && event
     ? {
         start: atLocal(event.date, event.start),
         ...(event.end ? { end: atLocal(event.date, event.end) } : {}),
@@ -264,6 +274,7 @@ export function NewPostDialog({
     authorName: viewer.name,
     title: title.trim() || 'Título da publicação',
     body: body.trim() || 'O texto da publicação aparece aqui.',
+    kind,
     importance,
     highlightUntil: highlightIso,
     images: images.map((i) => ({ url: i.previewUrl, name: i.name })),
@@ -324,6 +335,7 @@ export function NewPostDialog({
         channelId,
         title: title.trim(),
         body: body.trim(),
+        kind,
         importance,
         ...(highlightIso ? { highlightUntil: highlightIso } : {}),
         images: uploadedImages,
@@ -337,10 +349,12 @@ export function NewPostDialog({
       toast({
         title: 'Publicado',
         description:
-          event?.addToCompanyCalendar && !event.calendarEventId
-            ? 'O evento ainda não vai para o Google Agenda da Vêneto: essa integração entra numa próxima etapa.'
-            : highlightIso
-              ? `Aparece em Avisos, na Home, até ${shortDate(highlightIso)}.`
+          kind === 'evento'
+            ? event?.addToCompanyCalendar && !event.calendarEventId
+              ? 'O evento já está em Publicações e na Agenda e Eventos. Ele ainda não vai para o Google Agenda da Vêneto: essa integração entra numa próxima etapa.'
+              : 'O evento já está em Publicações e na Agenda e Eventos.'
+            : kind === 'aviso' && highlightIso
+              ? `O aviso já está em Publicações e em Avisos, na Home, até ${shortDate(highlightIso)}.`
               : 'A notícia já está em Publicações e entra no próximo Resumo.',
       });
       reset();
@@ -386,31 +400,12 @@ export function NewPostDialog({
             </SelectContent>
           </Select>
         </div>
-        <div className="grid gap-1.5">
-          <Label>Tipo</Label>
-          <div className="flex items-center gap-2">
-            <div className="inline-flex rounded-md bg-muted p-1 text-sm" role="radiogroup" aria-label="Tipo de publicação">
-              {(['normal', 'importante'] as const).map((v) => (
-                <button
-                  key={v}
-                  type="button"
-                  role="radio"
-                  aria-checked={importance === v}
-                  onClick={() => setImportance(v)}
-                  className={cn('rounded px-3 py-1.5 font-medium', importance === v ? 'bg-card shadow-sm' : 'text-muted-foreground hover:text-foreground')}
-                >
-                  {v === 'normal' ? 'Notícia' : 'Aviso'}
-                </button>
-              ))}
-            </div>
-            {importance === 'importante' && (
-              <label className="inline-flex items-center gap-2 text-sm text-muted-foreground">
-                válido até
-                <Input aria-label="Aviso válido até" type="date" value={highlightUntil} onChange={(e) => setHighlightUntil(e.target.value)} className="h-9 w-auto" title="O aviso fica na Home até esta data" />
-              </label>
-            )}
+        {kind === 'aviso' && (
+          <div className="grid gap-1.5">
+            <Label htmlFor="np-until">Aviso válido até</Label>
+            <Input id="np-until" type="date" value={highlightUntil} onChange={(e) => setHighlightUntil(e.target.value)} title="O aviso fica em Avisos, na Home, até esta data" />
           </div>
-        </div>
+        )}
       </div>
 
       <div className="grid gap-1.5">
@@ -527,8 +522,8 @@ export function NewPostDialog({
         </Block>
       )}
 
-      {event && (
-        <Block icon={CalendarDays} title="Evento" onRemove={() => setEvent(null)}>
+      {kind === 'evento' && event && (
+        <Block icon={CalendarDays} title="Evento">
           <CalendarImport onPick={fromCalendar} />
           {event.calendarEventId && <p className="text-xs text-muted-foreground">Vinculado a um evento do Google Agenda da Vêneto.</p>}
           <div className="grid gap-3 sm:grid-cols-3">
@@ -597,17 +592,11 @@ export function NewPostDialog({
 
       <div className="grid gap-2">
         <span className="text-sm font-medium">Adicionar à publicação</span>
-        <div className="grid grid-cols-3 gap-2 sm:grid-cols-6">
+        <div className="grid grid-cols-3 gap-2 sm:grid-cols-5">
           <AddButton icon={ImagePlus} label="Imagens" onClick={() => imageInput.current?.click()} />
           <AddButton icon={Video} label="Vídeo" disabled={!!videoMode} onClick={() => setVideoMode('upload')} />
           <AddButton icon={FileText} label="Arquivo" onClick={() => fileInput.current?.click()} />
           <AddButton icon={Link2} label="Botão" disabled={!!buttons} onClick={() => setButtons([{ label: '', href: '' }])} />
-          <AddButton
-            icon={CalendarDays}
-            label="Evento"
-            disabled={!!event}
-            onClick={() => setEvent({ date: toDateInput(daysFromNow(14)), start: '09:00', end: '', place: '', audience: 'Interno', addToCompanyCalendar: false })}
-          />
           <AddButton icon={BarChart3} label="Enquete" disabled={!!poll} onClick={() => setPoll(['', ''])} />
         </div>
       </div>
@@ -635,11 +624,11 @@ export function NewPostDialog({
         onOpenChange(o);
       }}
     >
-      <DialogContent className="flex max-h-[92vh] flex-col gap-0 p-0 sm:max-w-5xl">
-        <DialogHeader className="border-b px-6 py-4">
-          <DialogTitle>{importance === 'importante' ? 'Novo aviso' : 'Nova publicação'}</DialogTitle>
-          <DialogDescription>Escreva, adicione o que precisar e confira a prévia antes de publicar.</DialogDescription>
-          <div className="mt-2 inline-flex self-start rounded-md bg-muted p-1 text-sm lg:hidden">
+      <DialogContent className="flex max-h-[92dvh] w-[calc(100vw-1rem)] flex-col gap-0 p-0 sm:max-w-5xl">
+        <DialogHeader className="border-b px-4 py-4 sm:px-6">
+          <DialogTitle>{KIND_TITLE[kind]}</DialogTitle>
+          <DialogDescription>{KIND_HINT[kind]}</DialogDescription>
+          <div className="mt-2 inline-flex self-start rounded-md bg-muted p-1 text-sm xl:hidden">
             {(['editar', 'previa'] as const).map((t) => (
               <button key={t} type="button" onClick={() => setMobileTab(t)} className={cn('rounded px-3 py-1', mobileTab === t ? 'bg-card shadow-sm' : 'text-muted-foreground')}>
                 {t === 'editar' ? 'Editar' : 'Pré-visualizar'}
@@ -648,12 +637,12 @@ export function NewPostDialog({
           </div>
         </DialogHeader>
 
-        <div className="grid min-h-0 flex-1 overflow-y-auto lg:grid-cols-[minmax(0,1fr)_420px] lg:overflow-hidden">
-          <div className={cn('min-w-0 p-6 lg:overflow-y-auto', mobileTab === 'previa' && 'hidden lg:block')}>{form}</div>
-          <div className={cn('min-w-0 overflow-x-hidden border-l bg-muted/30 p-6 lg:overflow-y-auto', mobileTab === 'editar' && 'hidden lg:block')}>{preview}</div>
+        <div className="grid min-h-0 flex-1 overflow-y-auto xl:grid-cols-[minmax(0,1fr)_420px] xl:overflow-hidden">
+          <div className={cn('min-w-0 p-4 sm:p-6 xl:overflow-y-auto', mobileTab === 'previa' && 'hidden xl:block')}>{form}</div>
+          <div className={cn('min-w-0 overflow-x-hidden bg-muted/30 p-4 sm:p-6 xl:overflow-y-auto xl:border-l', mobileTab === 'editar' && 'hidden xl:block')}>{preview}</div>
         </div>
 
-        <DialogFooter className="border-t px-6 py-4">
+        <DialogFooter className="flex-row items-center gap-2 border-t px-4 py-3 sm:px-6 sm:py-4">
           <Button variant="outline" onClick={() => onOpenChange(false)} disabled={!!sending}>
             Cancelar
           </Button>

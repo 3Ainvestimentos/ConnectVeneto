@@ -10,6 +10,7 @@ import { getFirestore, type Firestore, type Transaction } from 'firebase-admin/f
 import { getFirebaseAdminApp } from '@/lib/firebase-admin';
 import {
   HUB_COLLECTIONS as C,
+  normalizePostInput,
   pairId,
   type CreatePostInput,
   type DigestResponse,
@@ -112,7 +113,10 @@ export async function listFeed(viewer: HubViewer): Promise<FeedPost[]> {
 
 // ---------- Publicações ----------
 
-export async function createPost(viewer: HubViewer, input: CreatePostInput): Promise<HubPost> {
+export async function createPost(viewer: HubViewer, raw: CreatePostInput): Promise<HubPost> {
+  const normalized = normalizePostInput(raw);
+  if (!normalized.ok) throw new Error(`INVALID_POST:${normalized.error}`);
+  const input = normalized.value;
   const channel = await getChannel(input.channelId);
   if (!channel || !canPublishIn(viewer, channel)) throw new Error('FORBIDDEN_HUB_PUBLISHER');
 
@@ -126,6 +130,7 @@ export async function createPost(viewer: HubViewer, input: CreatePostInput): Pro
     ...(viewer.position ? { authorPosition: viewer.position } : {}),
     title: input.title,
     body: input.body,
+    kind: input.kind,
     importance: input.importance,
     ...(input.importance === 'importante' && input.highlightUntil ? { highlightUntil: input.highlightUntil } : {}),
     // Evento sai do feed no dia seguinte ao término.

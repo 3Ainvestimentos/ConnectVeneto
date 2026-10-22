@@ -28,13 +28,13 @@ export function countNewSince<T extends PostLike>(
   return followedNews(posts, followedChannelIds, viewerEmail).filter((p) => p.createdAt > digestSeenAt).length;
 }
 
-/** Data que vence o Aviso: o evento, se houver; senão o fim do prazo. */
-export function avisoDeadline(p: Rankable & { event?: { start: string } | null }): string | null {
-  return p.event?.start ?? p.highlightUntil ?? null;
+/** Data que vence o Aviso: o fim do prazo (Aviso não tem evento; evento é outro tipo de Publicação). */
+export function avisoDeadline(p: Rankable): string | null {
+  return p.highlightUntil ?? null;
 }
 
-/** Avisos valendo agora, do prazo mais próximo para o mais distante. */
-export function activeAvisos<T extends Rankable & { event?: { start: string } | null }>(posts: T[], now = Date.now()): T[] {
+/** Avisos valendo agora, do prazo mais próximo para o mais distante. Eventos não entram (vão para a Agenda). */
+export function activeAvisos<T extends Rankable>(posts: T[], now = Date.now()): T[] {
   return posts
     .filter((p) => isHighlighted(p, now) && !isExpired(p, now))
     .sort((a, b) => (avisoDeadline(a) ?? '').localeCompare(avisoDeadline(b) ?? ''));

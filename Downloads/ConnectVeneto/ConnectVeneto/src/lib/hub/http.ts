@@ -23,6 +23,10 @@ export function hubRoute<P = Record<string, string>>(
       if (error instanceof ZodError) {
         return NextResponse.json({ error: error.issues[0]?.message ?? 'Dados inválidos.' }, { status: 400 });
       }
+      // Regra de negócio com mensagem para quem publica (ex.: Aviso sem prazo, Evento sem data).
+      if (error instanceof Error && error.message.startsWith('INVALID_POST:')) {
+        return NextResponse.json({ error: error.message.slice('INVALID_POST:'.length) }, { status: 400 });
+      }
       const known = securityErrorResponse(error);
       if (known) return known;
       logSecurityEvent(`[api/feed] unexpected error (${name})`, { error: error instanceof Error ? error.message : 'unknown' });

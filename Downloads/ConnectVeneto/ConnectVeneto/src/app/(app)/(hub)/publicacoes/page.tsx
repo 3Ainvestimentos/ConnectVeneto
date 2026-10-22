@@ -3,27 +3,34 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
-import { Loader2, Lock, Newspaper, PenSquare } from 'lucide-react';
+import { BellRing, CalendarPlus, Loader2, Lock, Newspaper, PenSquare } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ChannelChips } from '@/components/hub-feed/ChannelChips';
 import { FeedPost } from '@/components/hub-feed/FeedPost';
 import { HubDigestModal } from '@/components/hub-feed/HubDigestModal';
-import { HubBreadcrumb, HubPage } from '@/components/hub-feed/HubPage';
+import { HubPage } from '@/components/hub-feed/HubPage';
 import { NewPostDialog } from '@/components/hub-feed/NewPostDialog';
 import { HubApiError, useHubFeed, useHubFeedActions } from '@/hooks/useHubFeed';
 import { toast } from '@/hooks/use-toast';
 import { followedNews } from '@/lib/hub/home';
+import type { PostKind } from '@/lib/hub/model';
 import { isHighlighted, rankFeed } from '@/lib/hub/ranking';
 
 /**
- * Publicações: o feed completo (Notícias e Avisos) por canal. Na Home ficam só os Avisos; as
- * Notícias chegam pelo Resumo diário e ficam guardadas aqui.
+ * Publicações: o feed completo (Notícias, Avisos e Eventos) por canal. Cada tipo tem o seu botão:
+ * Aviso também vai para Avisos, na Home; Evento, para a Agenda e Eventos; Notícia, só para cá (e o
+ * Resumo diário).
  */
 export default function PublicacoesPage() {
   const { data, isLoading, error } = useHubFeed();
   const { follow } = useHubFeedActions();
   const [channelFilter, setChannelFilter] = useState('all');
   const [newPostOpen, setNewPostOpen] = useState(false);
+  const [newKind, setNewKind] = useState<PostKind>('noticia');
+  const startPost = (kind: PostKind) => {
+    setNewKind(kind);
+    setNewPostOpen(true);
+  };
   const [digestOpen, setDigestOpen] = useState(false);
   const focusPostId = useSearchParams().get('p');
 
@@ -74,25 +81,32 @@ export default function PublicacoesPage() {
 
   return (
     <>
-      <HubPage className="max-w-[1100px] md:mx-0">
-        <HubBreadcrumb items={[{ label: 'Início', href: '/inicio' }, { label: 'Publicações' }]} />
-        <header className="flex flex-wrap items-end justify-between gap-3">
-          <div>
-            <h1 className="font-headline text-3xl font-bold sm:text-4xl">Publicações</h1>
-            <p className="mt-1 text-base text-muted-foreground">Notícias e avisos da Vêneto, por canal.</p>
-          </div>
-          <div className="flex flex-wrap gap-2">
+      <HubPage className="max-w-3xl">
+        <header className="grid gap-3">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div className="min-w-0">
+              <h1 className="font-headline text-2xl font-bold sm:text-3xl">Publicações</h1>
+              <p className="text-sm text-muted-foreground sm:text-base">Notícias, avisos e eventos da Vêneto, por canal.</p>
+            </div>
             {data && (
-              <Button onClick={() => setDigestOpen(true)} size="lg" variant="outline" className="text-base">
-                <Newspaper className="mr-2 h-5 w-5" /> Resumo
-              </Button>
-            )}
-            {canPublish && (
-              <Button onClick={() => setNewPostOpen(true)} size="lg" className="text-base shadow-sm">
-                <PenSquare className="mr-2 h-5 w-5" /> Nova publicação
+              <Button onClick={() => setDigestOpen(true)} variant="outline">
+                <Newspaper className="mr-2 h-4 w-4" /> Resumo
               </Button>
             )}
           </div>
+          {canPublish && (
+            <div className="grid grid-cols-3 gap-2" role="group" aria-label="Publicar">
+              <Button onClick={() => startPost('noticia')} className="shadow-sm">
+                <PenSquare className="mr-2 h-4 w-4 shrink-0" /> <span className="truncate">Notícia</span>
+              </Button>
+              <Button onClick={() => startPost('aviso')} variant="outline">
+                <BellRing className="mr-2 h-4 w-4 shrink-0" /> <span className="truncate">Aviso</span>
+              </Button>
+              <Button onClick={() => startPost('evento')} variant="outline">
+                <CalendarPlus className="mr-2 h-4 w-4 shrink-0" /> <span className="truncate">Evento</span>
+              </Button>
+            </div>
+          )}
         </header>
 
         {notInPilot ? (
@@ -105,7 +119,7 @@ export default function PublicacoesPage() {
             </Button>
           </div>
         ) : (
-          <main className="flex max-w-[760px] min-w-0 flex-col gap-5">
+          <main className="flex min-w-0 flex-col gap-5">
             <div className="grid gap-2">
               <ChannelChips channels={channels} channelFilter={channelFilter} onChannelFilter={setChannelFilter} onFollow={onFollow} newCounts={newCounts} />
               {channelFilter === 'all' && (
@@ -113,7 +127,7 @@ export default function PublicacoesPage() {
               )}
             </div>
             {channelFilter !== 'all' && (
-              <div className="flex items-center justify-between gap-3 rounded-lg bg-muted/60 px-4 py-3 text-base">
+              <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 rounded-lg bg-muted/60 px-4 py-3 text-base">
                 <span>
                   Mostrando só <b>{channelName(channelFilter)}</b>
                 </span>
@@ -152,7 +166,7 @@ export default function PublicacoesPage() {
           </main>
         )}
       </HubPage>
-      {canPublish && data && <NewPostDialog open={newPostOpen} onOpenChange={setNewPostOpen} channels={channels} viewer={data.viewer} />}
+      {canPublish && data && <NewPostDialog key={newKind} open={newPostOpen} onOpenChange={setNewPostOpen} channels={channels} viewer={data.viewer} kind={newKind} />}
       {digestOpen && <HubDigestModal onDemand since={data?.digestSeenAt} onOpenChange={setDigestOpen} />}
     </>
   );
