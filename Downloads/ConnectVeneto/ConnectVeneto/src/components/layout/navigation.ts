@@ -51,7 +51,7 @@ export function canSeeHubModule(mod: HubModule, ctx: NavAccessContext): boolean 
 }
 
 /** Rotas sem zoom de conteúdo que não são itens do registro. */
-const STATIC_NO_ZOOM_ROUTES = ["/admin/crm", "/admin/strategic-panel", "/personal-panel", "/inicio", "/pessoas", "/publicacoes"];
+const STATIC_NO_ZOOM_ROUTES = ["/inicio", "/pessoas", "/publicacoes"];
 
 const under = (pathname: string, route: string) => pathname === route || pathname.startsWith(`${route}/`);
 

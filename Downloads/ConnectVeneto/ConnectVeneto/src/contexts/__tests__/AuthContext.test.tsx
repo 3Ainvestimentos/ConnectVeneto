@@ -242,13 +242,6 @@ describe('AuthContext', () => {
         // Acervo aberto a toda a empresa; só publicar é restrito.
         canViewBibliotecaComercial: true,
         canManageBibliotecaComercial: false,
-        canViewTasks: false,
-        canViewBI: false,
-        canViewCRM: false,
-        canViewStrategicPanel: false,
-        canViewOpportunityMap: false,
-        canViewMeetAnalyses: false,
-        canViewDirectoria: false,
       });
     });
   });

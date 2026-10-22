@@ -198,20 +198,6 @@
     "altPermissions": []
   },
   {
-    "id": "bi",
-    "kind": "internal",
-    "label": "Painéis",
-    "description": "Painéis e relatórios embutidos para assessores",
-    "iconName": "BarChart",
-    "order": 7,
-    "enabled": false,
-    "showInNav": true,
-    "href": "/bi",
-    "noZoom": true,
-    "permission": "canViewBI",
-    "altPermissions": []
-  },
-  {
     "id": "portal-repasse",
     "kind": "embedded",
     "label": "Dados Estratégicos",

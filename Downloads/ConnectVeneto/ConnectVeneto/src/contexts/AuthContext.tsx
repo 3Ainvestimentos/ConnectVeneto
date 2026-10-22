@@ -133,13 +133,6 @@ const defaultPermissions: CollaboratorPermissions = {
   canManageRegrasComerciais: false,
   canViewBibliotecaComercial: true,
   canManageBibliotecaComercial: false,
-  canViewTasks: false,
-  canViewBI: false,
-  canViewCRM: false,
-  canViewStrategicPanel: false,
-  canViewOpportunityMap: false,
-  canViewMeetAnalyses: false,
-  canViewDirectoria: false,
 };
 
 /**
@@ -158,13 +151,6 @@ const adminPermissionKeys: Array<keyof CollaboratorPermissions> = [
   'canManageVacation',
   'canViewAudit',
   'canManageSystem',
-  'canViewTasks',
-  'canViewBI',
-  'canViewCRM',
-  'canViewStrategicPanel',
-  'canViewOpportunityMap',
-  'canViewMeetAnalyses',
-  'canViewDirectoria',
 ];
 
 

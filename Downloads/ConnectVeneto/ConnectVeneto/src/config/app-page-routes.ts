@@ -10,14 +10,10 @@ const EXACT_APP_PAGE_PATHS = new Set<string>([
   "/audit/workflow-efficiency",
   "/admin",
   "/admin/content",
-  "/admin/crm",
   "/admin/fab-messages",
-  "/admin/opportunity-map",
   "/admin/regras-comerciais",
-  "/admin/strategic-panel",
   "/admin/travel-birthdays",
   "/admin/workflows",
-  "/bi",
   "/bob-v2",
   "/consulta",
   "/dashboard",
@@ -27,10 +23,7 @@ const EXACT_APP_PAGE_PATHS = new Set<string>([
   "/inicio",
   "/login",
   "/me/tasks",
-  "/meet-analyses",
   "/news",
-  "/opportunity-map",
-  "/personal-panel",
   "/pessoas",
   "/publicacoes",
   "/requests",
@@ -39,7 +32,6 @@ const EXACT_APP_PAGE_PATHS = new Set<string>([
 ]);
 
 const DYNAMIC_PAGE_PATTERNS: RegExp[] = [
-  /^\/meet-analyses\/[^/]+$/,
   /^\/pessoas\/[^/]+$/,
   /^\/admin\/polls\/[^/]+\/results$/,
 ];

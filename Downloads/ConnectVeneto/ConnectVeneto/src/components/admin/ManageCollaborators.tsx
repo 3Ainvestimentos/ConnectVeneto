@@ -106,13 +106,6 @@ const defaultPermissions: Collaborator["permissions"] = {
   canManageRegrasComerciais: false,
   canViewBibliotecaComercial: true,
   canManageBibliotecaComercial: false,
-  canViewTasks: false,
-  canViewBI: false,
-  canViewCRM: false,
-  canViewStrategicPanel: false,
-  canViewOpportunityMap: false,
-  canViewMeetAnalyses: false,
-  canViewDirectoria: false,
 };
 
 function mapCsvRowToCollaboratorDraft(row: CsvRow): Omit<Collaborator, 'id'> | null {

@@ -26,19 +26,12 @@ const allPermissionLabels: { key: keyof CollaboratorPermissions; label: string; 
     { key: 'canViewConsultaPessoal', label: 'Consulta Pessoal' },
     { key: 'canViewDocuments', label: 'Documentos' },
     { key: 'canViewApplications', label: 'Solicitações' },
-    { key: 'canViewTasks', label: 'Tarefas/Ações' },
     { key: 'canViewRegrasComerciais', label: 'Regras Comerciais', featureFlag: 'regrasComerciais' },
     { key: 'canManageRegrasComerciais', label: 'Editar Mix de Serviços', featureFlag: 'regrasComerciais' },
     { key: 'canViewBibliotecaComercial', label: 'Biblioteca Comercial', featureFlag: 'bibliotecaComercial' },
     { key: 'canManageBibliotecaComercial', label: 'Gerenciar Biblioteca Comercial', featureFlag: 'bibliotecaComercial' },
-    { key: 'canViewBI', label: 'Painéis', featureFlag: 'businessIntelligence' },
     { key: 'canManageTripsBirthdays', label: 'Viagens e Aniversários' },
     { key: 'canManageVacation', label: 'Férias' },
-    { key: 'canViewCRM', label: 'CRM' },
-    { key: 'canViewStrategicPanel', label: 'Painel Estratégico' },
-    { key: 'canViewOpportunityMap', label: 'Mapa de Oportunidades' },
-    { key: 'canViewMeetAnalyses', label: 'Análises de Reuniões' },
-    { key: 'canViewDirectoria', label: 'Diretoria' },
 ];
 
 const permissionLabels = allPermissionLabels.filter((item) =>

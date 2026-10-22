@@ -26,13 +26,6 @@ export interface CollaboratorPermissions {
   canViewBibliotecaComercial: boolean;
   /** Sobe, edita e exclui documentos da Biblioteca Comercial. */
   canManageBibliotecaComercial: boolean;
-  canViewTasks: boolean;
-  canViewBI: boolean;
-  canViewCRM: boolean;
-  canViewStrategicPanel: boolean;
-  canViewOpportunityMap: boolean;
-  canViewMeetAnalyses: boolean;
-  canViewDirectoria: boolean;
 }
 
 export interface Collaborator {
@@ -158,13 +151,6 @@ const defaultPermissions: CollaboratorPermissions = {
   // continua restrito a quem cura a biblioteca.
   canViewBibliotecaComercial: true,
   canManageBibliotecaComercial: false,
-  canViewTasks: false,
-  canViewBI: false,
-  canViewCRM: false,
-  canViewStrategicPanel: false,
-  canViewOpportunityMap: false,
-  canViewMeetAnalyses: false,
-  canViewDirectoria: false,
 };
 
 export const CollaboratorsProvider = ({ children }: { children: ReactNode }) => {
