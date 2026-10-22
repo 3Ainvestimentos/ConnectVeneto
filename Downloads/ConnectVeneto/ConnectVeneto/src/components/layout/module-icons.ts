@@ -16,6 +16,8 @@ import {
   Home,
   LayoutDashboard,
   LineChart,
+  Megaphone,
+  Network,
   Newspaper,
   PieChart,
   Puzzle,
@@ -58,6 +60,8 @@ export const MODULE_ICONS: Record<string, LucideIcon> = {
   Boxes,
   Puzzle,
   ExternalLink,
+  Megaphone,
+  Network,
 };
 
 export const MODULE_ICON_NAMES = Object.keys(MODULE_ICONS);

@@ -30,9 +30,12 @@ export const HUB_STORAGE_FOLDER = 'publicacoes';
 export const REACTION_EMOJIS = ['👍', '❤️', '👏', '💡', '🎉'] as const;
 export const RSVP_ANSWERS = ['vou', 'talvez', 'nao'] as const;
 export const IMPORTANCE = ['normal', 'importante'] as const;
+/** Tipo da Publicação. Notícia só vai para o Feed; Aviso vai para o Feed e para Avisos; Evento vai para o Feed e para a Agenda. */
+export const POST_KINDS = ['noticia', 'aviso', 'evento'] as const;
 export const POST_STATUS = ['published', 'archived'] as const;
 
 export type Importance = (typeof IMPORTANCE)[number];
+export type PostKind = (typeof POST_KINDS)[number];
 export type RsvpAnswer = (typeof RSVP_ANSWERS)[number];
 
 // ---------- Tabelas ----------
@@ -93,6 +96,8 @@ export interface HubPost {
   authorPosition?: string;
   title: string;
   body: string;
+  /** Tipo explícito. Publicações antigas não têm: ver `postKind`. */
+  kind?: PostKind;
   importance: Importance;
   highlightUntil?: string;
   expiresAt?: string;
@@ -189,6 +194,8 @@ const storagePath = z
 const isoDate = z.string().refine((v) => !Number.isNaN(Date.parse(v)), 'Data inválida.');
 
 export const createPostSchema = z.object({
+  /** Sem tipo (clientes antigos), vale a regra de `postKind` sobre importância e evento. */
+  kind: z.enum(POST_KINDS).optional(),
   channelId: z.string().trim().min(1).max(60),
   title: z.string().trim().min(3, 'O título precisa de pelo menos 3 letras.').max(200),
   body: z.string().trim().min(1, 'Escreva o texto da publicação.').max(10000),
@@ -212,6 +219,33 @@ export const createPostSchema = z.object({
   poll: z.object({ options: z.array(z.string().trim().min(1).max(120)).min(2).max(6), closesAt: isoDate }).optional(),
 });
 export type CreatePostInput = z.infer<typeof createPostSchema>;
+
+/**
+ * Tipo de uma Publicação: o gravado ou, nas antigas, o deduzido (com evento é Evento; Importante é
+ * Aviso; o resto é Notícia). Um Aviso antigo com evento passa a ser Evento.
+ */
+export function postKind(p: Pick<HubPost, 'kind' | 'importance' | 'event'>): PostKind {
+  if (p.kind) return p.kind;
+  if (p.event) return 'evento';
+  return p.importance === 'importante' ? 'aviso' : 'noticia';
+}
+
+/**
+ * Normaliza a entrada pelo tipo: Aviso é Importante, com prazo e sem evento; Evento é Normal e
+ * precisa de evento; Notícia é Normal e sem evento. Devolve o erro em português, se houver.
+ */
+export function normalizePostInput(input: CreatePostInput): { ok: true; value: CreatePostInput & { kind: PostKind } } | { ok: false; error: string } {
+  const kind = input.kind ?? postKind({ importance: input.importance, event: input.event as HubEvent | undefined });
+  if (kind === 'aviso') {
+    if (!input.highlightUntil) return { ok: false, error: 'Informe até quando o aviso vale.' };
+    return { ok: true, value: { ...input, kind, importance: 'importante', event: undefined } };
+  }
+  if (kind === 'evento') {
+    if (!input.event) return { ok: false, error: 'Informe a data do evento.' };
+    return { ok: true, value: { ...input, kind, importance: 'normal', highlightUntil: undefined } };
+  }
+  return { ok: true, value: { ...input, kind, importance: 'normal', highlightUntil: undefined, event: undefined } };
+}
 
 export const updatePostSchema = z
   .object({

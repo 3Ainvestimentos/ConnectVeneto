@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState, useMemo, useCallback } from 'react';
+import React, { useEffect, useState, useMemo, useCallback, useRef } from 'react';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
 import {
   SidebarProvider,
@@ -56,12 +56,36 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
   const { setOpen: setSidebarOpen, state: sidebarState, toggleSidebar } = useSidebar();
+  const sidebarStateRef = useRef(sidebarState);
+  sidebarStateRef.current = sidebarState;
+  const autoCollapsed = useRef(false);
   const { getVisibleLinksForUser } = useQuickLinks();
   const hubPilot = useHubPilotAccess();
 
   // O menu abre expandido; quem recolheu antes (cookie gravado pelo próprio sidebar) volta recolhido.
   useEffect(() => {
     if (/(?:^|;\s*)sidebar_state=false(?:;|$)/.test(document.cookie)) setSidebarOpen(false);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Tela estreita (notebook pequeno, monitor portátil em pé): o menu recolhe para ícones e o conteúdo
+  // ganha a largura. Se foi esta regra que recolheu, volta a expandir quando a tela alargar.
+  useEffect(() => {
+    const mql = window.matchMedia('(max-width: 1279px)');
+    const apply = () => {
+      if (mql.matches) {
+        if (sidebarStateRef.current === 'expanded') {
+          autoCollapsed.current = true;
+          setSidebarOpen(false);
+        }
+      } else if (autoCollapsed.current) {
+        autoCollapsed.current = false;
+        setSidebarOpen(true);
+      }
+    };
+    apply();
+    mql.addEventListener('change', apply);
+    return () => mql.removeEventListener('change', apply);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
   

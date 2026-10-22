@@ -9,6 +9,8 @@ export const HALF_LIFE_HOURS = 24;
 export const MAX_ENGAGEMENT_BONUS = 0.5;
 
 export interface Rankable {
+  kind?: 'noticia' | 'aviso' | 'evento';
+  event?: unknown;
   importance: 'normal' | 'importante';
   highlightUntil?: string | null;
   expiresAt?: string | null;
@@ -17,8 +19,10 @@ export interface Rankable {
   commentCount: number;
 }
 
-export const isHighlighted = (p: Rankable, now = Date.now()) =>
-  p.importance === 'importante' && !!p.highlightUntil && Date.parse(p.highlightUntil) > now;
+/** Só Aviso tem destaque. Publicação antiga Importante com evento conta como Evento (ver `postKind`). */
+const isAviso = (p: Rankable) => (p.kind ? p.kind === 'aviso' : p.importance === 'importante' && !p.event);
+
+export const isHighlighted = (p: Rankable, now = Date.now()) => isAviso(p) && !!p.highlightUntil && Date.parse(p.highlightUntil) > now;
 
 export const isExpired = (p: Rankable, now = Date.now()) => !!p.expiresAt && Date.parse(p.expiresAt) < now;
 

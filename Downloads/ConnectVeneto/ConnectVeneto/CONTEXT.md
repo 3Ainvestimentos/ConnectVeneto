@@ -11,7 +11,7 @@ Espaço temático onde publicações são organizadas (ex.: Tecnologia, Eventos)
 _Avoid_: grupo, comunidade, newsletter
 
 **Publicação**:
-Conteúdo publicado por um Publicador em um Canal; é uma Notícia ou um Aviso e pode conter um Evento ou uma enquete.
+Conteúdo publicado por um Publicador em um Canal. Tem um de três tipos, cada um com o seu botão: Notícia, Aviso ou Evento. Todos entram no Feed; pode conter imagens, vídeo, arquivos, botões e enquete.
 _Avoid_: post, comunicado
 
 **Notícia**:
@@ -19,7 +19,7 @@ Publicação Normal: cultura, conquistas, employer branding. Não aparece na Hom
 _Avoid_: post, novidade
 
 **Aviso**:
-Publicação Importante dentro do Prazo do aviso: um recado com data (prazo de entrega, evento). Aparece no widget Avisos da Home enquanto vale.
+Publicação do tipo Aviso: um recado com prazo (ex.: entrega de documento). Entra no Feed e, enquanto vale o Prazo do aviso, no widget Avisos da Home. Não tem evento e não entra na Agenda.
 _Avoid_: alerta, comunicado, destaque
 
 **Publicador**:
@@ -119,4 +119,4 @@ _Avoid_: ausência, deslocamento
 Período de afastamento solicitado pelo colaborador e aprovado pelo Gestor; só as aprovadas aparecem para os colegas.
 
 **Evento**:
-Acontecimento com data e local, interno ou para clientes, divulgado em uma Publicação, com confirmação de presença. Aparece em Agenda e Eventos, na Home, junto com o Google Agenda da Vêneto.
+Publicação do tipo Evento: acontecimento com data e local, interno ou para clientes, com confirmação de presença. Entra no Feed e em Agenda e Eventos, na Home (junto com o Google Agenda da Vêneto); não entra em Avisos.
