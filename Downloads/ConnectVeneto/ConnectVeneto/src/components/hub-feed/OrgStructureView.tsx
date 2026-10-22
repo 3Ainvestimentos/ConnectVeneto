@@ -1,27 +1,22 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
-import { ChevronDown, ChevronRight } from 'lucide-react';
+import { ArrowUp, ChevronRight, Maximize2, Minus, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { childUnits, UNIT_TYPE_LABEL, type OrgUnit } from '@/lib/hub/org-units';
 import type { HubPerson } from '@/lib/hub/people';
 import { cn } from '@/lib/utils';
 import { PersonAvatar } from './PersonAvatar';
 
-/** Visuais em teste para a vista por estrutura (escolher um e apagar os outros). */
-export const STRUCTURE_VARIANTS = [
-  ['organograma', 'Organograma'],
-  ['arvore', 'Árvore'],
-  ['colunas', 'Colunas'],
-  ['cartoes', 'Cartões'],
-] as const;
-export type StructureVariant = (typeof STRUCTURE_VARIANTS)[number][0];
+/* ───────────── Árvore de unidades com as pessoas já resolvidas ───────────── */
 
 interface UnitNode {
   unit: OrgUnit;
+  parentId: string | null;
   leader?: HubPerson;
-  /** Falso quando a unidade tem o mesmo responsável da mãe (não repete o nome). */
+  /** Falso quando a unidade tem o mesmo responsável da mãe (não repete o nome na caixa). */
   showLeader: boolean;
   members: HubPerson[];
   children: UnitNode[];
@@ -30,60 +25,92 @@ interface UnitNode {
 
 const byName = (a: HubPerson, b: HubPerson) => a.name.localeCompare(b.name, 'pt-BR');
 
-function buildTree(units: OrgUnit[], people: HubPerson[]): UnitNode[] {
+function buildTree(units: OrgUnit[], people: HubPerson[]): { roots: UnitNode[]; byId: Map<string, UnitNode> } {
   const byIdVeneto = new Map(people.filter((p) => p.idVeneto).map((p) => [p.idVeneto, p]));
-  const seen = new Set<string>();
-  const make = (unit: OrgUnit, parentLeader: string | null): UnitNode => {
-    seen.add(unit.id);
+  const byId = new Map<string, UnitNode>();
+  const make = (unit: OrgUnit, parentId: string | null, parentLeader: string | null): UnitNode => {
     const leader = unit.leaderIdVeneto ? byIdVeneto.get(unit.leaderIdVeneto) : undefined;
     const own = people.filter((p) => p.unitId === unit.id);
     const children = childUnits(units, unit.id)
-      .filter((c) => !seen.has(c.id))
-      .map((c) => make(c, unit.leaderIdVeneto ?? parentLeader));
-    return {
+      .filter((c) => !byId.has(c.id))
+      .map((c) => make(c, unit.id, unit.leaderIdVeneto ?? parentLeader));
+    const node: UnitNode = {
       unit,
+      parentId,
       leader,
       showLeader: !!leader && unit.leaderIdVeneto !== parentLeader,
       members: own.filter((p) => p.id !== leader?.id).sort(byName),
       children,
       total: own.length + children.reduce((n, c) => n + c.total, 0),
     };
+    byId.set(unit.id, node);
+    return node;
   };
-  return childUnits(units, null).map((u) => make(u, null));
+  const roots = childUnits(units, null).map((u) => make(u, null, null));
+  return { roots, byId };
+}
+
+/** Separa o topo (Diretorias) das Áreas que aparecem abaixo dele. */
+function split(roots: UnitNode[]) {
+  const tops = roots.filter((r) => r.unit.type === 'diretoria');
+  const areas = roots.flatMap((r) => (r.unit.type === 'diretoria' ? r.children : [r]));
+  return { tops, areas };
 }
 
 const count = (n: number) => `${n} ${n === 1 ? 'pessoa' : 'pessoas'}`;
 
-function PersonRow({ person, size = 'sm' }: { person: HubPerson; size?: 'xs' | 'sm' }) {
+function summary(node: UnitNode): string {
+  const teams = node.children.length;
+  return teams > 0 ? `${count(node.total)} · ${teams} ${teams === 1 ? 'equipe' : 'equipes'}` : count(node.total);
+}
+
+function useMediaQuery(query: string): boolean | undefined {
+  const [matches, setMatches] = useState<boolean>();
+  useEffect(() => {
+    const mql = window.matchMedia(query);
+    const update = () => setMatches(mql.matches);
+    update();
+    mql.addEventListener('change', update);
+    return () => mql.removeEventListener('change', update);
+  }, [query]);
+  return matches;
+}
+
+/* ───────────── Peças comuns ───────────── */
+
+function PersonRow({ person, size = 'sm', detail }: { person: HubPerson; size?: 'xs' | 'sm'; detail?: string }) {
   return (
     <Link href={`/pessoas/${person.id}`} className="flex min-w-0 items-center gap-2 rounded-md px-1.5 py-1 hover:bg-muted">
       <PersonAvatar person={person} size={size} />
       <span className="min-w-0 flex-1">
         <span className="block truncate text-sm font-medium leading-tight">{person.name}</span>
-        {person.position && <span className="block truncate text-xs leading-tight text-muted-foreground">{person.position}</span>}
+        {(detail ?? person.position) && <span className="block truncate text-xs leading-tight text-muted-foreground">{detail ?? person.position}</span>}
       </span>
     </Link>
   );
 }
 
+/** Responsável dentro de uma caixa clicável (sem link, porque a caixa inteira é um botão). */
 function LeaderLine({ person }: { person: HubPerson }) {
   return (
-    <Link href={`/pessoas/${person.id}`} className="flex items-center gap-2 rounded-lg bg-primary/5 px-2 py-1.5 hover:bg-primary/10">
+    <div className="flex items-center gap-2 rounded-lg bg-primary/5 px-2 py-1.5">
       <PersonAvatar person={person} size="sm" />
       <span className="min-w-0">
         <span className="block truncate text-sm font-semibold leading-tight">{person.name}</span>
         <span className="block text-xs leading-tight text-muted-foreground">Responsável</span>
       </span>
-    </Link>
+    </div>
   );
 }
 
 /** Topo (Diretoria): os sócios lado a lado. */
-function TopBand({ node }: { node: UnitNode }) {
+function TopBand({ node, onSelect }: { node: UnitNode; onSelect: (id: string) => void }) {
   const people = [node.leader, ...node.members].filter((p): p is HubPerson => !!p);
   return (
-    <section className="rounded-xl border border-primary/30 bg-card p-4 text-center shadow-sm">
-      <div className="text-xs font-bold uppercase tracking-wider text-primary">{node.unit.name}</div>
+    <section className="w-full max-w-2xl rounded-xl border border-primary/30 bg-card p-4 text-center shadow-sm">
+      <button type="button" onClick={() => onSelect(node.unit.id)} className="text-xs font-bold uppercase tracking-wider text-primary hover:underline">
+        {node.unit.name}
+      </button>
       <div className="mt-3 flex flex-wrap justify-center gap-3">
         {people.map((p) => (
           <Link key={p.id} href={`/pessoas/${p.id}`} className="flex items-center gap-3 rounded-lg border bg-background py-2 pl-2 pr-4 text-left hover:bg-muted">
@@ -99,105 +126,170 @@ function TopBand({ node }: { node: UnitNode }) {
   );
 }
 
-/** Separa o topo (Diretorias) das Áreas que aparecem abaixo dele. */
-function split(roots: UnitNode[]) {
-  const tops = roots.filter((r) => r.unit.type === 'diretoria');
-  const areas = roots.flatMap((r) => (r.unit.type === 'diretoria' ? r.children : [r]));
-  return { tops, areas };
-}
+/* ───────────── Organograma (telas largas): árvore de cima para baixo, com zoom e arrasto ───────────── */
 
-/* ───────────── 1. Organograma: árvore de cima para baixo, com linhas ───────────── */
-
-function OrgBox({ node, className }: { node: UnitNode; className?: string }) {
-  const [open, setOpen] = useState(false);
+function UnitBox({ node, selected, onSelect }: { node: UnitNode; selected: boolean; onSelect: (id: string) => void }) {
   return (
-    <div className={cn('rounded-xl border bg-card p-3 text-left shadow-sm', node.unit.type === 'equipe' && 'bg-background shadow-none', className)}>
-      <div className="flex items-start justify-between gap-2">
-        <div className="min-w-0">
-          <div className="text-[11px] font-bold uppercase tracking-wider text-primary">{UNIT_TYPE_LABEL[node.unit.type]}</div>
-          <div className="font-headline text-sm font-bold leading-tight">{node.unit.name}</div>
-        </div>
-        <span className="shrink-0 text-xs text-muted-foreground">{node.total}</span>
-      </div>
+    <button
+      type="button"
+      onClick={() => onSelect(node.unit.id)}
+      aria-pressed={selected}
+      className={cn(
+        'w-full rounded-xl border p-3 text-left shadow-sm transition-colors hover:border-primary/50 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+        node.unit.type === 'equipe' ? 'bg-background shadow-none' : 'bg-card',
+        selected && 'border-primary ring-4 ring-primary/10',
+      )}
+    >
+      <div className="text-[11px] font-bold uppercase tracking-wider text-primary">{UNIT_TYPE_LABEL[node.unit.type]}</div>
+      <div className="font-headline text-sm font-bold leading-tight">{node.unit.name}</div>
       {node.showLeader && node.leader && (
         <div className="mt-2">
           <LeaderLine person={node.leader} />
         </div>
       )}
-      {node.members.length > 0 && (
-        <>
-          <button type="button" onClick={() => setOpen((v) => !v)} aria-expanded={open} className="mt-2 inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline">
-            {open ? 'Recolher' : `Ver ${count(node.members.length)}`}
-            <ChevronDown className={cn('h-3.5 w-3.5 transition-transform', open && 'rotate-180')} />
-          </button>
-          {open && (
-            <div className="mt-1 grid gap-0.5">
-              {node.members.map((m) => (
-                <PersonRow key={m.id} person={m} size="xs" />
-              ))}
-            </div>
-          )}
-        </>
-      )}
-    </div>
+      <div className="mt-2 text-xs text-muted-foreground">{summary(node)}</div>
+    </button>
   );
 }
 
 const BRANCH =
   "relative px-2 pt-6 before:absolute before:right-1/2 before:top-0 before:h-6 before:w-1/2 before:border-t before:border-border before:content-[''] after:absolute after:left-1/2 after:top-0 after:h-6 after:w-1/2 after:border-l after:border-t after:border-border after:content-[''] first:before:border-0 last:after:border-0 last:before:border-r only:before:hidden only:after:border-t-0";
 
-function OrgChart({ roots }: { roots: UnitNode[] }) {
+const ZOOM_MIN = 0.4;
+const ZOOM_MAX = 1.25;
+const clamp = (z: number) => Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, z));
+
+function OrgChart({ roots, selectedId, onSelect }: { roots: UnitNode[]; selectedId: string | null; onSelect: (id: string) => void }) {
   const { tops, areas } = split(roots);
-  const scroller = useRef<HTMLDivElement>(null);
-  // Mais largo que a tela: abre centralizado no topo (sócios), e a pessoa rola para os lados.
+  const viewport = useRef<HTMLDivElement>(null);
+  const content = useRef<HTMLDivElement>(null);
+  const [zoom, setZoom] = useState(1);
+  const [natural, setNatural] = useState({ w: 0, h: 0 });
+  const [edges, setEdges] = useState({ left: false, right: false });
+  const fitted = useRef(false);
+
+  // Tamanho do desenho sem escala (a transformação não muda o layout, então offsetWidth é o natural).
+  useLayoutEffect(() => {
+    const el = content.current;
+    if (!el) return;
+    const measure = () => setNatural({ w: el.offsetWidth, h: el.offsetHeight });
+    measure();
+    const ro = new ResizeObserver(measure);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+
+  const fit = useCallback(() => {
+    const vp = viewport.current;
+    if (!vp || !natural.w) return;
+    setZoom(clamp(Math.min(1, (vp.clientWidth - 16) / natural.w)));
+  }, [natural.w]);
+
+  // Primeira abertura: cabe na tela. Depois a pessoa manda no zoom.
   useEffect(() => {
-    const el = scroller.current;
-    if (el) el.scrollLeft = (el.scrollWidth - el.clientWidth) / 2;
-  }, [areas.length]);
+    if (fitted.current || !natural.w) return;
+    fitted.current = true;
+    fit();
+  }, [natural.w, fit]);
+
+  const updateEdges = useCallback(() => {
+    const vp = viewport.current;
+    if (!vp) return;
+    setEdges({ left: vp.scrollLeft > 2, right: vp.scrollLeft + vp.clientWidth < vp.scrollWidth - 2 });
+  }, []);
+  useEffect(updateEdges, [zoom, natural, updateEdges]);
+  useEffect(() => {
+    window.addEventListener('resize', updateEdges);
+    return () => window.removeEventListener('resize', updateEdges);
+  }, [updateEdges]);
+
+  // Arrastar com o mouse move o desenho (as caixas continuam clicáveis).
+  const drag = useRef<{ x: number; y: number; left: number; top: number } | null>(null);
+  const onPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (e.button !== 0 || (e.target as HTMLElement).closest('a,button')) return;
+    const vp = viewport.current!;
+    drag.current = { x: e.clientX, y: e.clientY, left: vp.scrollLeft, top: vp.scrollTop };
+    vp.setPointerCapture(e.pointerId);
+  };
+  const onPointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (!drag.current) return;
+    const vp = viewport.current!;
+    vp.scrollLeft = drag.current.left - (e.clientX - drag.current.x);
+    vp.scrollTop = drag.current.top - (e.clientY - drag.current.y);
+  };
+  const endDrag = () => {
+    drag.current = null;
+  };
+
   return (
-    <div ref={scroller} className="overflow-x-auto pb-4">
-      <div className="mx-auto flex w-max min-w-full flex-col items-center">
-        {tops.map((t) => (
-          <div key={t.unit.id} className="w-full max-w-2xl">
-            <TopBand node={t} />
-          </div>
-        ))}
-        {tops.length > 0 && areas.length > 0 && <span className="h-6 w-px bg-border" aria-hidden />}
-        <ul className="flex">
-          {areas.map((a) => (
-            <li key={a.unit.id} className={BRANCH}>
-              <div className="flex w-56 flex-col">
-                <OrgBox node={a} />
-                {a.children.length > 0 && (
-                  <div className="ml-4 grid gap-2 border-l pl-3 pt-2">
-                    {a.children.map((c) => (
-                      <div key={c.unit.id} className="relative before:absolute before:-left-3 before:top-6 before:w-3 before:border-t before:border-border before:content-['']">
-                        <OrgBox node={c} />
+    <div className="grid min-w-0 gap-2">
+      <div className="flex flex-wrap items-center justify-between gap-2 text-sm text-muted-foreground">
+        <span>Clique numa unidade para ver as pessoas. Arraste para mover.</span>
+        <div className="flex items-center gap-1" role="group" aria-label="Zoom">
+          <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => setZoom((z) => clamp(z - 0.1))} disabled={zoom <= ZOOM_MIN} aria-label="Diminuir">
+            <Minus className="h-4 w-4" />
+          </Button>
+          <span className="w-12 text-center tabular-nums">{Math.round(zoom * 100)}%</span>
+          <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => setZoom((z) => clamp(z + 0.1))} disabled={zoom >= ZOOM_MAX} aria-label="Aumentar">
+            <Plus className="h-4 w-4" />
+          </Button>
+          <Button variant="outline" size="sm" className="h-8" onClick={fit}>
+            <Maximize2 className="mr-1.5 h-3.5 w-3.5" /> Ajustar à tela
+          </Button>
+        </div>
+      </div>
+
+      <div className="relative min-w-0">
+        <div
+          ref={viewport}
+          onScroll={updateEdges}
+          onPointerDown={onPointerDown}
+          onPointerMove={onPointerMove}
+          onPointerUp={endDrag}
+          onPointerCancel={endDrag}
+          className="min-w-0 overflow-auto rounded-xl border bg-muted/20 p-4 [cursor:grab] active:[cursor:grabbing]"
+          style={{ maxHeight: '75vh' }}
+        >
+          <div className="mx-auto" style={{ width: natural.w * zoom || undefined, height: natural.h * zoom || undefined }}>
+            <div ref={content} className="w-max origin-top-left" style={{ transform: `scale(${zoom})` }}>
+              <div className="flex flex-col items-center">
+                {tops.map((t) => (
+                  <TopBand key={t.unit.id} node={t} onSelect={onSelect} />
+                ))}
+                {tops.length > 0 && areas.length > 0 && <span className="h-6 w-px bg-border" aria-hidden />}
+                <ul className="flex items-start">
+                  {areas.map((a) => (
+                    <li key={a.unit.id} className={BRANCH}>
+                      <div className="flex w-56 flex-col">
+                        <UnitBox node={a} selected={selectedId === a.unit.id} onSelect={onSelect} />
+                        {a.children.length > 0 && (
+                          <div className="ml-4 grid gap-2 border-l pl-3 pt-2">
+                            {a.children.map((c) => (
+                              <div key={c.unit.id} className="relative before:absolute before:-left-3 before:top-6 before:w-3 before:border-t before:border-border before:content-['']">
+                                <UnitBox node={c} selected={selectedId === c.unit.id} onSelect={onSelect} />
+                              </div>
+                            ))}
+                          </div>
+                        )}
                       </div>
-                    ))}
-                  </div>
-                )}
+                    </li>
+                  ))}
+                </ul>
               </div>
-            </li>
-          ))}
-        </ul>
+            </div>
+          </div>
+        </div>
+        {/* Sombras nas bordas: há mais desenho para aquele lado. */}
+        <div aria-hidden className={cn('pointer-events-none absolute inset-y-0 left-0 w-8 rounded-l-xl bg-gradient-to-r from-background/90 to-transparent transition-opacity', edges.left ? 'opacity-100' : 'opacity-0')} />
+        <div aria-hidden className={cn('pointer-events-none absolute inset-y-0 right-0 w-8 rounded-r-xl bg-gradient-to-l from-background/90 to-transparent transition-opacity', edges.right ? 'opacity-100' : 'opacity-0')} />
       </div>
     </div>
   );
 }
 
-/* ───────────── 2. Árvore: lista que abre e fecha, com nomes ───────────── */
+/* ───────────── Árvore (telas estreitas): a mesma hierarquia, de cima para baixo ───────────── */
 
-function TreeView({ roots }: { roots: UnitNode[] }) {
-  const all = useMemo(() => {
-    const ids: string[] = [];
-    const walk = (n: UnitNode) => {
-      ids.push(n.unit.id);
-      n.children.forEach(walk);
-    };
-    roots.forEach(walk);
-    return ids;
-  }, [roots]);
+function TreeView({ roots, onSelect }: { roots: UnitNode[]; onSelect: (id: string) => void }) {
   const [open, setOpen] = useState<Set<string>>(() => new Set(roots.map((r) => r.unit.id)));
   const toggle = (id: string) =>
     setOpen((prev) => {
@@ -209,34 +301,35 @@ function TreeView({ roots }: { roots: UnitNode[] }) {
 
   const Row = ({ node, depth }: { node: UnitNode; depth: number }) => {
     const isOpen = open.has(node.unit.id);
-    const hasContent = node.children.length > 0 || node.members.length > 0;
+    const hasChildren = node.children.length > 0;
     return (
       <li>
-        <button
-          type="button"
-          onClick={() => toggle(node.unit.id)}
-          aria-expanded={isOpen}
-          disabled={!hasContent}
-          className={cn('flex w-full items-center gap-2 rounded-md py-2 pr-3 text-left hover:bg-muted disabled:hover:bg-transparent', depth === 0 && 'bg-muted/40')}
-          style={{ paddingLeft: 8 + depth * 22 }}
-        >
-          <ChevronRight className={cn('h-4 w-4 shrink-0 text-muted-foreground transition-transform', isOpen && 'rotate-90', !hasContent && 'opacity-0')} />
-          <span className="w-16 shrink-0 text-[11px] font-bold uppercase tracking-wider text-primary">{UNIT_TYPE_LABEL[node.unit.type]}</span>
-          <span className="min-w-0 flex-1 truncate">
-            <span className="font-semibold">{node.unit.name}</span>
-            {node.showLeader && node.leader && <span className="text-sm text-muted-foreground"> · {node.leader.name}</span>}
-          </span>
-          <span className="shrink-0 text-xs text-muted-foreground">{node.total}</span>
-        </button>
-        {isOpen && (
+        <div className={cn('flex items-center gap-1 rounded-md', depth === 0 && 'bg-muted/40')} style={{ paddingLeft: 4 + depth * 18 }}>
+          <button
+            type="button"
+            onClick={() => toggle(node.unit.id)}
+            aria-expanded={isOpen}
+            aria-label={isOpen ? 'Recolher' : 'Expandir'}
+            disabled={!hasChildren}
+            className="flex h-10 w-8 shrink-0 items-center justify-center rounded-md hover:bg-muted disabled:opacity-0"
+          >
+            <ChevronRight className={cn('h-4 w-4 text-muted-foreground transition-transform', isOpen && 'rotate-90')} />
+          </button>
+          <button type="button" onClick={() => onSelect(node.unit.id)} className="flex min-w-0 flex-1 items-center gap-2 py-2 pr-2 text-left hover:bg-muted">
+            <span className="min-w-0 flex-1">
+              <span className="block truncate font-semibold leading-tight">{node.unit.name}</span>
+              <span className="block truncate text-xs leading-tight text-muted-foreground">
+                {node.unit.type === 'diretoria' && node.members.length > 0
+                  ? node.members.map((m) => m.name).join(', ')
+                  : `${UNIT_TYPE_LABEL[node.unit.type]}${node.showLeader && node.leader ? ` · ${node.leader.name}` : ''}`}
+              </span>
+            </span>
+            <span className="shrink-0 text-xs text-muted-foreground">{node.total}</span>
+            <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
+          </button>
+        </div>
+        {isOpen && hasChildren && (
           <ul>
-            {node.members.length > 0 && (
-              <li className="grid gap-x-4 sm:grid-cols-2 lg:grid-cols-3" style={{ paddingLeft: 30 + (depth + 1) * 22 }}>
-                {node.members.map((m) => (
-                  <PersonRow key={m.id} person={m} size="xs" />
-                ))}
-              </li>
-            )}
             {node.children.map((c) => (
               <Row key={c.unit.id} node={c} depth={depth + 1} />
             ))}
@@ -248,15 +341,8 @@ function TreeView({ roots }: { roots: UnitNode[] }) {
 
   return (
     <div className="grid gap-2">
-      <div className="flex justify-end gap-2">
-        <Button variant="ghost" size="sm" onClick={() => setOpen(new Set(all))}>
-          Expandir tudo
-        </Button>
-        <Button variant="ghost" size="sm" onClick={() => setOpen(new Set())}>
-          Recolher tudo
-        </Button>
-      </div>
-      <ul className="rounded-xl border bg-card p-2 shadow-sm">
+      <p className="text-sm text-muted-foreground">Toque numa unidade para ver as pessoas.</p>
+      <ul className="rounded-xl border bg-card p-1 shadow-sm">
         {roots.map((r) => (
           <Row key={r.unit.id} node={r} depth={0} />
         ))}
@@ -265,143 +351,104 @@ function TreeView({ roots }: { roots: UnitNode[] }) {
   );
 }
 
-/* ───────────── 3. Colunas: uma caixa por Área, nomes já à vista ───────────── */
+/* ───────────── Painel de uma unidade: responsável, equipes e pessoas ───────────── */
 
-function ColumnsView({ roots }: { roots: UnitNode[] }) {
-  const { tops, areas } = split(roots);
+function UnitPanel({ node, byId, onSelect }: { node: UnitNode; byId: Map<string, UnitNode>; onSelect: (id: string) => void }) {
+  const trail: UnitNode[] = [];
+  for (let p = node.parentId ? byId.get(node.parentId) : undefined; p; p = p.parentId ? byId.get(p.parentId) : undefined) trail.unshift(p);
+  const parent = trail[trail.length - 1];
   return (
-    <div className="grid gap-4">
-      {tops.map((t) => (
-        <TopBand key={t.unit.id} node={t} />
-      ))}
-      <div className="columns-1 gap-4 md:columns-2 xl:columns-3">
-        {areas.map((a) => (
-          <section key={a.unit.id} className="mb-4 grid break-inside-avoid gap-2 rounded-xl border bg-card p-4 shadow-sm">
-            <div className="flex items-start justify-between gap-2">
-              <div>
-                <div className="text-[11px] font-bold uppercase tracking-wider text-primary">{UNIT_TYPE_LABEL[a.unit.type]}</div>
-                <h3 className="font-headline text-base font-bold leading-tight">{a.unit.name}</h3>
-              </div>
-              <span className="shrink-0 text-xs text-muted-foreground">{count(a.total)}</span>
-            </div>
-            {a.showLeader && a.leader && <LeaderLine person={a.leader} />}
-            {a.members.length > 0 && (
-              <div className="grid gap-0.5">
-                {a.members.map((m) => (
-                  <PersonRow key={m.id} person={m} size="xs" />
-                ))}
-              </div>
-            )}
-            {a.children.map((c) => (
-              <div key={c.unit.id} className="grid gap-1 border-t pt-2">
-                <div className="flex items-baseline justify-between gap-2">
-                  <span className="text-sm font-bold">{c.unit.name}</span>
-                  <span className="text-xs text-muted-foreground">{c.total}</span>
-                </div>
-                {c.showLeader && c.leader && <div className="text-xs text-muted-foreground">Responsável: {c.leader.name}</div>}
-                <div className="grid gap-0.5">
-                  {c.members.map((m) => (
-                    <PersonRow key={m.id} person={m} size="xs" />
-                  ))}
-                </div>
-              </div>
-            ))}
-          </section>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-/* ───────────── 4. Cartões: grade de cartões, pessoas abrem no clique ───────────── */
-
-const STACK = 8;
-
-function UnitCard({ node, depth }: { node: UnitNode; depth: number }) {
-  const [open, setOpen] = useState(false);
-  return (
-    <section className={cn('grid gap-3 rounded-xl border p-4', depth === 0 ? 'bg-card shadow-sm' : 'bg-background', node.children.length > 0 && 'sm:col-span-2 xl:col-span-3')}>
-      <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0">
-          <div className="text-xs font-bold uppercase tracking-wider text-primary">{UNIT_TYPE_LABEL[node.unit.type]}</div>
-          <h3 className="font-headline text-base font-bold leading-tight">{node.unit.name}</h3>
-        </div>
-        <span className="shrink-0 rounded-full bg-muted px-2 py-0.5 text-xs font-semibold text-muted-foreground">{count(node.total)}</span>
-      </div>
-      {node.showLeader && node.leader && <LeaderLine person={node.leader} />}
-      {node.members.length > 0 && (
-        <div className="grid gap-2">
-          <button type="button" onClick={() => setOpen((v) => !v)} aria-expanded={open} className="flex items-center justify-between gap-2 rounded-lg p-1 text-left hover:bg-muted">
-            <span className="flex items-center">
-              <span className="flex -space-x-2">
-                {node.members.slice(0, STACK).map((m) => (
-                  <PersonAvatar key={m.id} person={m} size="sm" className="ring-2 ring-card" />
-                ))}
+    <>
+      <SheetHeader className="text-left">
+        {trail.length > 0 && (
+          <nav aria-label="Caminho" className="flex flex-wrap items-center gap-1 text-xs text-muted-foreground">
+            {trail.map((t, i) => (
+              <span key={t.unit.id} className="inline-flex items-center gap-1">
+                {i > 0 && <ChevronRight className="h-3 w-3" />}
+                <button type="button" onClick={() => onSelect(t.unit.id)} className="rounded px-1 hover:bg-muted hover:text-foreground">
+                  {t.unit.name}
+                </button>
               </span>
-              {node.members.length > STACK && <span className="ml-2 text-xs font-medium text-muted-foreground">+{node.members.length - STACK}</span>}
-            </span>
-            <span className="inline-flex items-center gap-1 text-xs font-medium text-primary">
-              {open ? 'Recolher' : 'Ver pessoas'}
-              <ChevronDown className={cn('h-3.5 w-3.5 transition-transform', open && 'rotate-180')} />
-            </span>
-          </button>
-          {open && (
-            <div className="grid gap-0.5">
-              {node.members.map((m) => (
-                <PersonRow key={m.id} person={m} />
-              ))}
-            </div>
+            ))}
+          </nav>
+        )}
+        <SheetTitle className="font-headline">{node.unit.name}</SheetTitle>
+        <SheetDescription>
+          {UNIT_TYPE_LABEL[node.unit.type]} · {summary(node)}
+        </SheetDescription>
+      </SheetHeader>
+
+      <div className="mt-4 grid gap-5">
+        <section>
+          <h4 className="mb-1 text-xs font-bold uppercase tracking-wider text-muted-foreground">Responsável</h4>
+          {node.leader ? (
+            <PersonRow person={node.leader} detail={node.leader.position || undefined} />
+          ) : (
+            <p className="px-1.5 text-sm text-muted-foreground">Ainda não definido{parent?.leader ? `; vale o de ${parent.unit.name} (${parent.leader.name})` : ''}.</p>
           )}
-        </div>
-      )}
-      {node.children.length > 0 && (
-        <div className="grid items-start gap-3 sm:grid-cols-2 xl:grid-cols-3">
-          {node.children.map((c) => (
-            <UnitCard key={c.unit.id} node={c} depth={depth + 1} />
-          ))}
-        </div>
-      )}
-    </section>
-  );
-}
+        </section>
 
-function CardsView({ roots }: { roots: UnitNode[] }) {
-  const { tops, areas } = split(roots);
-  return (
-    <div className="grid gap-4">
-      {tops.map((t) => (
-        <TopBand key={t.unit.id} node={t} />
-      ))}
-      <div className="grid items-start gap-4 sm:grid-cols-2 xl:grid-cols-3">
-        {/* Áreas sem Equipes antes: os cartões pequenos enchem a grade e as grandes vêm inteiras depois. */}
-        {[...areas]
-          .sort((a, b) => Number(a.children.length > 0) - Number(b.children.length > 0))
-          .map((a) => (
-            <UnitCard key={a.unit.id} node={a} depth={0} />
-          ))}
+        {node.children.length > 0 && (
+          <section>
+            <h4 className="mb-1 text-xs font-bold uppercase tracking-wider text-muted-foreground">Equipes</h4>
+            <ul className="grid gap-1">
+              {node.children.map((c) => (
+                <li key={c.unit.id}>
+                  <button type="button" onClick={() => onSelect(c.unit.id)} className="flex w-full items-center gap-2 rounded-md px-1.5 py-1.5 text-left hover:bg-muted">
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate text-sm font-medium leading-tight">{c.unit.name}</span>
+                      {c.leader && <span className="block truncate text-xs leading-tight text-muted-foreground">{c.leader.name}</span>}
+                    </span>
+                    <span className="text-xs text-muted-foreground">{c.total}</span>
+                    <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </section>
+        )}
+
+        <section>
+          <h4 className="mb-1 text-xs font-bold uppercase tracking-wider text-muted-foreground">
+            {node.children.length > 0 ? 'Direto na unidade' : 'Pessoas'} · {node.members.length}
+          </h4>
+          {node.members.length === 0 ? (
+            <p className="px-1.5 text-sm text-muted-foreground">Ninguém cadastrado diretamente aqui.</p>
+          ) : (
+            <ul className="grid gap-0.5">
+              {node.members.map((m) => (
+                <li key={m.id}>
+                  <PersonRow person={m} detail={[m.position, m.city].filter(Boolean).join(' · ') || undefined} />
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
+
+        {parent && (
+          <Button variant="ghost" size="sm" className="justify-start" onClick={() => onSelect(parent.unit.id)}>
+            <ArrowUp className="mr-2 h-4 w-4" /> Subir para {parent.unit.name}
+          </Button>
+        )}
       </div>
-    </div>
+    </>
   );
 }
 
-/** Organograma pela estrutura (ADR 0004): Diretoria › Área › Equipe, com responsável e pessoas. */
-export function OrgStructureView({
-  units,
-  people,
-  canEdit = false,
-  variant = 'organograma',
-}: {
-  units: OrgUnit[];
-  people: HubPerson[];
-  canEdit?: boolean;
-  variant?: StructureVariant;
-}) {
-  const roots = useMemo(() => buildTree(units, people), [units, people]);
+/* ───────────── Vista por estrutura ───────────── */
+
+/** Organograma pela estrutura (ADR 0004): Diretoria › Área › Equipe. Largo: desenho com zoom; estreito: árvore. */
+export function OrgStructureView({ units, people, canEdit = false }: { units: OrgUnit[]; people: HubPerson[]; canEdit?: boolean }) {
+  const { roots, byId } = useMemo(() => buildTree(units, people), [units, people]);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const selected = selectedId ? (byId.get(selectedId) ?? null) : null;
+  const wide = useMediaQuery('(min-width: 1024px)');
+  const phone = useMediaQuery('(max-width: 639px)');
   const unassigned = people.filter((p) => !p.unitId).length;
   const withLeader = units.filter((u) => u.leaderIdVeneto).length;
-  const View = { organograma: OrgChart, arvore: TreeView, colunas: ColumnsView, cartoes: CardsView }[variant];
+
   return (
-    <div className="grid gap-4">
+    <div className="grid min-w-0 gap-4">
       {canEdit && withLeader === 0 && (
         <p className="rounded-lg border border-dashed p-3 text-sm text-muted-foreground">
           Nenhuma unidade tem responsável ainda. Em{' '}
@@ -411,7 +458,19 @@ export function OrgStructureView({
           , encaixe as unidades e defina os responsáveis.
         </p>
       )}
-      <View roots={roots} />
+
+      {wide === undefined ? null : wide ? (
+        <OrgChart roots={roots} selectedId={selectedId} onSelect={setSelectedId} />
+      ) : (
+        <TreeView roots={roots} onSelect={setSelectedId} />
+      )}
+
+      <Sheet open={!!selected} onOpenChange={(open) => !open && setSelectedId(null)}>
+        <SheetContent side={phone ? 'bottom' : 'right'} className={cn('overflow-y-auto', phone ? 'max-h-[85vh] rounded-t-2xl' : 'w-full sm:max-w-md')}>
+          {selected && <UnitPanel node={selected} byId={byId} onSelect={setSelectedId} />}
+        </SheetContent>
+      </Sheet>
+
       {unassigned > 0 && (
         <p className="text-sm text-muted-foreground">
           {unassigned} {unassigned === 1 ? 'pessoa ainda não está' : 'pessoas ainda não estão'} em nenhuma unidade (aparecem na vista &quot;Por liderança&quot; e na busca).
