@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Popover, PopoverContent } from '@/components/ui/popover';
 import { childUnits, type OrgUnit } from '@/lib/hub/org-units';
-import type { HubPerson } from '@/lib/hub/people';
+import { groupAssistants, type HubPerson } from '@/lib/hub/people';
 import { cn } from '@/lib/utils';
 import { PersonAvatar } from './PersonAvatar';
 
@@ -134,6 +134,7 @@ const PREVIEW_PEOPLE = 8;
 
 function UnitPreview({ node }: { node: UnitNode }) {
   const rest = node.members.length - PREVIEW_PEOPLE;
+  const ordered = groupAssistants(node.members).flatMap((g) => [{ person: g.person, assistant: false }, ...g.assistants.map((a) => ({ person: a, assistant: true }))]);
   return (
     <div className="grid gap-2">
       <div>
@@ -153,8 +154,10 @@ function UnitPreview({ node }: { node: UnitNode }) {
       )}
       {node.members.length > 0 && (
         <div className="grid gap-0.5 border-t pt-2">
-          {node.members.slice(0, PREVIEW_PEOPLE).map((m) => (
-            <PersonRow key={m.id} person={m} size="xs" />
+          {ordered.slice(0, PREVIEW_PEOPLE).map(({ person, assistant }) => (
+            <div key={person.id} className={cn(assistant && 'ml-4 border-l pl-1')}>
+              <PersonRow person={person} size="xs" />
+            </div>
           ))}
         </div>
       )}
@@ -502,10 +505,19 @@ function UnitPanel({ node, byId, onSelect }: { node: UnitNode; byId: Map<string,
             {node.members.length === 0 ? (
               <p className="px-1.5 text-sm text-muted-foreground">Ninguém cadastrado diretamente aqui.</p>
             ) : (
-              <ul className="grid gap-0.5 sm:grid-cols-2">
-                {node.members.map((m) => (
-                  <li key={m.id}>
-                    <PersonRow person={m} detail={[m.position, m.city].filter(Boolean).join(' · ') || undefined} />
+              <ul className="grid items-start gap-x-2 gap-y-0.5 sm:grid-cols-2">
+                {groupAssistants(node.members).map(({ person, assistants }) => (
+                  <li key={person.id}>
+                    <PersonRow person={person} detail={[person.position, person.city].filter(Boolean).join(' · ') || undefined} />
+                    {assistants.length > 0 && (
+                      <ul className="ml-5 border-l pl-1.5" aria-label={`Assistentes de ${person.name}`}>
+                        {assistants.map((a) => (
+                          <li key={a.id}>
+                            <PersonRow person={a} size="xs" detail={a.position || 'Assistente'} />
+                          </li>
+                        ))}
+                      </ul>
+                    )}
                   </li>
                 ))}
               </ul>

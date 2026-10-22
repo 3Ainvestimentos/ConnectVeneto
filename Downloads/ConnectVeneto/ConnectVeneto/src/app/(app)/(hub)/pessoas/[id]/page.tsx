@@ -6,7 +6,7 @@ import { useParams } from 'next/navigation';
 import { Lock, Mail, MessageCircle, Pencil, Phone, Plane, TreePalm } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { EditProfileDialog } from '@/components/hub-feed/EditProfileDialog';
-import { HubBreadcrumb, HubPage } from '@/components/hub-feed/HubPage';
+import { HubPage } from '@/components/hub-feed/HubPage';
 import { MyAgenda } from '@/components/hub-feed/MyAgenda';
 import { PersonAvatar } from '@/components/hub-feed/PersonAvatar';
 import { timeAgo } from '@/components/hub-feed/format';
@@ -57,7 +57,6 @@ export default function PerfilPage() {
   if (!person) {
     return (
       <HubPage>
-        <HubBreadcrumb items={[{ label: 'Pessoas e equipes', href: '/pessoas' }, { label: loading ? 'Carregando…' : 'Não encontrado' }]} />
         {!loading && <p className="text-muted-foreground">Pessoa não encontrada.</p>}
       </HubPage>
     );
@@ -82,7 +81,6 @@ export default function PerfilPage() {
 
   return (
     <HubPage>
-      <HubBreadcrumb items={[{ label: 'Pessoas e equipes', href: '/pessoas' }, { label: person.name }]} />
 
       <div className="overflow-hidden rounded-xl border bg-card shadow-sm">
         <div className="h-20 bg-gradient-to-r from-slate-800 via-slate-700 to-primary sm:h-28" />
