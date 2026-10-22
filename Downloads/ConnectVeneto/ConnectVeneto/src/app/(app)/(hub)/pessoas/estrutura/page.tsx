@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { PageHeader } from '@/components/layout/PageHeader';
-import { HubBreadcrumb, HubPage } from '@/components/hub-feed/HubPage';
+import { HubPage } from '@/components/hub-feed/HubPage';
 import { PersonAvatar } from '@/components/hub-feed/PersonAvatar';
 import { toast } from '@/hooks/use-toast';
 import { useHubPeople } from '@/hooks/useHubPeople';
@@ -302,7 +302,6 @@ export default function EstruturaPage() {
   if (!canEdit) {
     return (
       <HubPage>
-        <HubBreadcrumb items={[{ label: 'Pessoas e equipes', href: '/pessoas' }, { label: 'Estrutura' }]} />
         <div className="flex items-start gap-3 rounded-xl border bg-card p-5">
           <Lock className="mt-0.5 h-5 w-5 text-muted-foreground" />
           <p>A estrutura é mantida pelo RH. Para ver as áreas e equipes, use o <Link href="/pessoas" className="font-medium text-primary hover:underline">organograma</Link>.</p>
@@ -313,7 +312,6 @@ export default function EstruturaPage() {
 
   return (
     <HubPage className="max-w-none md:mx-0">
-      <HubBreadcrumb items={[{ label: 'Pessoas e equipes', href: '/pessoas' }, { label: 'Estrutura' }]} />
       <PageHeader title="Estrutura" description="Diretorias, áreas e equipes. Cada pessoa reporta ao responsável da sua unidade; o responsável reporta ao da unidade de cima." />
 
       <div className="grid gap-6 lg:grid-cols-[340px_minmax(0,1fr)]">

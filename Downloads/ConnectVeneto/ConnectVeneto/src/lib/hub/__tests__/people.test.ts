@@ -1,4 +1,4 @@
-import { buildPeople, isBirthdayOn, managerChain, normalizeCity, overlapsRange, teamsOf, topLeaders } from '@/lib/hub/people';
+import { buildPeople, groupAssistants, isBirthdayOn, managerChain, normalizeCity, overlapsRange, teamsOf, topLeaders } from '@/lib/hub/people';
 
 const c = (over: Record<string, unknown>) => ({ id: 'x', name: 'X', email: 'x@v.com', ...over });
 
@@ -38,6 +38,22 @@ describe('hub/people', () => {
     expect(topLeaders(socios).map((p) => p.id)).toEqual(['cp', 'fd']);
     expect(managerChain(socios, 'zé').map((p) => p.id)).toEqual(['pr', 'fd']);
     expect(managerChain(socios, 'cp')).toEqual([]);
+  });
+
+  it('assistente fica logo abaixo do comercial que ele atende', () => {
+    const team = buildPeople([
+      c({ id: 'ana', idVeneto: '30', name: 'Ana Bacha', managerOverrideIdVeneto: '32' }),
+      c({ id: 'bruno', idVeneto: '31', name: 'Bruno Ottoni', leaderIdVeneto: '99' }),
+      c({ id: 'lucas', idVeneto: '32', name: 'Lucas Freitas', leaderIdVeneto: '99' }),
+      c({ id: 'gabi', idVeneto: '33', name: 'Gabriel Portela', managerOverrideIdVeneto: '34' }),
+      c({ id: 'gus', idVeneto: '34', name: 'Gustavo Oliveira', leaderIdVeneto: '99' }),
+    ]);
+    const groups = groupAssistants(team);
+    expect(groups.map((g) => [g.person.id, g.assistants.map((a) => a.id)])).toEqual([
+      ['bruno', []],
+      ['lucas', ['ana']],
+      ['gus', ['gabi']],
+    ]);
   });
 
   it('quem está oculto no Hub não aparece nem serve de gestor', () => {

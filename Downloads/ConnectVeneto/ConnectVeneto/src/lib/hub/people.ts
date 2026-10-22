@@ -167,6 +167,31 @@ export function directReports(people: HubPerson[], managerId: string): HubPerson
   return people.filter((p) => p.managerId === managerId).sort((a, b) => a.name.localeCompare(b.name, 'pt-BR'));
 }
 
+export interface MemberGroup {
+  person: HubPerson;
+  /** Quem reporta a esta pessoa dentro da mesma lista (ex.: assistente de um comercial). */
+  assistants: HubPerson[];
+}
+
+/**
+ * Lista de uma unidade com cada assistente logo abaixo de quem ele atende: quem tem como gestor
+ * outra pessoa da mesma lista vai para o grupo dela. A ordem dos grupos segue a lista recebida.
+ */
+export function groupAssistants(members: HubPerson[]): MemberGroup[] {
+  const ids = new Set(members.map((m) => m.id));
+  const isAssistant = (m: HubPerson) => !!m.managerId && m.managerId !== m.id && ids.has(m.managerId);
+  const groups = new Map<string, MemberGroup>();
+  for (const m of members) if (!isAssistant(m)) groups.set(m.id, { person: m, assistants: [] });
+  for (const m of members) {
+    if (!isAssistant(m)) continue;
+    const boss = groups.get(m.managerId!);
+    // Gestor que também é assistente de alguém (cadeia): fica como grupo próprio.
+    if (boss) boss.assistants.push(m);
+    else groups.set(m.id, { person: m, assistants: [] });
+  }
+  return [...groups.values()];
+}
+
 /** Liderados diretos agrupados por Equipe (quem não tem equipe vai para "Sem equipe"). */
 export function teamsOf(people: HubPerson[], managerId: string): { team: string; members: HubPerson[] }[] {
   const groups = new Map<string, HubPerson[]>();
