@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { Archive, CalendarCheck, CalendarPlus, Link2, Loader2, MessageSquare, MoreHorizontal, Pin, PinOff, Send, SmilePlus, Star } from 'lucide-react';
+import { Archive, CalendarCheck, CalendarPlus, Link2, Loader2, MessageSquare, MoreHorizontal, Pin, PinOff, Send, SmilePlus, Star, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -11,7 +11,7 @@ import { toast } from '@/hooks/use-toast';
 import { useHubComments, useHubFeedActions } from '@/hooks/useHubFeed';
 import { cn } from '@/lib/utils';
 import { googleCalendarUrl } from '@/lib/hub/media';
-import { REACTION_EMOJIS, RSVP_ANSWERS, type FeedPost as FeedPostData, type RsvpAnswer } from '@/lib/hub/model';
+import { postKind, REACTION_EMOJIS, RSVP_ANSWERS, type FeedPost as FeedPostData, type RsvpAnswer } from '@/lib/hub/model';
 import { isHighlighted } from '@/lib/hub/ranking';
 import { ButtonRow, FileList, ImageGallery, VideoBlock } from './PostAttachments';
 import { UserAvatar } from './UserAvatar';
@@ -220,6 +220,7 @@ export function FeedPost({
   const [showComments, setShowComments] = useState(false);
   const [pickerOpen, setPickerOpen] = useState(false);
   const highlighted = isHighlighted(post);
+  const isEvent = postKind(post) === 'evento';
   const reactions = Object.entries(post.reactionCounts).filter(([, n]) => n > 0);
   const commentLabel = post.canManage
     ? `${post.commentCount} ${post.commentCount === 1 ? 'comentário' : 'comentários'}`
@@ -300,14 +301,16 @@ export function FeedPost({
                   ) : null}
                   <DropdownMenuItem
                     className="text-destructive focus:text-destructive"
-                    onSelect={() =>
+                    onSelect={() => {
+                      // Evento sai da Agenda e do Feed; fica guardado (status archived) e não volta.
+                      if (isEvent && !window.confirm(`Excluir o evento "${post.title}"? Ele sai da Agenda e as confirmações de presença deixam de valer.`)) return;
                       updatePost
                         .mutateAsync({ postId: post.id, patch: { status: 'archived' } })
-                        .then(() => toast({ title: 'Publicação arquivada', description: 'Ela saiu do feed.' }))
-                        .catch(fail)
-                    }
+                        .then(() => toast(isEvent ? { title: 'Evento excluído', description: 'Ele saiu da Agenda e Eventos.' } : { title: 'Publicação arquivada', description: 'Ela saiu do feed.' }))
+                        .catch(fail);
+                    }}
                   >
-                    <Archive className="mr-2 h-4 w-4" /> Arquivar publicação
+                    {isEvent ? <Trash2 className="mr-2 h-4 w-4" /> : <Archive className="mr-2 h-4 w-4" />} {isEvent ? 'Excluir evento' : 'Arquivar publicação'}
                   </DropdownMenuItem>
                 </>
               )}

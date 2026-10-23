@@ -48,23 +48,6 @@
     "defaultPermissions": []
   },
   {
-    "id": "publicacoes",
-    "kind": "internal",
-    "label": "Publicações",
-    "description": "Feed de Notícias, Avisos e Eventos por canal. Parte do piloto: aparece para quem tem inicio:view.",
-    "iconName": "Megaphone",
-    "order": 0,
-    "enabled": true,
-    "showInNav": true,
-    "href": "/publicacoes",
-    "noZoom": true,
-    "external": false,
-    "permission": null,
-    "altPermissions": [],
-    "accessMode": "explicit",
-    "defaultPermissions": []
-  },
-  {
     "id": "trackflow",
     "kind": "embedded",
     "label": "TrackFlow",

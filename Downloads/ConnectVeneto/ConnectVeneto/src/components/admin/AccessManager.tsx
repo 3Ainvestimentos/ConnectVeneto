@@ -19,7 +19,7 @@ import { unitPathLabel } from '@/lib/hub/org-units';
 import { cn } from '@/lib/utils';
 
 /** Itens do menu sem acesso próprio (seguem o do piloto do Início): não aparecem como módulo. */
-const SHARED_ACCESS_MODULES = new Set(['pessoas', 'publicacoes']);
+const SHARED_ACCESS_MODULES = new Set(['pessoas']);
 const ALL = '__todas__';
 
 const GROUP_TITLE: Record<string, { title: string; hint: string }> = {

@@ -18,6 +18,8 @@ const fields = {
   leaderIdVeneto: z.string().trim().max(60).nullable(),
   /** Perfil de acesso de quem está na unidade (ADR 0005). */
   accessProfileId: z.string().trim().max(80).nullable().optional(),
+  /** Posição entre as irmãs no organograma. */
+  order: z.number().int().min(0).max(10000).nullable().optional(),
 };
 const createSchema = z.object(fields).strict();
 const updateSchema = z.object({ id: z.string().trim().min(1), ...fields }).partial().required({ id: true }).strict();

@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
-import { BellRing, CalendarPlus, Loader2, Lock, Newspaper, PenSquare } from 'lucide-react';
+import { BellRing, Loader2, Lock, Newspaper, PenSquare } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ChannelChips } from '@/components/hub-feed/ChannelChips';
 import { FeedPost } from '@/components/hub-feed/FeedPost';
@@ -13,13 +13,12 @@ import { NewPostDialog } from '@/components/hub-feed/NewPostDialog';
 import { HubApiError, useHubFeed, useHubFeedActions } from '@/hooks/useHubFeed';
 import { toast } from '@/hooks/use-toast';
 import { followedNews } from '@/lib/hub/home';
-import type { PostKind } from '@/lib/hub/model';
+import { postKind, type PostKind } from '@/lib/hub/model';
 import { isHighlighted, rankFeed } from '@/lib/hub/ranking';
 
 /**
- * Publicações: o feed completo (Notícias, Avisos e Eventos) por canal. Cada tipo tem o seu botão:
- * Aviso também vai para Avisos, na Home; Evento, para a Agenda e Eventos; Notícia, só para cá (e o
- * Resumo diário).
+ * Publicações: Notícias e Avisos por canal. Aviso também vai para Avisos, na Home. Eventos não entram
+ * aqui: ficam na Agenda e Eventos, onde são criados e excluídos.
  */
 export default function PublicacoesPage() {
   const { data, isLoading, error } = useHubFeed();
@@ -40,7 +39,7 @@ export default function PublicacoesPage() {
 
   // "Todos": canais seguidos + Avisos valendo (de qualquer canal). Num canal: tudo dele.
   const feed = useMemo(() => {
-    const ranked = rankFeed(data?.posts ?? []);
+    const ranked = rankFeed((data?.posts ?? []).filter((p) => postKind(p) !== 'evento'));
     if (channelFilter !== 'all') return ranked.filter((p) => p.channelId === channelFilter);
     const followed = new Set(followedIds);
     return ranked.filter((p) => isHighlighted(p) || followed.has(p.channelId));
@@ -86,7 +85,7 @@ export default function PublicacoesPage() {
           <div className="flex flex-wrap items-center justify-between gap-2">
             <div className="min-w-0">
               <h1 className="font-headline text-2xl font-bold sm:text-3xl">Publicações</h1>
-              <p className="text-sm text-muted-foreground sm:text-base">Notícias, avisos e eventos da Vêneto, por canal.</p>
+              <p className="text-sm text-muted-foreground sm:text-base">Notícias e avisos da Vêneto, por canal.</p>
             </div>
             {data && (
               <Button onClick={() => setDigestOpen(true)} variant="outline">
@@ -95,15 +94,12 @@ export default function PublicacoesPage() {
             )}
           </div>
           {canPublish && (
-            <div className="grid grid-cols-3 gap-2" role="group" aria-label="Publicar">
+            <div className="grid grid-cols-2 gap-2 sm:max-w-md" role="group" aria-label="Publicar">
               <Button onClick={() => startPost('noticia')} className="shadow-sm">
                 <PenSquare className="mr-2 h-4 w-4 shrink-0" /> <span className="truncate">Notícia</span>
               </Button>
               <Button onClick={() => startPost('aviso')} variant="outline">
                 <BellRing className="mr-2 h-4 w-4 shrink-0" /> <span className="truncate">Aviso</span>
-              </Button>
-              <Button onClick={() => startPost('evento')} variant="outline">
-                <CalendarPlus className="mr-2 h-4 w-4 shrink-0" /> <span className="truncate">Evento</span>
               </Button>
             </div>
           )}

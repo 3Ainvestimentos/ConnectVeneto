@@ -72,6 +72,14 @@ export function useOrgUnitActions() {
       await call('/api/admin/org-units', 'PATCH', { id, ...patch });
       await refresh();
     },
+    /** Nova ordem das irmãs (ids na ordem desejada): grava só as posições que mudaram. */
+    setUnitOrder: async (ids: string[], current: OrgUnit[]) => {
+      const byId = new Map(current.map((u) => [u.id, u]));
+      for (const [i, id] of ids.entries()) {
+        if (byId.get(id)?.order !== i) await call('/api/admin/org-units', 'PATCH', { id, order: i });
+      }
+      await refresh();
+    },
     deleteUnit: async (id: string) => {
       await call('/api/admin/org-units', 'DELETE', { id });
       await refresh();
