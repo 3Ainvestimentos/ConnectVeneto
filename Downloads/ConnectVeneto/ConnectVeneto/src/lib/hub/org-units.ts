@@ -19,6 +19,8 @@ export interface OrgUnit {
   leaderIdVeneto: string | null;
   /** Perfil de acesso de quem está nela e nas de baixo, quando elas não têm um (ADR 0005). */
   accessProfileId?: string | null;
+  /** Posição entre as irmãs (Editar estrutura › ordem); sem valor, vai depois, por nome. */
+  order?: number | null;
 }
 
 /** Quem pode ser mãe de quem: Diretoria no topo, Área sob Diretoria (ou no topo), Equipe sob Área ou Diretoria. */
@@ -56,11 +58,13 @@ export function managerFromStructure(units: Map<string, OrgUnit>, unitId: string
   return null;
 }
 
-/** Filhas diretas de uma unidade (ou as do topo, com `null`), por tipo e nome. */
+const orderOf = (u: OrgUnit) => (typeof u.order === 'number' ? u.order : Number.MAX_SAFE_INTEGER);
+
+/** Filhas diretas de uma unidade (ou as do topo, com `null`): por tipo, pela ordem definida pelo RH e por nome. */
 export function childUnits(units: OrgUnit[], parentId: string | null): OrgUnit[] {
   return units
     .filter((u) => u.parentId === parentId)
-    .sort((a, b) => UNIT_TYPES.indexOf(a.type) - UNIT_TYPES.indexOf(b.type) || a.name.localeCompare(b.name, 'pt-BR'));
+    .sort((a, b) => UNIT_TYPES.indexOf(a.type) - UNIT_TYPES.indexOf(b.type) || orderOf(a) - orderOf(b) || a.name.localeCompare(b.name, 'pt-BR'));
 }
 
 /** Rótulo do caminho: "Diretoria X › Área B › Equipe A" (do topo para a unidade). */

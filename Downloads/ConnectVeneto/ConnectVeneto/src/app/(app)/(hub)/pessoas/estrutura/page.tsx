@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
-import { ChevronRight, FolderTree, Loader2, Lock, Plus, Trash2, UserMinus, Users } from 'lucide-react';
+import { ArrowDown, ArrowUp, ChevronRight, FolderTree, Loader2, Lock, Plus, Trash2, UserMinus, Users } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -135,7 +135,7 @@ function NewUnit({ parent, onCreated, onCancel }: { parent: OrgUnit | null; onCr
 }
 
 function UnitPanel({ unit, units, byId, people, onDeleted, onSelect }: { unit: OrgUnit; units: OrgUnit[]; byId: Map<string, OrgUnit>; people: HubPerson[]; onDeleted: () => void; onSelect: (id: string) => void }) {
-  const { updateUnit, deleteUnit, setPersonUnit } = useOrgUnitActions();
+  const { updateUnit, deleteUnit, setPersonUnit, setUnitOrder } = useOrgUnitActions();
   const { busy, run } = useRun();
   const [name, setName] = useState(unit.name);
   const [creating, setCreating] = useState(false);
@@ -148,6 +148,13 @@ function UnitPanel({ unit, units, byId, people, onDeleted, onSelect }: { unit: O
   const outside = people.filter((p) => p.unitId !== unit.id);
   const validParents = units.filter((u) => u.id !== unit.id && !isSameOrDescendant(byId, u.id, unit.id) && canBeChildOf(unit.type, u.type));
   const leader = people.find((p) => p.idVeneto && p.idVeneto === unit.leaderIdVeneto);
+  const children = childUnits(units, unit.id);
+  // Troca a unidade com a vizinha e grava a ordem de todas as irmãs (a primeira vez, todas ganham posição).
+  const move = (i: number, delta: number) => {
+    const ids = children.map((c) => c.id);
+    [ids[i], ids[i + delta]] = [ids[i + delta], ids[i]];
+    void run(() => setUnitOrder(ids, units), 'Ordem salva');
+  };
 
   return (
     <section className="grid content-start gap-5 rounded-xl border bg-card p-5 shadow-sm">
@@ -255,14 +262,29 @@ function UnitPanel({ unit, units, byId, people, onDeleted, onSelect }: { unit: O
       </div>
 
       <div className="grid gap-2">
-        {childUnits(units, unit.id).length > 0 && (
-          <div className="flex flex-wrap gap-1.5">
-            {childUnits(units, unit.id).map((c) => (
-              <button key={c.id} type="button" onClick={() => onSelect(c.id)} className="inline-flex items-center gap-1 rounded-full border px-3 py-1 text-sm hover:bg-muted">
-                {c.name} <ChevronRight className="h-3.5 w-3.5" />
-              </button>
-            ))}
-          </div>
+        {children.length > 0 && (
+          <>
+            <h3 className="text-base font-semibold">Unidades dentro de {unit.name}</h3>
+            <p className="-mt-1 text-xs text-muted-foreground">Use as setas para definir a ordem em que aparecem no organograma.</p>
+            <ol className="grid gap-1">
+              {children.map((c, i) => (
+                <li key={c.id} className="flex items-center gap-2 rounded-lg border px-2 py-1.5">
+                  <span className="w-5 text-center text-xs tabular-nums text-muted-foreground">{i + 1}</span>
+                  <button type="button" onClick={() => onSelect(c.id)} className="inline-flex min-w-0 flex-1 items-center gap-1 text-left text-sm font-medium hover:underline">
+                    <span className="truncate">{c.name}</span>
+                    <span className="shrink-0 text-xs font-normal text-muted-foreground">{UNIT_TYPE_LABEL[c.type]}</span>
+                    <ChevronRight className="h-3.5 w-3.5 shrink-0" />
+                  </button>
+                  <Button size="icon" variant="ghost" className="h-8 w-8" aria-label={`Subir ${c.name}`} disabled={busy || i === 0} onClick={() => move(i, -1)}>
+                    <ArrowUp className="h-4 w-4" />
+                  </Button>
+                  <Button size="icon" variant="ghost" className="h-8 w-8" aria-label={`Descer ${c.name}`} disabled={busy || i === children.length - 1} onClick={() => move(i, 1)}>
+                    <ArrowDown className="h-4 w-4" />
+                  </Button>
+                </li>
+              ))}
+            </ol>
+          </>
         )}
         {creating ? (
           <NewUnit parent={unit} onCancel={() => setCreating(false)} onCreated={(id) => onSelect(id)} />

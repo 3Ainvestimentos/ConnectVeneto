@@ -9,11 +9,12 @@ interface PostLike extends Rankable {
   authorEmail: string;
 }
 
-/** Notícias (Normais) dos canais seguidos, de outras pessoas, mais recentes primeiro. */
+/** Notícias dos canais seguidos, de outras pessoas, mais recentes primeiro. Eventos ficam na Agenda. */
 export function followedNews<T extends PostLike>(posts: T[], followedChannelIds: Iterable<string>, viewerEmail: string): T[] {
   const followed = new Set(followedChannelIds);
+  const isNews = (p: T) => (p.kind ? p.kind === 'noticia' : p.importance === 'normal' && !p.event);
   return posts
-    .filter((p) => p.importance === 'normal' && followed.has(p.channelId) && p.authorEmail !== viewerEmail && !isExpired(p))
+    .filter((p) => isNews(p) && followed.has(p.channelId) && p.authorEmail !== viewerEmail && !isExpired(p))
     .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
 }
 

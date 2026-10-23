@@ -12,6 +12,7 @@ import {
   HUB_COLLECTIONS as C,
   normalizePostInput,
   pairId,
+  postKind,
   type CreatePostInput,
   type DigestResponse,
   type FeedChannel,
@@ -321,7 +322,8 @@ export async function listDigest(viewer: HubViewer, sinceOverride?: string): Pro
     .filter(
       (p) =>
         p.status === 'published' &&
-        p.importance === 'normal' &&
+        // Só Notícias: Aviso fica em Avisos, Evento na Agenda.
+        postKind(p) === 'noticia' &&
         followedIds.has(p.channelId) &&
         p.authorEmail !== viewer.email &&
         (!p.expiresAt || Date.parse(p.expiresAt) >= now),

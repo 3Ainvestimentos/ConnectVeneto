@@ -22,7 +22,9 @@ interface UnitNode {
   showLeader: boolean;
   members: HubPerson[];
   children: UnitNode[];
+  /** Pessoas da unidade e das de baixo, com os responsáveis (quem está em duas equipes conta uma vez). */
   total: number;
+  peopleIds: Set<string>;
 }
 
 const byName = (a: HubPerson, b: HubPerson) => a.name.localeCompare(b.name, 'pt-BR');
@@ -36,6 +38,8 @@ function buildTree(units: OrgUnit[], people: HubPerson[]): { roots: UnitNode[]; 
     const children = childUnits(units, unit.id)
       .filter((c) => !byId.has(c.id))
       .map((c) => make(c, unit.id, unit.leaderIdVeneto ?? parentLeader));
+    // O responsável conta mesmo cadastrado em outra unidade (ex.: sócio que responde pela Expansão).
+    const peopleIds = new Set([...own.map((p) => p.id), ...(leader ? [leader.id] : []), ...children.flatMap((c) => [...c.peopleIds])]);
     const node: UnitNode = {
       unit,
       parentId,
@@ -43,7 +47,8 @@ function buildTree(units: OrgUnit[], people: HubPerson[]): { roots: UnitNode[]; 
       showLeader: !!leader && unit.leaderIdVeneto !== parentLeader,
       members: own.filter((p) => p.id !== leader?.id).sort(byName),
       children,
-      total: own.length + children.reduce((n, c) => n + c.total, 0),
+      peopleIds,
+      total: peopleIds.size,
     };
     byId.set(unit.id, node);
     return node;
