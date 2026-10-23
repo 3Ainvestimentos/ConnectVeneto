@@ -27,7 +27,7 @@ export function Header({ userNav, notifications, showSidebarTrigger = true, show
 
       {/* Logo Section */}
       <div className="flex items-center">
-        <Link href="/dashboard" className="flex items-center gap-2">
+        <Link href="/inicio" className="flex items-center gap-2">
           <Image
             src={logoHeaderDesktop}
             alt="Logo Veneto Family Office"

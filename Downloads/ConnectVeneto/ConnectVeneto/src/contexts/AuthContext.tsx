@@ -402,7 +402,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             details: {}
         });
         
-        router.push('/dashboard');
+        // Nova Home para todos (fim do piloto, 2026-10-23); o Painel Inicial segue no menu.
+        router.push('/inicio');
       } else {
         await firebaseSignOut(auth);
         clearServerSession();

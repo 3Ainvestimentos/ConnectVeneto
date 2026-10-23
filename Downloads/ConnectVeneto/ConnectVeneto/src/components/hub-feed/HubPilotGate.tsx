@@ -1,36 +1,27 @@
 "use client";
 
-import Link from 'next/link';
-import { Lock } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
 import { useHubPilotAccess } from '@/hooks/useHubPilotAccess';
 
 /**
- * Páginas do Hub de Comunicação só abrem para quem está no piloto (módulo `inicio`, acesso
- * explícito) ou super admin. A API já barra no servidor; isto evita a página vazia/mock para
+ * Páginas do Hub de Comunicação abrem para quem tem acesso ao módulo `inicio` (aberto a todos desde 2026-10-23; acesso
+ * revogável por pessoa) ou super admin. A API já barra no servidor; isto evita a página vazia/mock para
  * quem chega pelo endereço.
  */
 export function HubPilotGate({ children }: { children: React.ReactNode }) {
   const { allowed, loading } = useHubPilotAccess();
+  const router = useRouter();
+  // Sem acesso (revogado), vai direto para o Painel Inicial, sem aviso.
+  useEffect(() => {
+    if (!loading && !allowed) router.replace('/dashboard');
+  }, [loading, allowed, router]);
 
-  if (loading) {
+  if (loading || !allowed) {
     return (
       <div className="flex min-h-[50vh] items-center justify-center">
         <LoadingSpinner />
-      </div>
-    );
-  }
-
-  if (!allowed) {
-    return (
-      <div className="mx-auto my-16 grid max-w-lg justify-items-center gap-3 rounded-xl border bg-card p-10 text-center">
-        <Lock className="h-8 w-8 text-muted-foreground" />
-        <h1 className="font-headline text-xl font-semibold">A nova Home está em piloto</h1>
-        <p className="text-muted-foreground">Ela ainda não foi liberada para você. Enquanto isso, o Painel Inicial continua igual.</p>
-        <Button asChild variant="outline">
-          <Link href="/dashboard">Ir para o Painel Inicial</Link>
-        </Button>
       </div>
     );
   }

@@ -16,8 +16,8 @@
   {
     "id": "inicio",
     "kind": "internal",
-    "label": "Início (piloto)",
-    "description": "Nova Home: avisos, pendências, agenda e pessoas; publicações em /publicacoes. Em piloto: só quem tem inicio:view.",
+    "label": "Início",
+    "description": "Home: avisos, pendências, agenda, pessoas e indicadores; publicações em /publicacoes. Aberta a todos (fim do piloto em 2026-10-23); modulePermissions.inicio = [] tira o acesso.",
     "iconName": "Newspaper",
     "order": 0,
     "enabled": true,
@@ -27,14 +27,14 @@
     "external": false,
     "permission": null,
     "altPermissions": [],
-    "accessMode": "explicit",
+    "accessMode": "all",
     "defaultPermissions": []
   },
   {
     "id": "pessoas",
     "kind": "internal",
     "label": "Pessoas e equipes",
-    "description": "Organograma pela estrutura (Diretoria › Área › Equipe) e busca de pessoas. Parte do piloto: aparece para quem tem inicio:view.",
+    "description": "Organograma pela estrutura e busca de pessoas. Aberto a todos (segue o acesso do Início).",
     "iconName": "Network",
     "order": 0,
     "enabled": true,
@@ -44,7 +44,7 @@
     "external": false,
     "permission": null,
     "altPermissions": [],
-    "accessMode": "explicit",
+    "accessMode": "all",
     "defaultPermissions": []
   },
   {
