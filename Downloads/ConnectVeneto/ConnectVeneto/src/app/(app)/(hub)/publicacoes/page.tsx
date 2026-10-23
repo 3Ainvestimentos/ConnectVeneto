@@ -1,9 +1,8 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from 'react';
-import Link from 'next/link';
-import { useSearchParams } from 'next/navigation';
-import { BellRing, Loader2, Lock, Newspaper, PenSquare } from 'lucide-react';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { BellRing, Loader2, Newspaper, PenSquare } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ChannelChips } from '@/components/hub-feed/ChannelChips';
 import { FeedPost } from '@/components/hub-feed/FeedPost';
@@ -32,6 +31,7 @@ export default function PublicacoesPage() {
   };
   const [digestOpen, setDigestOpen] = useState(false);
   const focusPostId = useSearchParams().get('p');
+  const router = useRouter();
 
   const channels = useMemo(() => data?.channels ?? [], [data]);
   const channelName = (id: string) => channels.find((c) => c.id === id)?.name ?? '';
@@ -77,6 +77,10 @@ export default function PublicacoesPage() {
 
   const canPublish = channels.some((c) => c.canPublish);
   const notInPilot = error instanceof HubApiError && error.status === 403;
+  // Sem acesso à nova Home (revogado): vai direto para o Painel Inicial, sem aviso.
+  useEffect(() => {
+    if (notInPilot) router.replace('/dashboard');
+  }, [notInPilot, router]);
 
   return (
     <>
@@ -105,16 +109,7 @@ export default function PublicacoesPage() {
           )}
         </header>
 
-        {notInPilot ? (
-          <div className="grid max-w-lg justify-items-center gap-3 rounded-xl border bg-card p-10 text-center">
-            <Lock className="h-8 w-8 text-muted-foreground" />
-            <h2 className="font-headline text-xl font-semibold">A nova Home está em piloto</h2>
-            <p className="text-muted-foreground">Ela ainda não foi liberada para você. Enquanto isso, o Painel Inicial continua igual.</p>
-            <Button asChild variant="outline">
-              <Link href="/dashboard">Ir para o Painel Inicial</Link>
-            </Button>
-          </div>
-        ) : (
+        {notInPilot ? null : (
           <main className="flex min-w-0 flex-col gap-5">
             <div className="grid gap-2">
               <ChannelChips channels={channels} channelFilter={channelFilter} onChannelFilter={setChannelFilter} onFollow={onFollow} newCounts={newCounts} />

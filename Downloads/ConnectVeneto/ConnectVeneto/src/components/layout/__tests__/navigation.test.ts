@@ -15,8 +15,8 @@ const visibleIds = (c: NavAccessContext) =>
   FALLBACK_HUB_MODULES.filter((m) => canSeeHubModule(m, c)).map((m) => m.id);
 
 describe('canSeeHubModule', () => {
-  it('colaborador comum vê páginas liberadas e o TrackFlow, na ordem do registro', () => {
-    expect(visibleIds(ctx())).toEqual(['dashboard', 'trackflow', 'applications', 'documents']);
+  it('colaborador comum vê a nova Home, páginas liberadas e o TrackFlow, na ordem do registro', () => {
+    expect(visibleIds(ctx())).toEqual(['inicio', 'dashboard', 'pessoas', 'trackflow', 'applications', 'documents']);
   });
 
   it('módulo explicit aparece só com <id>:view', () => {

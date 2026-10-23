@@ -1,10 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from 'react';
-import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Lock } from 'lucide-react';
-import { Button } from '@/components/ui/button';
 import { WidgetErrorBoundary } from '@/components/error/WidgetErrorBoundary';
 import { AgendaCard } from '@/components/hub-feed/AgendaCard';
 import { AvisosCard } from '@/components/hub-feed/AvisosCard';
@@ -55,6 +52,10 @@ export default function InicioPage() {
   const todayRaw = new Date().toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' });
   const today = todayRaw.charAt(0).toUpperCase() + todayRaw.slice(1);
   const notInPilot = error instanceof HubApiError && error.status === 403;
+  // Sem acesso à nova Home (revogado): vai direto para o Painel Inicial, sem aviso.
+  useEffect(() => {
+    if (notInPilot) router.replace('/dashboard');
+  }, [notInPilot, router]);
 
   return (
     <>
@@ -67,16 +68,7 @@ export default function InicioPage() {
           </div>
         </header>
 
-        {notInPilot ? (
-          <div className="grid max-w-lg justify-items-center gap-3 rounded-xl border bg-card p-10 text-center">
-            <Lock className="h-8 w-8 text-muted-foreground" />
-            <h2 className="font-headline text-xl font-semibold">A nova Home está em piloto</h2>
-            <p className="text-muted-foreground">Ela ainda não foi liberada para você. Enquanto isso, o Painel Inicial continua igual.</p>
-            <Button asChild variant="outline">
-              <Link href="/dashboard">Ir para o Painel Inicial</Link>
-            </Button>
-          </div>
-        ) : (
+        {notInPilot ? null : (
           // Duas colunas que terminam juntas: o último card de cada uma (Publicações / Agenda e Eventos)
           // estica até a altura da outra. No celular: Avisos → To-do → Agenda e Eventos → Pessoas →
           // Publicações → Indicadores Estratégicos.
