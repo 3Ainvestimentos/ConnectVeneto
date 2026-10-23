@@ -290,6 +290,20 @@ service cloud.firestore {
       allow read, update, delete: if isSuperAdmin();
     }
 
+    /**
+     * Tempo ativo por módulo: um doc por pessoa por dia (`{yyyy-mm-dd}_{uid}`),
+     * somado com increment() pelo próprio client (useModuleTimeTracking). Cada um
+     * só grava o próprio doc; ler é da auditoria.
+     */
+    match /moduleUsage/{docId} {
+      allow create, update: if isAuthenticated()
+                            && request.resource.data.uid == request.auth.uid
+                            && docId == request.resource.data.date + '_' + request.auth.uid
+                            && request.resource.data.keys().hasOnly(['uid', 'userId', 'userName', 'email', 'date', 'modules', 'updatedAt'])
+                            && request.resource.data.modules is map;
+      allow read, delete: if isSuperAdmin();
+    }
+
     // =========================
     // Regras mínimas temporárias (MVP)
     // Mantém operação básica das coleções já usadas no app

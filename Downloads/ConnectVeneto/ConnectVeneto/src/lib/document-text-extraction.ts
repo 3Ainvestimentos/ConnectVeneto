@@ -31,7 +31,7 @@ const IMAGE_JPEG_QUALITY = 0.82;
 export type ExtractionResult = {
   text: string;
   /** De onde o texto veio — `none` quando não foi possível ler. */
-  source: 'pdf' | 'pptx' | 'audio' | 'image' | 'none';
+  source: 'pdf' | 'pptx' | 'audio' | 'image' | 'html' | 'none';
   /** Explicação curta para a interface quando a leitura falha ou é parcial. */
   note?: string;
   /**
@@ -217,6 +217,31 @@ async function extractImage(file: File): Promise<ExtractionResult> {
 }
 
 /**
+ * Texto visível de um mini sistema em HTML: título, cabeçalhos, rótulos e textos
+ * soltos. Scripts e estilos ficam de fora — o que descreve o sistema para o
+ * assistente é o que quem usa lê na tela, não o código. O DOMParser não executa
+ * os scripts do arquivo.
+ */
+async function extractHtml(file: File): Promise<ExtractionResult> {
+  const parsed = new DOMParser().parseFromString(await file.text(), 'text/html');
+  parsed.querySelectorAll('script, style, noscript, template, svg').forEach((node) => node.remove());
+
+  const title = collapseWhitespace(parsed.title ?? '');
+  const body = collapseWhitespace(parsed.body?.textContent ?? '');
+  const text = [title && `Título da página: ${title}`, body].filter(Boolean).join('\n');
+
+  if (!text) {
+    return {
+      text: '',
+      source: 'none',
+      note: 'O HTML monta a tela só via script, sem texto fixo para ler.',
+    };
+  }
+
+  return { text: clamp(text), source: 'html' };
+}
+
+/**
  * Lê o conteúdo do arquivo conforme o tipo. Nunca lança: quando não dá para ler,
  * devolve `source: 'none'` com a explicação, e o cadastro continua sem o texto.
  */
@@ -246,6 +271,10 @@ export async function extractDocumentText(
 
     if (file.type.startsWith('audio/') || /\.(mp3|m4a|wav)$/.test(name)) {
       return await extractAudio(file, idToken);
+    }
+
+    if (file.type === 'text/html' || /\.html?$/.test(name)) {
+      return await extractHtml(file);
     }
 
     if (file.type.startsWith('image/') || /\.(jpe?g|png|webp|gif)$/.test(name)) {

@@ -6,6 +6,7 @@ const EXACT_APP_PAGE_PATHS = new Set<string>([
   "/applications",
   "/audit",
   "/audit/content-interaction",
+  "/audit/module-time",
   "/audit/workflow-analytics",
   "/audit/workflow-efficiency",
   "/admin",

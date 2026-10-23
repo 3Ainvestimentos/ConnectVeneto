@@ -38,6 +38,7 @@ import { CommercialDocumentCard } from "@/components/documents/CommercialDocumen
 import { CommercialUploadDialog } from "@/components/documents/CommercialUploadDialog";
 import { DocumentPreviewDialog } from "@/components/documents/DocumentPreviewDialog";
 import { FavoritesQuickAccess } from "@/components/documents/FavoritesQuickAccess";
+import { InteractiveHtmlDialog } from "@/components/documents/InteractiveHtmlDialog";
 
 interface CommercialLibraryClientProps {
   /** Repositório interno já mesclado (estático + Firestore); vazio sem permissão. */
@@ -61,6 +62,7 @@ export default function CommercialLibraryClient({
 
   const [query, setQuery] = useState("");
   const [previewDocument, setPreviewDocument] = useState<UnifiedDocument | null>(null);
+  const [interactiveDocument, setInteractiveDocument] = useState<UnifiedDocument | null>(null);
   const [uploadOpen, setUploadOpen] = useState(false);
   const [editingDocument, setEditingDocument] = useState<CommercialDocument | null>(null);
   const [pendingDeletion, setPendingDeletion] = useState<UnifiedDocument | null>(null);
@@ -104,8 +106,8 @@ export default function CommercialLibraryClient({
   };
 
   /**
-   * PDF e imagem do Storage abrem no visualizador; áudio toca no card; o resto sai
-   * do app.
+   * PDF e imagem do Storage abrem no visualizador; HTML sobe uma instância isolada
+   * do sistema; áudio toca no card; o resto sai do app.
    */
   const handleOpen = (document: UnifiedDocument) => {
     if (isAllowedDocumentInternalPath(document.internalPath)) {
@@ -130,6 +132,10 @@ export default function CommercialLibraryClient({
       document.sourceType === "upload"
     ) {
       setPreviewDocument(document);
+      return;
+    }
+    if (document.kind === "html" && document.sourceType === "upload") {
+      setInteractiveDocument(document);
       return;
     }
     if (document.kind === "audio" && document.sourceType === "upload") {
@@ -266,6 +272,13 @@ export default function CommercialLibraryClient({
         url={previewDocument?.downloadUrl ?? null}
         kind={previewDocument?.kind === "image" ? "image" : "pdf"}
         onClose={() => setPreviewDocument(null)}
+      />
+
+      <InteractiveHtmlDialog
+        title={interactiveDocument?.title ?? ""}
+        description={interactiveDocument?.description}
+        url={interactiveDocument?.downloadUrl ?? null}
+        onClose={() => setInteractiveDocument(null)}
       />
 
       <CommercialUploadDialog

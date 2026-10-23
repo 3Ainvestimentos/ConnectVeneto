@@ -43,6 +43,7 @@ import { NotificationsProvider } from '@/contexts/NotificationsContext';
 import { canSeeHubModule, isModuleActive, isNoZoomPath } from './navigation';
 import { getModuleIcon } from './module-icons';
 import { useHubModules } from '@/hooks/useHubModules';
+import { useModuleTimeTracking } from '@/hooks/useModuleTimeTracking';
 import { bootstrapTrace } from '@/lib/bootstrap-trace';
 
 
@@ -180,6 +181,14 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
     return hasActionRequest;
   }, [user, requests, workflowsLoading, collaborators, workflowDefinitions]);
 
+
+  const trackedUser = useMemo(() => {
+    const userId = getCollaboratorUserId(currentUserCollab);
+    if (!user || !currentUserCollab || !userId) return null;
+    return { uid: user.uid, userId, userName: currentUserCollab.name, email: user.email ?? '' };
+  }, [user, currentUserCollab]);
+
+  useModuleTimeTracking(pathname, hubModules, trackedUser);
 
   // Page view logging
   useEffect(() => {

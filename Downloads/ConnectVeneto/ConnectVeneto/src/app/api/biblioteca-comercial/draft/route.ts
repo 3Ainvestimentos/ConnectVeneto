@@ -32,7 +32,7 @@ const IMAGE_DATA_URL = /^data:image\/(jpeg|png|webp|gif);base64,[A-Za-z0-9+/=]+$
 const payloadSchema = z
   .object({
     fileName: z.string().trim().min(1).max(300),
-    fileType: z.enum(['pdf', 'ppt', 'audio', 'image', 'link']),
+    fileType: z.enum(['pdf', 'ppt', 'audio', 'image', 'html', 'link']),
     /** Texto lido do arquivo no navegador. */
     documentText: z.string().trim().max(MAX_DOCUMENT_TEXT).optional(),
     /** Imagem já reduzida no navegador, em data URL. */
