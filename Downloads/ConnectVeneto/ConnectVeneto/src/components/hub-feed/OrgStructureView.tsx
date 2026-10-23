@@ -147,7 +147,7 @@ function UnitPreview({ node }: { node: UnitNode }) {
         <div className="font-headline text-sm font-bold leading-tight">{node.unit.name}</div>
         <div className="text-xs text-muted-foreground">{summary(node)}</div>
       </div>
-      {node.leader && <PersonRow person={node.leader} detail="Responsável" />}
+      {node.leader && <PersonRow person={node.leader} detail={['Responsável', node.leader.position].filter(Boolean).join(' · ')} />}
       {node.children.length > 0 && (
         <ul className="grid gap-0.5 border-t pt-2">
           {node.children.map((c) => (
