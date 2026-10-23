@@ -102,10 +102,10 @@ export function ManageFabMessages() {
         const segments = new Set<string>();
         const leaders = new Set<string>();
         commercialUsers.forEach(c => {
-            areas.add(c.area);
+            areas.add(c.area ?? '');
             positions.add(c.position);
-            segments.add(c.segment);
-            leaders.add(c.leader);
+            segments.add(c.segment ?? '');
+            leaders.add(c.leader ?? '');
         });
         return {
             uniqueAreas: [...areas].sort(),

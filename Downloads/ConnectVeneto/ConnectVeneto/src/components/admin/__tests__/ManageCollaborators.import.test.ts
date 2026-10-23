@@ -35,9 +35,9 @@ function fakeXlsxFile(size = 1024): File {
 }
 
 function csvWithRows(rows: number): string {
-  const header = 'ID,NOME USUAL,E-MAIL,ÁREA,CARGO,LÍDER,CIDADE';
+  const header = 'ID,NOME USUAL,E-MAIL,CARGO,CIDADE';
   const body = Array.from({ length: rows }, (_, i) =>
-    `${i},Nome ${i},user${i}@venetomfo.com.br,Area,Cargo,Lider,Cidade`
+    `${i},Nome ${i},user${i}@venetomfo.com.br,Cargo,Cidade`
   ).join('\n');
   return `${header}\n${body}`;
 }

@@ -73,8 +73,16 @@ export function useAccessActions() {
       await call('/api/admin/access/profiles', 'DELETE', { id });
       await refresh();
     },
-    /** Perfil próprio (null = herdar da unidade) e/ou ajustes (null = sem ajustes). */
-    setPersonAccess: async (collaboratorId: string, body: { accessProfileId?: string | null; accessOverrides?: AccessOverrides | null }) => {
+    /** Acesso direto (permissões e módulos) ou perfil próprio e ajustes (ADR 0005). */
+    setPersonAccess: async (
+      collaboratorId: string,
+      body: {
+        permissions?: Partial<Record<string, boolean>>;
+        modulePermissions?: Record<string, string[] | null>;
+        accessProfileId?: string | null;
+        accessOverrides?: AccessOverrides | null;
+      },
+    ) => {
       await call(`/api/admin/access/people?id=${encodeURIComponent(collaboratorId)}`, 'PATCH', body);
       await refresh();
     },

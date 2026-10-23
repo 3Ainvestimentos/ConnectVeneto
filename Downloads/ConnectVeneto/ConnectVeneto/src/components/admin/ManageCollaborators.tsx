@@ -25,9 +25,6 @@ import { ProfileImportDialog } from './ProfileImportDialog';
 import { useOrgUnits } from '@/hooks/useOrgUnits';
 import { unitPathLabel } from '@/lib/hub/org-units';
 
-/** Quando a planilha não traz eixo/segmento. */
-const DEFAULT_AXIS_SEGMENT_IMPORT = '—';
-
 /**
  * Limites de hardening para uploads administrativos.
  * Coerente com `ManageTripsBirthdays` (5 MB) e adiciona teto de linhas
@@ -74,7 +71,7 @@ function csvRowToNormMap(row: CsvRow): Map<string, string> {
   return m;
 }
 
-/** Lê célula por possíveis cabeçalhos (PT/EN). Chaves distintas evitam trocar LÍDER com LIDERANÇA. */
+/** Lê célula por possíveis cabeçalhos (PT/EN). */
 function pickCsvCell(m: Map<string, string>, ...aliases: string[]): string {
   for (const a of aliases) {
     const nk = normCsvHeader(a);
@@ -84,48 +81,30 @@ function pickCsvCell(m: Map<string, string>, ...aliases: string[]): string {
   return '';
 }
 
-function normalizeLiderancaCell(raw: string): string {
-  const t = raw.trim();
-  if (!t) return '';
-  const u = t.toUpperCase();
-  if (u === 'SIM' || u === 'NÃO' || u === 'NAO') return u === 'NAO' ? 'NÃO' : u;
-  return t;
-}
-
 const defaultPermissions: Collaborator["permissions"] = DEFAULT_PERMISSIONS;
 
+/**
+ * Linha da planilha → cadastro novo. Eixo, área, segmento, líder, equipe e liderança saíram do
+ * cadastro (área, equipe e líder vêm da estrutura, ADR 0004): colunas com esses nomes são ignoradas.
+ */
 function mapCsvRowToCollaboratorDraft(row: CsvRow): Omit<Collaborator, 'id'> | null {
   const m = csvRowToNormMap(row);
 
   const idVeneto = pickCsvCell(m, 'id', 'idVeneto', 'id veneto').trim();
   const name = pickCsvCell(m, 'nome usual', 'name', 'nome');
   const email = pickCsvCell(m, 'e-mail', 'email', 'e mail').toLowerCase();
-  const area = pickCsvCell(m, 'área', 'area');
   const position = pickCsvCell(m, 'cargo', 'position');
-  const leader = pickCsvCell(m, 'líder', 'lider', 'leader') || '—';
-  const lideranca = normalizeLiderancaCell(pickCsvCell(m, 'liderança', 'lideranca'));
   const city = pickCsvCell(m, 'cidade', 'city');
-
-  let axis = pickCsvCell(m, 'eixo', 'axis');
-  let segment = pickCsvCell(m, 'segmento', 'segment');
-  if (!axis) axis = DEFAULT_AXIS_SEGMENT_IMPORT;
-  if (!segment) segment = DEFAULT_AXIS_SEGMENT_IMPORT;
-
   const photoURL = pickCsvCell(m, 'photourl', 'photo url', 'url da foto') || '';
 
-  if (!idVeneto || !name || !email || !area || !position || !city) return null;
+  if (!idVeneto || !name || !email || !position || !city) return null;
 
   return {
     idVeneto,
     name,
     email,
     photoURL,
-    axis,
-    area,
     position,
-    segment,
-    leader,
-    ...(lideranca ? { lideranca } : {}),
     city,
     permissions: defaultPermissions,
   };
@@ -139,18 +118,14 @@ function csvHeadersLookValid(fieldNames: string[] | undefined): boolean {
     (s.has('id') || s.has('idveneto')) &&
     (s.has('nome usual') || s.has('name') || s.has('nome')) &&
     (s.has('e-mail') || s.has('email')) &&
-    s.has('area') &&
     (s.has('cargo') || s.has('position')) &&
-    (s.has('lider') || s.has('leader')) &&
     s.has('cidade');
 
   const english =
     s.has('idveneto') &&
     s.has('name') &&
     s.has('email') &&
-    s.has('area') &&
     s.has('position') &&
-    (s.has('lider') || s.has('leader')) &&
     s.has('city');
 
   return portuguese || english;
@@ -162,15 +137,9 @@ const collaboratorSchema = z.object({
     name: z.string().min(1, "Nome é obrigatório"),
     email: z.string().email("Email inválido"),
     photoURL: z.string().url("URL da imagem inválida").optional().or(z.literal('')),
-    axis: z.string().min(1, "Eixo é obrigatório"),
-    area: z.string().min(1, "Área é obrigatória"),
     position: z.string().min(1, "Cargo é obrigatório"),
-    segment: z.string().min(1, "Segmento é obrigatório"),
-    leader: z.string().min(1, "Líder é obrigatório"),
-    lideranca: z.string().optional().or(z.literal('')),
     city: z.string().min(1, "Cidade é obrigatória"),
-    // Perfil (Hub): dados oficiais mantidos pelo RH.
-    team: z.string().max(120).optional().or(z.literal('')),
+    // Perfil (Hub): dados oficiais mantidos pelo RH. Área, equipe e líder vêm da estrutura.
     leaderIdVeneto: z.string().max(60).optional().or(z.literal('')),
     unitId: z.string().max(80).optional().or(z.literal('')),
     managerOverrideIdVeneto: z.string().max(60).optional().or(z.literal('')),
@@ -267,37 +236,22 @@ export function ManageCollaborators() {
     const [searchTerm, setSearchTerm] = useState('');
     const [sortKey, setSortKey] = useState<SortKey>('name');
     const [sortDirection, setSortDirection] = useState<SortDirection>('asc');
-    const [filters, setFilters] = useState<{ area: string[], position: string[], axis: string[], segment: string[], leader: string[], lideranca: string[], city: string[] }>({ area: [], position: [], axis: [], segment: [], leader: [], lideranca: [], city: [] });
+    const [filters, setFilters] = useState<{ position: string[], city: string[] }>({ position: [], city: [] });
 
     const { units: orgUnits, byId: orgUnitsById } = useOrgUnits();
     const { register, handleSubmit, reset, watch, formState: { errors, isSubmitting: isFormSubmitting } } = useForm<CollaboratorFormValues>({
         resolver: zodResolver(collaboratorSchema),
     });
 
-    const { uniqueAreas, uniquePositions, uniqueAxes, uniqueSegments, uniqueLeaders, uniqueLideranca, uniqueCities } = useMemo(() => {
-        const areas = new Set<string>();
+    const { uniquePositions, uniqueCities } = useMemo(() => {
         const positions = new Set<string>();
-        const axes = new Set<string>();
-        const segments = new Set<string>();
-        const leaders = new Set<string>();
-        const liderancas = new Set<string>();
         const cities = new Set<string>();
         collaborators.forEach(c => {
-            if(c.area) areas.add(c.area);
             if(c.position) positions.add(c.position);
-            if(c.axis) axes.add(c.axis);
-            if(c.segment) segments.add(c.segment);
-            if(c.leader) leaders.add(c.leader);
-            if (c.lideranca) liderancas.add(c.lideranca);
             if(c.city) cities.add(c.city);
         });
         return {
-            uniqueAreas: [...areas].sort(),
             uniquePositions: [...positions].sort(),
-            uniqueAxes: [...axes].sort(),
-            uniqueSegments: [...segments].sort(),
-            uniqueLeaders: [...leaders].sort(),
-            uniqueLideranca: [...liderancas].sort(),
             uniqueCities: [...cities].sort()
         };
     }, [collaborators]);
@@ -311,9 +265,7 @@ export function ManageCollaborators() {
                 const nameMatch = c.name?.toLowerCase().includes(lowercasedTerm) ?? false;
                 const emailMatch = c.email?.toLowerCase().includes(lowercasedTerm) ?? false;
                 const idMatch = c.idVeneto?.toLowerCase().includes(lowercasedTerm) || false;
-                const leaderMatch = c.leader?.toLowerCase().includes(lowercasedTerm) ?? false;
-                const liderancaMatch = c.lideranca?.toLowerCase().includes(lowercasedTerm) ?? false;
-                return nameMatch || emailMatch || idMatch || leaderMatch || liderancaMatch;
+                return nameMatch || emailMatch || idMatch;
             });
         }
         
@@ -365,7 +317,6 @@ export function ManageCollaborators() {
         if (collaborator) {
             reset({
                 ...collaborator,
-                team: collaborator.team ?? '',
                 leaderIdVeneto: collaborator.leaderIdVeneto ?? '',
                 unitId: collaborator.unitId ?? '',
                 managerOverrideIdVeneto: collaborator.managerOverrideIdVeneto ?? '',
@@ -381,14 +332,8 @@ export function ManageCollaborators() {
                 name: '',
                 email: '',
                 photoURL: '',
-                axis: '',
-                area: '',
                 position: '',
-                segment: '',
-                leader: '',
-                lideranca: '',
                 city: '',
-                team: '',
                 leaderIdVeneto: '',
                 unitId: '',
                 managerOverrideIdVeneto: '',
@@ -415,19 +360,18 @@ export function ManageCollaborators() {
     
     const onSubmit = async (data: CollaboratorFormValues) => {
         const { careerHistoryText, ...rest } = data;
-        const managerId = rest.unitId ? rest.managerOverrideIdVeneto?.trim() : rest.leaderIdVeneto?.trim();
-        const manager = managerId ? collaborators.find((c) => c.idVeneto === managerId) : undefined;
+        // Sem unidade, o nome legado (`leader`) acompanha o gestor escolhido; com unidade, o servidor
+        // deriva área, equipe e líder da estrutura (org-derived).
+        const legacyManagerId = rest.unitId ? '' : rest.leaderIdVeneto?.trim();
+        const manager = legacyManagerId ? collaborators.find((c) => c.idVeneto === legacyManagerId) : undefined;
         const processedData = {
           ...rest,
           idVeneto: data.idVeneto,
-          lideranca: data.lideranca?.trim() || undefined,
-          team: rest.team?.trim() ?? '',
           leaderIdVeneto: rest.leaderIdVeneto?.trim() ?? '',
           unitId: rest.unitId ?? '',
           managerOverrideIdVeneto: rest.unitId ? (rest.managerOverrideIdVeneto?.trim() ?? '') : '',
           hubHidden: rest.hubHidden ?? false,
-          // O nome legado acompanha o gestor escolhido (outras telas ainda leem `leader`).
-          leader: manager?.name ?? rest.leader,
+          ...(manager ? { leader: manager.name } : {}),
           birthDate: rest.birthDate ?? '',
           admissionDate: rest.admissionDate ?? '',
           careerHistory: textToHistory(careerHistoryText),
@@ -470,7 +414,7 @@ export function ManageCollaborators() {
               toast({
                 title: "Erro no arquivo",
                 description:
-                  "Cabeçalhos inválidos. Use: ID, NOME USUAL, E-MAIL, ÁREA, CARGO, LÍDER, LIDERANÇA, CIDADE (ou formato legado em inglês).",
+                  "Cabeçalhos inválidos. Use: ID, NOME USUAL, E-MAIL, CARGO, CIDADE (ou formato legado em inglês).",
                 variant: "destructive",
               });
               return;
@@ -484,7 +428,7 @@ export function ManageCollaborators() {
               toast({
                 title: "Nenhum dado válido encontrado",
                 description:
-                  "Arquivo lido, mas nenhuma linha pôde ser convertida. Verifique se as colunas obrigatórias estão preenchidas (ID, NOME USUAL, E-MAIL, ÁREA, CARGO, CIDADE).",
+                  "Arquivo lido, mas nenhuma linha pôde ser convertida. Verifique se as colunas obrigatórias estão preenchidas (ID, NOME USUAL, E-MAIL, CARGO, CIDADE).",
                 variant: "destructive",
               });
               return;
@@ -544,14 +488,9 @@ export function ManageCollaborators() {
             name: c.name,
             email: c.email,
             photoURL: c.photoURL || '',
-            axis: c.axis,
-            area: c.area,
             position: c.position,
-            segment: c.segment,
-            leader: c.leader,
-            lideranca: c.lideranca || '',
             city: c.city,
-            team: c.team || '',
+            unit: c.unitId ? unitPathLabel(orgUnitsById, c.unitId) : '',
             leaderIdVeneto: c.leaderIdVeneto || '',
             birthDate: c.birthDate || '',
             admissionDate: c.admissionDate || '',
@@ -629,7 +568,7 @@ export function ManageCollaborators() {
                         <div className="flex gap-2">
                             <Button onClick={() => setIsAuditLogOpen(true)} variant="outline" className="flex-grow"><History className="mr-2 h-4 w-4" />Histórico</Button>
                             <Button onClick={() => setIsImportOpen(true)} variant="outline" className="flex-grow"><Upload className="mr-2 h-4 w-4" />Importar</Button>
-                            <Button onClick={() => setIsProfileImportOpen(true)} variant="outline" className="flex-grow" title="Nascimento, entrada, equipe e gestor de quem já está cadastrado"><Upload className="mr-2 h-4 w-4" />Atualizar perfis</Button>
+                            <Button onClick={() => setIsProfileImportOpen(true)} variant="outline" className="flex-grow" title="Nascimento, entrada e gestor de quem já está cadastrado"><Upload className="mr-2 h-4 w-4" />Atualizar perfis</Button>
                             <Button onClick={handleExportCSV} variant="outline" className="flex-grow"><FileDown className="mr-2 h-4 w-4" />Exportar</Button>
                             <Button onClick={() => handleFormDialogOpen(null)} className="bg-admin-primary hover:bg-admin-primary/90 flex-grow"><PlusCircle className="mr-2 h-4 w-4" />Adicionar</Button>
                         </div>
@@ -641,12 +580,8 @@ export function ManageCollaborators() {
                             <TableHeader>
                                 <TableRow>
                                     <SortableHeader tkey="name" label="Colaborador" />
-                                    <FilterableHeader fkey="axis" label="Eixo" uniqueValues={uniqueAxes} />
-                                    <FilterableHeader fkey="area" label="Área" uniqueValues={uniqueAreas} />
+                                    <TableHead>Unidade</TableHead>
                                     <FilterableHeader fkey="position" label="Cargo" uniqueValues={uniquePositions} />
-                                    <FilterableHeader fkey="segment" label="Segmento" uniqueValues={uniqueSegments} />
-                                    <FilterableHeader fkey="leader" label="Líder" uniqueValues={uniqueLeaders} />
-                                    <FilterableHeader fkey="lideranca" label="Liderança" uniqueValues={uniqueLideranca} />
                                     <FilterableHeader fkey="city" label="Cidade" uniqueValues={uniqueCities} />
                                     <TableHead className="text-right">Ações</TableHead>
                                 </TableRow>
@@ -656,12 +591,8 @@ export function ManageCollaborators() {
                                     return (
                                     <TableRow key={item.id}>
                                         <TableCell className="font-medium">{item.name}<br/><span className="text-xs text-muted-foreground">{item.email}</span></TableCell>
-                                        <TableCell>{item.axis}</TableCell>
-                                        <TableCell>{item.area}</TableCell>
+                                        <TableCell className="text-sm">{item.unitId ? unitPathLabel(orgUnitsById, item.unitId) : <span className="text-muted-foreground">—</span>}</TableCell>
                                         <TableCell>{item.position}</TableCell>
-                                        <TableCell>{item.segment}</TableCell>
-                                        <TableCell>{item.leader}</TableCell>
-                                        <TableCell>{item.lideranca || '—'}</TableCell>
                                         <TableCell>{item.city}</TableCell>
                                         <TableCell className="text-right">
                                             <Button variant="ghost" size="icon" onClick={() => handleFormDialogOpen(item)} className="hover:bg-muted">
@@ -723,35 +654,18 @@ export function ManageCollaborators() {
                             {errors.photoURL && <p className="text-sm text-destructive mt-1">{errors.photoURL.message}</p>}
                         </div>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div>
-                                <Label htmlFor="axis">Eixo</Label>
-                                <Input id="axis" {...register('axis')} disabled={isFormSubmitting}/>
-                                {errors.axis && <p className="text-sm text-destructive mt-1">{errors.axis.message}</p>}
-                            </div>
-                             <div>
-                                <Label htmlFor="area">Área</Label>
-                                <Input id="area" {...register('area')} disabled={isFormSubmitting}/>
-                                {errors.area && <p className="text-sm text-destructive mt-1">{errors.area.message}</p>}
-                            </div>
-                        </div>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                            <div>
                                 <Label htmlFor="position">Cargo</Label>
                                 <Input id="position" {...register('position')} disabled={isFormSubmitting}/>
                                 {errors.position && <p className="text-sm text-destructive mt-1">{errors.position.message}</p>}
                             </div>
                             <div>
-                                <Label htmlFor="segment">Segmento</Label>
-                                <Input id="segment" {...register('segment')} disabled={isFormSubmitting}/>
-                                {errors.segment && <p className="text-sm text-destructive mt-1">{errors.segment.message}</p>}
+                                <Label htmlFor="city">Cidade</Label>
+                                <Input id="city" {...register('city')} disabled={isFormSubmitting}/>
+                                {errors.city && <p className="text-sm text-destructive mt-1">{errors.city.message}</p>}
                             </div>
                         </div>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div>
-                                <Label htmlFor="leader">Líder (nome do gestor direto)</Label>
-                                <Input id="leader" {...register('leader')} disabled={isFormSubmitting} placeholder="Como na planilha RH"/>
-                                {errors.leader && <p className="text-sm text-destructive mt-1">{errors.leader.message}</p>}
-                            </div>
                             <div>
                                 <Label htmlFor="unitId">Unidade (estrutura)</Label>
                                 <select id="unitId" {...register('unitId')} disabled={isFormSubmitting} className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm">
@@ -762,7 +676,7 @@ export function ManageCollaborators() {
                                             <option key={u.id} value={u.id}>{unitPathLabel(orgUnitsById, u.id)}</option>
                                         ))}
                                 </select>
-                                <p className="text-xs text-muted-foreground mt-1">Com unidade, o gestor vem do responsável dela (ver Pessoas › Editar estrutura).</p>
+                                <p className="text-xs text-muted-foreground mt-1">Com unidade, área, equipe e gestor vêm da estrutura (ver Pessoas › Editar estrutura).</p>
                             </div>
                             {watch('unitId') ? (
                             <div>
@@ -795,25 +709,9 @@ export function ManageCollaborators() {
                                             <option key={c.id} value={c.idVeneto}>{c.name} · {c.position}</option>
                                         ))}
                                 </select>
-                                <p className="text-xs text-muted-foreground mt-1">Gravado pelo ID. Ao escolher, o campo Líder acompanha o nome.</p>
+                                <p className="text-xs text-muted-foreground mt-1">Gravado pelo ID. Só para quem ainda não tem unidade.</p>
                             </div>
                             )}
-                            <div>
-                                <Label htmlFor="team">Equipe</Label>
-                                <Input id="team" {...register('team')} disabled={isFormSubmitting} placeholder="Ex.: Comercial SP"/>
-                            </div>
-                            <div>
-                                <Label htmlFor="lideranca">Liderança (SIM / NÃO ou texto livre)</Label>
-                                <Input id="lideranca" {...register('lideranca')} disabled={isFormSubmitting} placeholder="SIM, NÃO…"/>
-                                {errors.lideranca && <p className="text-sm text-destructive mt-1">{errors.lideranca.message}</p>}
-                            </div>
-                        </div>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div className="md:col-span-2">
-                                <Label htmlFor="city">Cidade</Label>
-                                <Input id="city" {...register('city')} disabled={isFormSubmitting}/>
-                                {errors.city && <p className="text-sm text-destructive mt-1">{errors.city.message}</p>}
-                            </div>
                         </div>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div>
@@ -881,14 +779,16 @@ export function ManageCollaborators() {
                             <li>Crie uma planilha (no Excel, Google Sheets, etc.).</li>
                             <li>
                                 <strong>Planilha Veneto (Google Sheets / Excel):</strong> exporte CSV com cabeçalhos{' '}
-                                <code className="bg-muted px-1 rounded text-[11px] break-words">ID, NOME USUAL, E-MAIL, ÁREA, CARGO, LÍDER, LIDERANÇA, CIDADE</code>.
-                                Coluna <strong>LÍDER</strong> = nome do gestor (vai para o campo <code className="text-[11px]">leader</code>).
-                                Coluna <strong>LIDERANÇA</strong> = SIM/NÃO (vai para <code className="text-[11px]">lideranca</code>). Eixo e segmento, se ausentes, viram <code className="text-[11px]">—</code>.
+                                <code className="bg-muted px-1 rounded text-[11px] break-words">ID, NOME USUAL, E-MAIL, CARGO, CIDADE</code>.
+                            </li>
+                            <li>
+                                Área, equipe e gestor <strong>não vêm mais da planilha</strong>: depois de importar, encaixe cada pessoa numa unidade (Editar › Unidade ou Pessoas › Editar estrutura).
+                                Colunas como ÁREA, LÍDER, LIDERANÇA, EIXO, SEGMENTO e EQUIPE, se existirem, são ignoradas.
                             </li>
                             <li>
                                 <strong>Formato legado (inglês):</strong>{' '}
-                                <code className="block bg-muted p-1.5 rounded-md my-1.5 text-[11px] break-all">idVeneto,name,email,area,position,leader,city</code>
-                                e opcionalmente <code className="text-[11px]">axis, segment, lideranca, photoURL</code>.
+                                <code className="block bg-muted p-1.5 rounded-md my-1.5 text-[11px] break-all">idVeneto,name,email,position,city</code>
+                                e opcionalmente <code className="text-[11px]">photoURL</code>.
                             </li>
                              <li>A coluna `photoURL` é opcional.</li>
                             <li>Preencha as linhas com os dados de cada colaborador.</li>

@@ -22,7 +22,6 @@ const bodySchema = z
             idVeneto: z.string().trim().min(1).max(60),
             birthDate: isoOrEmpty.optional(),
             admissionDate: isoOrEmpty.optional(),
-            team: z.string().trim().max(120).optional(),
             leaderIdVeneto: z.string().trim().max(60).optional(),
           })
           .strict(),
@@ -35,7 +34,7 @@ const bodySchema = z
 type Change = { field: string; oldValue: unknown; newValue: unknown };
 
 /**
- * Atualiza, em lote, os dados do Perfil que o RH mantém (nascimento, entrada, equipe e gestor)
+ * Atualiza, em lote, os dados do Perfil que o RH mantém (nascimento, entrada e gestor; equipe vem da estrutura)
  * em colaboradores que já existem, achados pelo ID Veneto. Não cria ninguém: quem não existe
  * volta em `notFound`. `dryRun` devolve o que mudaria sem gravar (a tela mostra a prévia).
  */
@@ -75,7 +74,6 @@ export async function POST(request: Request) {
       const next: Record<string, unknown> = {};
       if (row.birthDate !== undefined) next.birthDate = row.birthDate;
       if (row.admissionDate !== undefined) next.admissionDate = row.admissionDate;
-      if (row.team !== undefined) next.team = row.team;
       if (row.leaderIdVeneto !== undefined) {
         next.leaderIdVeneto = row.leaderIdVeneto;
         // O nome legado acompanha o gestor (outras telas ainda leem `leader`).

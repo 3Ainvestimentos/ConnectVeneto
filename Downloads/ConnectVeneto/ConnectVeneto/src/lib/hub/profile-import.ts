@@ -1,6 +1,6 @@
 /**
  * Planilha de "dados do Perfil" do RH: atualiza colaboradores que já existem (pelo ID Veneto) com
- * nascimento, entrada, equipe e gestor. Função pura, usada no navegador para validar e mostrar a
+ * nascimento, entrada e gestor (equipe vem da estrutura, ADR 0004). Função pura, usada no navegador para validar e mostrar a
  * prévia antes de enviar para `POST /api/admin/collaborators/profile-import`.
  */
 
@@ -8,7 +8,6 @@ export interface ProfileImportRow {
   idVeneto: string;
   birthDate?: string;
   admissionDate?: string;
-  team?: string;
   leaderIdVeneto?: string;
 }
 
@@ -29,7 +28,6 @@ const HEADERS: Record<keyof ProfileImportRow, string[]> = {
   idVeneto: ['id', 'idveneto'],
   birthDate: ['datadenascimento', 'nascimento', 'aniversario', 'datadeaniversario', 'birthdate'],
   admissionDate: ['navenetodesde', 'datadeadmissao', 'admissao', 'dataentrada', 'admissiondate'],
-  team: ['equipe', 'team'],
   leaderIdVeneto: ['idgestor', 'idlider', 'gestorid', 'leaderidveneto'],
 };
 
@@ -87,7 +85,6 @@ export function parseProfileImport(rows: Record<string, unknown>[]): ProfileImpo
       }
       row[key] = iso;
     }
-    if (has('team')) row.team = String(pick('team') ?? '').trim();
     if (has('leaderIdVeneto')) row.leaderIdVeneto = String(pick('leaderIdVeneto') ?? '').trim();
     if (Object.keys(row).length > 1) out.push(row);
   });

@@ -21,14 +21,13 @@ interface Summary {
 const FIELD_LABEL: Record<string, string> = {
   birthDate: 'nascimento',
   admissionDate: 'entrada',
-  team: 'equipe',
   leaderIdVeneto: 'gestor (ID)',
   leader: 'líder',
 };
 
 /**
  * "Atualizar perfis por planilha": o RH sobe uma planilha com ID + as colunas que quer mudar
- * (Data de nascimento, Na Vêneto desde, Equipe, ID Gestor). Mostra a prévia e só grava ao confirmar.
+ * (Data de nascimento, Na Vêneto desde, ID Gestor). Mostra a prévia e só grava ao confirmar.
  */
 export function ProfileImportDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (open: boolean) => void }) {
   const { user } = useAuth();
@@ -101,7 +100,7 @@ export function ProfileImportDialog({ open, onOpenChange }: { open: boolean; onO
           <DialogTitle>Atualizar perfis por planilha</DialogTitle>
           <DialogDescription>
             Atualiza quem já está cadastrado, pelo ID. Colunas aceitas: <b>ID</b> (obrigatória), <b>Data de nascimento</b>,{' '}
-            <b>Na Vêneto desde</b>, <b>Equipe</b> e <b>ID Gestor</b>. Só as colunas presentes mudam; célula vazia apaga o valor.
+            <b>Na Vêneto desde</b> e <b>ID Gestor</b>. Só as colunas presentes mudam; célula vazia apaga o valor. Equipe e área vêm da estrutura.
             Datas em DD/MM/AAAA.
           </DialogDescription>
         </DialogHeader>

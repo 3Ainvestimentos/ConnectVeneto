@@ -83,7 +83,7 @@ export default function AuditPage() {
 
     // Eixos únicos dos colaboradores (ordenados)
     const uniqueAxes = useMemo(() => {
-        return [...new Set(collaborators.map(c => c.axis).filter(Boolean))].sort();
+        return [...new Set(collaborators.map(c => c.axis ?? '').filter(Boolean))].sort();
     }, [collaborators]);
 
     // Mapa userId (idVeneto) → axis para classificação dos eventos
@@ -130,7 +130,7 @@ export default function AuditPage() {
     // Colaboradores filtrados por eixo (para contagem total)
     const filteredCollaborators = useMemo(() => {
         return axisFilter.length > 0
-            ? collaborators.filter(c => axisFilter.includes(c.axis))
+            ? collaborators.filter(c => axisFilter.includes(c.axis ?? ''))
             : collaborators;
     }, [collaborators, axisFilter]);
 
