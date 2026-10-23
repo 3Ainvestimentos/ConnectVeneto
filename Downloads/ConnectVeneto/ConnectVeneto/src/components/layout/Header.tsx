@@ -54,7 +54,7 @@ export function Header({ userNav, notifications, showSidebarTrigger = true, show
       <div className="flex items-center gap-4">
         {showDashboardButton && (
           <Button asChild variant="ghost" className="font-body text-header-foreground/80 hover:bg-transparent hover:font-bold hover:text-header-foreground/80">
-            <Link href="/dashboard">Voltar ao Painel Inicial</Link>
+            <Link href="/inicio">Voltar ao Início</Link>
           </Button>
         )}
         {notifications}

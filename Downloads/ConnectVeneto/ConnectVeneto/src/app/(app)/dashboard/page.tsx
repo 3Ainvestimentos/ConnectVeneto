@@ -16,8 +16,31 @@ import { findCollaboratorByEmail } from '@/lib/email-utils';
 import { WidgetErrorBoundary } from '@/components/error/WidgetErrorBoundary';
 import { bootstrapTrace } from '@/lib/bootstrap-trace';
 import { VenetoMarketingFooter } from '@/components/layout/VenetoMarketingFooter';
+import { useRouter } from 'next/navigation';
+import { LoadingSpinner } from '@/components/ui/loading-spinner';
+import { useHubPilotAccess } from '@/hooks/useHubPilotAccess';
 
 export default function DashboardV2Page() {
+  const router = useRouter();
+  const hubAccess = useHubPilotAccess();
+  // A Home é o /inicio: quem tem acesso a ela nunca fica no Painel Inicial antigo.
+  // Quem teve o acesso ao Início retirado continua vendo esta página.
+  useEffect(() => {
+    if (!hubAccess.loading && hubAccess.allowed) router.replace('/inicio');
+  }, [hubAccess.loading, hubAccess.allowed, router]);
+
+  if (hubAccess.loading || hubAccess.allowed) {
+    return (
+      <div className="flex min-h-[50vh] items-center justify-center">
+        <LoadingSpinner />
+      </div>
+    );
+  }
+
+  return <LegacyDashboard />;
+}
+
+function LegacyDashboard() {
   const [greeting, setGreeting] = useState('');
 
   const { user } = useAuth();
