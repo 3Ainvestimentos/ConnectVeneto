@@ -23,6 +23,10 @@ import { useRouter, usePathname } from 'next/navigation';
 import Image from 'next/image';
 import { cn } from '@/lib/utils';
 import FAQModal from '@/components/guides/FAQModal';
+import { FeedbackButton } from './FeedbackButton';
+
+/** Item "Guias e FAQ" do menu; desligado por enquanto (o FAQ continua no código). */
+const SHOW_GUIDES = false;
 import ProfileModal from '../applications/ProfileModal';
 import { useWorkflows } from '@/contexts/WorkflowsContext';
 import { toast } from '@/hooks/use-toast';
@@ -343,19 +347,24 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
 
             <SidebarFooter className="p-2 mt-auto">
               <SidebarMenu>
-                <SidebarMenuItem>
-                  <SidebarMenuButton
-                    tooltip={{ children: "Guias e FAQ", className: "font-body" }}
-                    onClick={() => {
-                        handleLinkClick();
-                        setIsFaqModalOpen(true);
-                    }}
-                    className="font-body"
-                  >
-                    <HelpCircle />
-                    <span>Guias e FAQ</span>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
+                {/* "Guias e FAQ" fora do menu por enquanto (pedido do Victor, 2026-10-23); voltar = SHOW_GUIDES. */}
+                {SHOW_GUIDES && (
+                  <SidebarMenuItem>
+                    <SidebarMenuButton
+                      tooltip={{ children: "Guias e FAQ", className: "font-body" }}
+                      onClick={() => {
+                          handleLinkClick();
+                          setIsFaqModalOpen(true);
+                      }}
+                      className="font-body"
+                    >
+                      <HelpCircle />
+                      <span>Guias e FAQ</span>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                )}
+
+                <FeedbackButton onOpen={handleLinkClick} />
 
                 <SidebarMenuItem>
                   <SidebarMenuButton onClick={signOut} tooltip={{ children: "Sair", className: "font-body" }} className="font-body">
