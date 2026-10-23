@@ -36,8 +36,8 @@ describe('canSeeHubModule', () => {
   });
 
   it('item desativado ou fora do menu não aparece nem para super admin', () => {
-    const c = ctx({ isSuperAdmin: true, permissions: { canViewBI: true } as CollaboratorPermissions });
-    expect(canSeeHubModule(byId('bi'), c)).toBe(false);
+    const c = ctx({ isSuperAdmin: true, permissions: { canViewAudit: true } as CollaboratorPermissions });
+    expect(canSeeHubModule({ ...byId('documents'), enabled: false }, c)).toBe(false);
     expect(canSeeHubModule({ ...byId('trackflow'), showInNav: false }, c)).toBe(false);
   });
 
@@ -51,7 +51,7 @@ describe('isNoZoomPath', () => {
   it('usa noZoom do registro e as rotas fixas', () => {
     expect(isNoZoomPath('/trackflow', FALLBACK_HUB_MODULES)).toBe(true);
     expect(isNoZoomPath('/dados-estrategicos/admin', FALLBACK_HUB_MODULES)).toBe(true);
-    expect(isNoZoomPath('/personal-panel', FALLBACK_HUB_MODULES)).toBe(true);
+    expect(isNoZoomPath('/publicacoes', FALLBACK_HUB_MODULES)).toBe(true);
     expect(isNoZoomPath('/dashboard', FALLBACK_HUB_MODULES)).toBe(false);
   });
 });

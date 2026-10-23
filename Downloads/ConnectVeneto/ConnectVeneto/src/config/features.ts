@@ -1,5 +1,4 @@
 export const FEATURE_FLAGS = {
-  businessIntelligence: false,
   regrasComerciais: true,
   bibliotecaComercial: true,
   debugBootstrap: false,

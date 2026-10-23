@@ -5,6 +5,8 @@ import { ORG_UNITS_COLLECTION, readOrgUnits } from '@/lib/hub/org-units-server';
 import { getFirebaseAdminApp } from '@/lib/firebase-admin';
 import { canBeChildOf, isSameOrDescendant, UNIT_TYPES, UNIT_TYPE_LABEL, type OrgUnit, type UnitType } from '@/lib/hub/org-units';
 import { logSecurityEvent, requireCollaboratorAdmin, securityErrorResponse } from '@/lib/security';
+import { SYSTEM_PERMISSION_KEYS } from '@/lib/access/catalog';
+import { readAccessProfiles, recomputeAccess } from '@/lib/access/server';
 
 const LOG_COLLECTION = 'orgUnitLogs';
 
@@ -13,6 +15,8 @@ const fields = {
   type: z.enum(UNIT_TYPES),
   parentId: z.string().trim().max(80).nullable(),
   leaderIdVeneto: z.string().trim().max(60).nullable(),
+  /** Perfil de acesso de quem está na unidade (ADR 0005). */
+  accessProfileId: z.string().trim().max(80).nullable().optional(),
 };
 const createSchema = z.object(fields).strict();
 const updateSchema = z.object({ id: z.string().trim().min(1), ...fields }).partial().required({ id: true }).strict();
@@ -64,7 +68,7 @@ export async function POST(request: Request) {
     const auth = await requireCollaboratorAdmin(request.headers.get('Authorization'));
     const parsed = createSchema.safeParse(await request.json().catch(() => null));
     if (!parsed.success) return bad(parsed.error.issues[0]?.message ?? 'Dados inválidos.');
-    const problem = await validate(await readOrgUnits(), parsed.data);
+    const problem = (await validate(await readOrgUnits(), parsed.data)) ?? (await checkProfile(parsed.data.accessProfileId, auth.isSuperAdmin));
     if (problem) return bad(problem);
     const now = new Date().toISOString();
     const ref = await getFirestore(getFirebaseAdminApp())
@@ -77,13 +81,24 @@ export async function POST(request: Request) {
   }
 }
 
-/** Renomeia, muda tipo, move de mãe ou troca o responsável. */
+/** Perfil escolhido existe e, se dá acesso ao sistema, só super admin atribui. */
+async function checkProfile(profileId: string | null | undefined, isSuperAdmin: boolean): Promise<string | null> {
+  if (!profileId) return null;
+  const profile = (await readAccessProfiles()).find((p) => p.id === profileId);
+  if (!profile) return 'Esse perfil de acesso não existe mais.';
+  if (!isSuperAdmin && profile.permissions.some((k) => SYSTEM_PERMISSION_KEYS.includes(k))) return 'Só um super admin atribui um perfil com acesso ao sistema.';
+  return null;
+}
+
+/** Renomeia, muda tipo, move de mãe, troca o responsável ou o perfil de acesso. */
 export async function PATCH(request: Request) {
   try {
     const auth = await requireCollaboratorAdmin(request.headers.get('Authorization'));
     const parsed = updateSchema.safeParse(await request.json().catch(() => null));
     if (!parsed.success) return bad(parsed.error.issues[0]?.message ?? 'Dados inválidos.');
     const { id, ...patch } = parsed.data;
+    const profileProblem = await checkProfile(patch.accessProfileId, auth.isSuperAdmin);
+    if (profileProblem) return bad(profileProblem);
     const units = await readOrgUnits();
     const current = units.find((u) => u.id === id);
     if (!current) return NextResponse.json({ error: 'Unidade não encontrada.' }, { status: 404 });
@@ -95,6 +110,8 @@ export async function PATCH(request: Request) {
       .doc(id)
       .update({ ...patch, updatedAt: new Date().toISOString(), updatedBy: auth.email });
     await log(auth.email, 'update', id, patch);
+    // Perfil ou mãe mudou: o acesso de quem está embaixo pode mudar.
+    if (patch.accessProfileId !== undefined || patch.parentId !== undefined) await recomputeAccess({ by: auth.email ?? 'desconhecido' });
     return ok({ ok: true });
   } catch (error) {
     return handle(error, 'PATCH');

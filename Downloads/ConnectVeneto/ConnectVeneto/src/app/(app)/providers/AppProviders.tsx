@@ -11,7 +11,6 @@ import { RequestsProvider } from "@/contexts/RequestsContext";
 import { WorkflowAreasProvider } from "@/contexts/WorkflowAreasContext";
 import { WorkflowsProvider } from "@/contexts/WorkflowsContext";
 import { ContactsProvider } from "@/contexts/ContactsContext";
-import { MeetingAnalysesProvider } from "@/contexts/MeetingAnalysesContext";
 import { TripsBirthdaysProvider } from "@/contexts/TripsBirthdaysContext";
 import { VacationProvider } from "@/contexts/VacationContext";
 import { VacationApproversProvider } from "@/contexts/VacationApproversContext";
@@ -31,7 +30,6 @@ export default function AppProviders({ children }: { children: React.ReactNode }
                         <FabMessagesProvider>
                           <IdleFabMessagesProvider>
                             <ContactsProvider>
-                              <MeetingAnalysesProvider>
                                 <TripsBirthdaysProvider>
                                   <VacationApproversProvider>
                                     <VacationRequestsProvider>
@@ -41,7 +39,6 @@ export default function AppProviders({ children }: { children: React.ReactNode }
                                     </VacationRequestsProvider>
                                   </VacationApproversProvider>
                                 </TripsBirthdaysProvider>
-                              </MeetingAnalysesProvider>
                             </ContactsProvider>
                           </IdleFabMessagesProvider>
                         </FabMessagesProvider>

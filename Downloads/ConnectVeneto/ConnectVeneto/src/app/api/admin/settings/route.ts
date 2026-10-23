@@ -20,19 +20,11 @@ export async function GET(request: Request) {
     const app = getFirebaseAdminApp();
     const db = getFirestore(app);
 
-    const [adminDoc, configDoc] = await Promise.all([
-      db.collection('systemSettings').doc('admin_config').get(),
-      db.collection('systemSettings').doc('config').get(),
-    ]);
-
-    const adminData = adminDoc.exists ? adminDoc.data() ?? {} : {};
+    // Uma lista só: `config`, a mesma que as rules e `requireSuperAdmin` leem e onde a tela grava.
+    const configDoc = await db.collection('systemSettings').doc('config').get();
     const configData = configDoc.exists ? configDoc.data() ?? {} : {};
 
     const pick = (key: string): string[] => {
-      const fromAdmin = adminData[key];
-      if (Array.isArray(fromAdmin)) {
-        return (fromAdmin as unknown[]).filter((v): v is string => typeof v === 'string');
-      }
       const fromConfig = configData[key];
       if (Array.isArray(fromConfig)) {
         return (fromConfig as unknown[]).filter((v): v is string => typeof v === 'string');

@@ -2,6 +2,7 @@
 "use client";
 import React, { useState, useRef, useMemo } from 'react';
 import { useCollaborators } from '@/contexts/CollaboratorsContext';
+import { DEFAULT_PERMISSIONS } from '@/lib/access/catalog';
 import type { Collaborator } from '@/contexts/CollaboratorsContext';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -91,29 +92,7 @@ function normalizeLiderancaCell(raw: string): string {
   return t;
 }
 
-const defaultPermissions: Collaborator["permissions"] = {
-  canManageWorkflows: false,
-  canManageRequests: false,
-  canManageContent: false,
-  canManageTripsBirthdays: false,
-  canManageVacation: false,
-  canViewAudit: false,
-  canManageSystem: false,
-  canViewConsultaPessoal: false,
-  canViewDocuments: true,
-  canViewApplications: true,
-  canViewRegrasComerciais: true,
-  canManageRegrasComerciais: false,
-  canViewBibliotecaComercial: true,
-  canManageBibliotecaComercial: false,
-  canViewTasks: false,
-  canViewBI: false,
-  canViewCRM: false,
-  canViewStrategicPanel: false,
-  canViewOpportunityMap: false,
-  canViewMeetAnalyses: false,
-  canViewDirectoria: false,
-};
+const defaultPermissions: Collaborator["permissions"] = DEFAULT_PERMISSIONS;
 
 function mapCsvRowToCollaboratorDraft(row: CsvRow): Omit<Collaborator, 'id'> | null {
   const m = csvRowToNormMap(row);

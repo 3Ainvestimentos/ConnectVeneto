@@ -7,6 +7,7 @@ import {
   requireCollaboratorAdmin,
   securityErrorResponse,
 } from '@/lib/security';
+import { recomputeAccess } from '@/lib/access/server';
 import { getFirebaseAdminApp } from '@/lib/firebase-admin';
 
 const COLLECTION_NAME = 'collaborators';
@@ -158,6 +159,8 @@ export async function PATCH(request: Request) {
       changes,
     });
     await batch.commit();
+    // Mudou de unidade: o perfil de acesso pode ser outro (ADR 0005).
+    if ('unitId' in update) await recomputeAccess({ by: authContext.email ?? 'desconhecido', only: [id] });
 
     logSecurityEvent('[api/admin/collaborators] colaborador editado', {
       email: authContext.email,

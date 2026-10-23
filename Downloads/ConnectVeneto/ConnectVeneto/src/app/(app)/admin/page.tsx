@@ -5,16 +5,20 @@ import React, { useEffect, useState } from 'react';
 import { PageHeader } from '@/components/layout/PageHeader';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ManageCollaborators } from '@/components/admin/ManageCollaborators';
-import PermissionsPageContent from '@/components/admin/PermissionsPageContent';
+import { AccessManager } from '@/components/admin/AccessManager';
 import { MaintenanceMode } from '@/components/admin/MaintenanceMode';
 import { ManageModules } from '@/components/admin/ManageModules';
 import { useAuth } from '@/contexts/AuthContext';
+import { useCanEditStructure } from '@/hooks/useOrgUnits';
 import { useRouter } from 'next/navigation';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
 
 
 export default function AdminPage() {
     const { user, loading, isSuperAdmin, permissions } = useAuth();
+    // RH (admin do cadastro) entra para Colaboradores e Acessos; Módulos e Configurações são de super admin.
+    const isCollaboratorAdmin = useCanEditStructure();
+    const canEnter = isSuperAdmin || permissions.canManageSystem || isCollaboratorAdmin;
     const router = useRouter();
     const [isAuthorized, setIsAuthorized] = useState(false);
     const [activeTab, setActiveTab] = useState("collaborators");
@@ -24,14 +28,14 @@ export default function AdminPage() {
             if (!user) {
                 setIsAuthorized(false);
                 router.replace('/login');
-            } else if (!isSuperAdmin && !permissions.canManageSystem) {
+            } else if (!canEnter) {
                 setIsAuthorized(false);
                 router.replace('/dashboard');
             } else {
                 setIsAuthorized(true);
             }
         }
-    }, [user, loading, isSuperAdmin, permissions.canManageSystem, router]);
+    }, [user, loading, canEnter, router]);
 
     if (loading || !isAuthorized) {
         return (
@@ -42,23 +46,23 @@ export default function AdminPage() {
     }
 
     return (
-        <div className="space-y-6 p-6 md:p-8 overflow-x-hidden">
+        <div className="space-y-6 p-4 sm:p-6 md:p-8 overflow-x-hidden">
             <PageHeader 
                 title="Administração do Sistema"
-                description="Gerencie colaboradores, permissões de acesso e o estado da plataforma."
+                description="Colaboradores, acessos por perfil e o estado da plataforma."
             />
             <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-                <TabsList className="grid w-full grid-cols-4">
+                <TabsList className="flex h-auto w-full flex-wrap justify-start">
                     <TabsTrigger value="collaborators">Colaboradores</TabsTrigger>
-                    <TabsTrigger value="permissions">Permissões</TabsTrigger>
-                    <TabsTrigger value="modules">Módulos</TabsTrigger>
-                    <TabsTrigger value="maintenance">Configurações</TabsTrigger>
+                    <TabsTrigger value="permissions">Acessos</TabsTrigger>
+                    {isSuperAdmin && <TabsTrigger value="modules">Módulos</TabsTrigger>}
+                    {isSuperAdmin && <TabsTrigger value="maintenance">Configurações</TabsTrigger>}
                 </TabsList>
                 <TabsContent value="collaborators">
                     <ManageCollaborators />
                 </TabsContent>
                 <TabsContent value="permissions">
-                    <PermissionsPageContent />
+                    <AccessManager />
                 </TabsContent>
                 <TabsContent value="modules">
                     <ManageModules />

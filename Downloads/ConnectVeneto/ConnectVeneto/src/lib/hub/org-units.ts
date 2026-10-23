@@ -17,6 +17,8 @@ export interface OrgUnit {
   parentId: string | null;
   /** `idVeneto` do responsável pela unidade. */
   leaderIdVeneto: string | null;
+  /** Perfil de acesso de quem está nela e nas de baixo, quando elas não têm um (ADR 0005). */
+  accessProfileId?: string | null;
 }
 
 /** Quem pode ser mãe de quem: Diretoria no topo, Área sob Diretoria (ou no topo), Equipe sob Área ou Diretoria. */
