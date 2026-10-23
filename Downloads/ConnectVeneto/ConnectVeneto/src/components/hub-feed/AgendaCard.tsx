@@ -63,6 +63,12 @@ function DateTile({ date }: { date: Date }) {
  * juntos e por data, na janela escolhida. Evento importado do Google para uma publicação aparece uma
  * vez só, como publicação.
  */
+/**
+ * Google Agenda da Vêneto desligado por enquanto (pedido do Victor, 2026-10-23): os eventos de lá não
+ * podem ser excluídos pelo Connect, que só lê o calendário. Para religar, volte para true.
+ */
+const SHOW_COMPANY_CALENDAR = false;
+
 export function AgendaCard() {
   const { data } = useHubFeed();
   const [openPost, setOpenPost] = useState<string | null>(null);
@@ -89,7 +95,7 @@ export function AgendaCard() {
       place: p.event!.place,
       audience: p.event!.audience,
     }));
-    const fromCalendar: AgendaEntry[] = (calendar.data ?? [])
+    const fromCalendar: AgendaEntry[] = (SHOW_COMPANY_CALENDAR ? (calendar.data ?? []) : [])
       .filter((it) => !imported.has(it.id))
       .flatMap((it) => {
         const start = calendarStart(it);
