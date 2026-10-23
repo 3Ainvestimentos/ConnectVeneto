@@ -364,7 +364,7 @@ export function CommercialUploadDialog({
             {sourceType === "upload" ? (
               <div className="space-y-2">
                 <Label htmlFor="commercial-file" className="font-body">
-                  Arquivo (PDF, PPT/PPTX, áudio ou imagem — até 100 MB)
+                  Arquivo (PDF, PPT/PPTX, áudio, imagem ou sistema interativo em .html — até 100 MB)
                 </Label>
                 <Input
                   id="commercial-file"
@@ -376,6 +376,14 @@ export function CommercialUploadDialog({
                 />
                 {file && (
                   <p className="font-body text-sm text-muted-foreground">Selecionado: {file.name}</p>
+                )}
+                {/* O iframe isolado não enxerga outros arquivos nem o armazenamento do navegador. */}
+                {effectiveFileType === "html" && (
+                  <p className="font-body text-xs text-muted-foreground">
+                    O sistema abre numa instância temporária e isolada. Ele precisa caber num
+                    único .html (scripts e estilos no arquivo ou de CDN) e não pode depender de
+                    login nem de salvar dados no navegador.
+                  </p>
                 )}
                 {isReadingFile && (
                   <p className="flex items-center gap-1.5 font-body text-sm text-muted-foreground">

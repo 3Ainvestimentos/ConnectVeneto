@@ -42,6 +42,8 @@ function AuditLayoutContent({
   let activeTab = "/audit";
   if (pathname.includes('/content-interaction')) {
     activeTab = "/audit/content-interaction";
+  } else if (pathname.includes('/module-time')) {
+    activeTab = "/audit/module-time";
   }
 
 
@@ -61,9 +63,10 @@ function AuditLayoutContent({
         actions={<DatePickerWithRange date={dateRange} onDateChange={setDateRange} />}
       />
       <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
-          <TabsList className="grid w-full grid-cols-1 md:grid-cols-2">
+          <TabsList className="grid w-full grid-cols-1 md:grid-cols-3">
               <TabsTrigger value="/audit">Logins</TabsTrigger>
               <TabsTrigger value="/audit/content-interaction">Conteúdos</TabsTrigger>
+              <TabsTrigger value="/audit/module-time">Tempo por módulo</TabsTrigger>
           </TabsList>
       </Tabs>
       <div className="pt-4">

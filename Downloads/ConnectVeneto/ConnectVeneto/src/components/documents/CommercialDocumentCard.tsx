@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import {
+  AppWindow,
   BookOpen,
   Download,
   ExternalLink,
@@ -12,6 +13,7 @@ import {
   ImageIcon,
   Link2,
   Pencil,
+  Play,
   Presentation,
   Trash2,
 } from "lucide-react";
@@ -40,6 +42,7 @@ const KIND_ICON = {
   ppt: { Icon: Presentation, className: "text-orange-500" },
   audio: { Icon: Headphones, className: "text-violet-500" },
   image: { Icon: ImageIcon, className: "text-pink-500" },
+  html: { Icon: AppWindow, className: "text-emerald-600" },
   doc: { Icon: FileText, className: "text-blue-500" },
   sheet: { Icon: FileSpreadsheet, className: "text-green-600" },
   form: { Icon: FileText, className: "text-muted-foreground" },
@@ -61,6 +64,7 @@ const KIND_LABEL: Record<UnifiedDocument["kind"], string> = {
   ppt: "Apresentação",
   audio: "Áudio",
   image: "Imagem",
+  html: "Sistema interativo",
   doc: "Documento",
   sheet: "Planilha",
   form: "Formulário",
@@ -84,6 +88,7 @@ export function CommercialDocumentCard({
   const isInlineAudio = document.kind === "audio" && document.sourceType === "upload";
   const isInlinePdf = document.kind === "pdf" && document.sourceType === "upload";
   const isInlineImage = document.kind === "image" && document.sourceType === "upload";
+  const isInteractiveHtml = document.kind === "html" && document.sourceType === "upload";
   const isInternalPage = !!document.internalPath;
 
   // Fallback: um `kind` inesperado (documento antigo, dado manual) não pode derrubar a grade toda.
@@ -91,7 +96,9 @@ export function CommercialDocumentCard({
 
   const actionLabel = isInternalPage
     ? "Abrir página"
-    : isInlinePdf || isInlineImage
+    : isInteractiveHtml
+      ? "Iniciar"
+      : isInlinePdf || isInlineImage
       ? "Visualizar"
       : isInlineAudio
         ? showPlayer
@@ -103,7 +110,9 @@ export function CommercialDocumentCard({
 
   const ActionIcon = isInternalPage
     ? BookOpen
-    : isInlineAudio
+    : isInteractiveHtml
+      ? Play
+      : isInlineAudio
       ? Headphones
       : isInlineImage
         ? ImageIcon
