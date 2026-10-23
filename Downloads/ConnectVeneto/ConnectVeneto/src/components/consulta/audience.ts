@@ -27,4 +27,4 @@ export function distinctLabels(collaborators: Collaborator[], pick: (c: Collabor
 export const toPickablePeople = (collaborators: Collaborator[]) =>
   collaborators
     .filter((c) => c.email)
-    .map((c) => ({ email: c.email.toLowerCase(), name: c.name, area: isBlankLabel(c.area) ? '' : c.area }));
+    .map((c) => ({ email: c.email.toLowerCase(), name: c.name, area: isBlankLabel(c.area) ? '' : c.area ?? '' }));

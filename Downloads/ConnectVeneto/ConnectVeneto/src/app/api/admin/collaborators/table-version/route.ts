@@ -6,6 +6,7 @@ import {
   securityErrorResponse,
 } from '@/lib/security';
 import { getFirebaseAdminApp } from '@/lib/firebase-admin';
+import { syncOrgDerivedFields } from '@/lib/hub/org-derived-server';
 
 /**
  * Incrementa `systemSettings/config.collaboratorTableVersion` depois de criar,
@@ -18,7 +19,15 @@ import { getFirebaseAdminApp } from '@/lib/firebase-admin';
  */
 export async function POST(request: Request) {
   try {
-    await requireCollaboratorAdmin(request.headers.get('Authorization'));
+    const auth = await requireCollaboratorAdmin(request.headers.get('Authorization'));
+
+    // Cadastro novo (o client grava direto): área, equipe e líder vêm da unidade escolhida.
+    // Best-effort: falhar aqui não pode impedir a versão de subir.
+    await syncOrgDerivedFields({ by: auth.email ?? 'desconhecido' }).catch((error) =>
+      logSecurityEvent('[api/admin/collaborators/table-version] falha ao derivar da estrutura', {
+        error: error instanceof Error ? error.message : 'unknown',
+      })
+    );
 
     const db = getFirestore(getFirebaseAdminApp());
     const configRef = db.collection('systemSettings').doc('config');

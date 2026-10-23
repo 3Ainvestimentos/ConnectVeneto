@@ -11,7 +11,7 @@ describe('hub/profile-import', () => {
     expect(toIsoDate('amanhã')).toBeNull();
   });
 
-  it('lê cabeçalhos em português, só muda as colunas presentes e aponta linhas ruins', () => {
+  it('lê cabeçalhos em português, só muda as colunas presentes, ignora Equipe e aponta linhas ruins', () => {
     const { rows, errors } = parseProfileImport([
       { ID: '10', 'Data de Nascimento': '05/03/1992', Equipe: 'Comercial SP' },
       { ID: '11', 'Data de Nascimento': '' },
@@ -20,7 +20,7 @@ describe('hub/profile-import', () => {
       { 'ID Gestor': '1', id: '13' },
     ]);
     expect(rows).toEqual([
-      { idVeneto: '10', birthDate: '1992-03-05', team: 'Comercial SP' },
+      { idVeneto: '10', birthDate: '1992-03-05' },
       { idVeneto: '11', birthDate: '' },
       { idVeneto: '13', leaderIdVeneto: '1' },
     ]);

@@ -7,6 +7,7 @@ import { canBeChildOf, isSameOrDescendant, UNIT_TYPES, UNIT_TYPE_LABEL, type Org
 import { logSecurityEvent, requireCollaboratorAdmin, securityErrorResponse } from '@/lib/security';
 import { SYSTEM_PERMISSION_KEYS } from '@/lib/access/catalog';
 import { readAccessProfiles, recomputeAccess } from '@/lib/access/server';
+import { syncOrgDerivedFields } from '@/lib/hub/org-derived-server';
 
 const LOG_COLLECTION = 'orgUnitLogs';
 
@@ -75,6 +76,8 @@ export async function POST(request: Request) {
       .collection(ORG_UNITS_COLLECTION)
       .add({ ...parsed.data, createdAt: now, updatedAt: now, updatedBy: auth.email });
     await log(auth.email, 'create', ref.id, parsed.data);
+    // Área, equipe e líder do cadastro acompanham a estrutura.
+    await syncOrgDerivedFields({ by: auth.email ?? 'desconhecido' });
     return ok({ id: ref.id });
   } catch (error) {
     return handle(error, 'POST');
@@ -112,6 +115,7 @@ export async function PATCH(request: Request) {
     await log(auth.email, 'update', id, patch);
     // Perfil ou mãe mudou: o acesso de quem está embaixo pode mudar.
     if (patch.accessProfileId !== undefined || patch.parentId !== undefined) await recomputeAccess({ by: auth.email ?? 'desconhecido' });
+    await syncOrgDerivedFields({ by: auth.email ?? 'desconhecido' });
     return ok({ ok: true });
   } catch (error) {
     return handle(error, 'PATCH');
@@ -132,6 +136,7 @@ export async function DELETE(request: Request) {
     if (!members.empty) return bad('Ainda há pessoas nesta unidade. Mova-as antes de excluir.');
     await db.collection(ORG_UNITS_COLLECTION).doc(id).delete();
     await log(auth.email, 'delete', id, null);
+    await syncOrgDerivedFields({ by: auth.email ?? 'desconhecido' });
     return ok({ ok: true });
   } catch (error) {
     return handle(error, 'DELETE');

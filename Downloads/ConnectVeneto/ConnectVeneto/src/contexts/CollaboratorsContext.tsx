@@ -36,11 +36,11 @@ export interface Collaborator {
   name: string;
   email: string;
   photoURL?: string; // Link da imagem do colaborador
-  axis: string;      // Eixo
-  area: string;      // Área
+  axis?: string;     // Eixo (legado, fora do cadastro)
+  area?: string;     // Área: derivada da estrutura para quem tem unidade (org-derived)
   position: string;  // Cargo
-  segment: string;   // Segmento
-  leader: string;    // Nome do líder direto (como na planilha RH)
+  segment?: string;  // Segmento (legado, fora do cadastro)
+  leader?: string;   // Nome do gestor: derivado da estrutura para quem tem unidade
   lideranca?: string; // Ex.: SIM / NÃO — integra grupo de liderança
   city: string;      // Cidade
   permissions: CollaboratorPermissions;
@@ -51,7 +51,7 @@ export interface Collaborator {
   modulePermissions?: Record<string, string[]>; // ex: { 'portal-repasse': ['portal-repasse:view', 'portal-repasse:tickets:view'] }
   accessType?: string; // Ex.: comercial / normal / admin / superadmin — usado para permissionamento futuro
   // Dados oficiais do Perfil (mantidos pelo RH):
-  team?: string;            // Equipe (grupo sob um Gestor; um Gestor pode ter várias)
+  team?: string;            // Equipe: derivada da estrutura para quem tem unidade (org-derived)
   leaderIdVeneto?: string;  // Gestor pelo idVeneto (ADR 0001, legado); `leader` fica como nome legado
   unitId?: string;          // Unidade da estrutura (ADR 0004): o gestor vem do responsável dela
   managerOverrideIdVeneto?: string; // Gestor fora da regra da estrutura (exceção manual)
@@ -131,9 +131,8 @@ const bumpCollaboratorTableVersion = async (): Promise<void> => {
  * aceita apenas estes campos — permissões continuam na tela de permissões.
  */
 const PROFILE_FIELDS = [
-  'idVeneto', 'name', 'email', 'photoURL', 'axis', 'area', 'position',
-  'segment', 'leader', 'lideranca', 'city',
-  'team', 'leaderIdVeneto', 'birthDate', 'admissionDate', 'careerHistory', 'unitId', 'managerOverrideIdVeneto', 'hubHidden',
+  'idVeneto', 'name', 'email', 'photoURL', 'position', 'leader', 'city',
+  'leaderIdVeneto', 'birthDate', 'admissionDate', 'careerHistory', 'unitId', 'managerOverrideIdVeneto', 'hubHidden',
 ] as const satisfies ReadonlyArray<keyof Collaborator>;
 
 const defaultPermissions: CollaboratorPermissions = DEFAULT_PERMISSIONS;

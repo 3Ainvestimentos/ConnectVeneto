@@ -8,6 +8,7 @@ import {
   securityErrorResponse,
 } from '@/lib/security';
 import { recomputeAccess } from '@/lib/access/server';
+import { syncOrgDerivedFields } from '@/lib/hub/org-derived-server';
 import { getFirebaseAdminApp } from '@/lib/firebase-admin';
 
 const COLLECTION_NAME = 'collaborators';
@@ -31,10 +32,13 @@ const optionalUrl = z.string().trim().max(2048).refine(
 );
 
 /** Vazio (apaga) ou data AAAA-MM-DD. */
-const optionalDate = z.string().trim().refine((v) => v === '' || /^d{4}-d{2}-d{2}$/.test(v), 'Data inválida (use AAAA-MM-DD).');
+const optionalDate = z.string().trim().refine((v) => v === '' || /^\d{4}-\d{2}-\d{2}$/.test(v), 'Data inválida (use AAAA-MM-DD).');
 
 const requiredText = (label: string) =>
   z.string().trim().min(1, `${label} é obrigatório.`).max(300);
+
+/** Campos legados: o formulário não edita mais (área, equipe e líder vêm da estrutura). */
+const legacyText = z.string().trim().max(300);
 
 const profilePatchSchema = z
   .object({
@@ -42,11 +46,11 @@ const profilePatchSchema = z
     name: requiredText('Nome'),
     email: z.string().trim().toLowerCase().email('E-mail inválido.'),
     photoURL: optionalUrl,
-    axis: requiredText('Eixo'),
-    area: requiredText('Área'),
+    axis: legacyText,
+    area: legacyText,
     position: requiredText('Cargo'),
-    segment: requiredText('Segmento'),
-    leader: requiredText('Líder'),
+    segment: legacyText,
+    leader: legacyText,
     lideranca: z.string().trim().max(50),
     city: requiredText('Cidade'),
     // Perfil (Hub): dados oficiais mantidos pelo RH.
@@ -161,6 +165,10 @@ export async function PATCH(request: Request) {
     await batch.commit();
     // Mudou de unidade: o perfil de acesso pode ser outro (ADR 0005).
     if ('unitId' in update) await recomputeAccess({ by: authContext.email ?? 'desconhecido', only: [id] });
+    // Área, equipe e líder vêm da estrutura. Nome novo: o `leader` de quem reporta a ela muda junto.
+    if ('unitId' in update || 'managerOverrideIdVeneto' in update || 'name' in update) {
+      await syncOrgDerivedFields({ by: authContext.email ?? 'desconhecido', only: 'name' in update ? undefined : [id] });
+    }
 
     logSecurityEvent('[api/admin/collaborators] colaborador editado', {
       email: authContext.email,
