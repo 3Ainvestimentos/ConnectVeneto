@@ -27,6 +27,6 @@ tags: [hot-cache]
   no desenho, teclado. Aguardando feedback. (Merge 4b3fcb8 não disparou a Vercel; push novo resolveu.)
 - 2026-10-22 — 🟢 PR #59: Notícia/Aviso/Evento com botões e regras próprias (`kind`, `postKind`,
   `normalizePostInput`); Publicações no menu; sem "Voltar"; menu recolhe <1280px; embeds sempre tela
-  cheia. 🟡 **Perfis de acesso desfeitos** a pedido do Victor (confuso): acesso volta a ser pessoa a pessoa com tela nova; código ADR 0005 dormente.
+  cheia. 🟢 PR #61: acesso pessoa a pessoa com tela nova (perfis ADR 0005 dormentes); cadastro sem Eixo/Área/Segmento/Líder/Equipe/Liderança; Área/Equipe/Líder derivados do organograma (59 gravados). Eixo não é mais editado: FAB/Auditoria filtram axis=Comercial.
 - 2026-10-21 — Pendências de dados: campo Eixo só tem lixo; Área Comercial e Canal 3ARiva sem
   responsável; team vazio (birthDate/admissão importados em 22/10, falta Fernanda Adami); confirmar o nome "Operações" (Corporativo virou "Estratégia e Governança").
