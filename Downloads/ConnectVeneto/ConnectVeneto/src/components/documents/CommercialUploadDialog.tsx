@@ -18,6 +18,7 @@ import { Progress } from "@/components/ui/progress";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "@/hooks/use-toast";
 import {
+  COMMERCIAL_FILE_TYPE_LABEL,
   resolveUploadMime,
   UPLOAD_ACCEPT_ATTRIBUTE,
   UPLOAD_MIME_TO_FILE_TYPE,
@@ -38,6 +39,7 @@ import {
 import type {
   CommercialDocumentDraft,
   CommercialDocumentEdit,
+  CommercialFileReplacement,
 } from "@/hooks/useCommercialDocuments";
 
 type Mode = "source" | "interview" | "review";
@@ -47,9 +49,21 @@ interface CommercialUploadDialogProps {
   onOpenChange: (open: boolean) => void;
   /** Documento existente → o diálogo entra em modo de edição de metadados. */
   editing?: CommercialDocument | null;
+  /** Gestor da biblioteca: define quem mais pode atualizar o documento. */
+  canManageEditors?: boolean;
   onCreate: (draft: CommercialDocumentDraft) => Promise<void>;
   onUpdate: (edit: CommercialDocumentEdit) => Promise<void>;
 }
+
+/** "a@x, b@x; c@x" → lista normalizada, sem repetição. */
+const parseEmailList = (value: string): string[] => [
+  ...new Set(
+    value
+      .split(/[\s,;]+/)
+      .map((item) => item.trim().toLowerCase())
+      .filter(Boolean)
+  ),
+];
 
 const LINK_FILE_TYPES: Array<{ value: CommercialFileType; label: string }> = [
   { value: "pdf", label: "PDF" },
@@ -74,6 +88,7 @@ export function CommercialUploadDialog({
   open,
   onOpenChange,
   editing,
+  canManageEditors = false,
   onCreate,
   onUpdate,
 }: CommercialUploadDialogProps) {
@@ -100,6 +115,10 @@ export function CommercialUploadDialog({
   const [tags, setTags] = useState<string[]>([]);
   const [tagInput, setTagInput] = useState("");
 
+  /** Na edição: nova versão do arquivo e quem mais pode atualizar o documento. */
+  const [replacementFile, setReplacementFile] = useState<File | null>(null);
+  const [editorsInput, setEditorsInput] = useState("");
+
   const [uploadProgress, setUploadProgress] = useState<number | null>(null);
   const [isSaving, setIsSaving] = useState(false);
 
@@ -111,6 +130,7 @@ export function CommercialUploadDialog({
       setTitle(editing.title);
       setDescription(editing.description);
       setTags(editing.tags);
+      setEditorsInput((editing.editorEmails ?? []).join(", "));
     } else {
       setMode("source");
       setSourceType("upload");
@@ -121,7 +141,9 @@ export function CommercialUploadDialog({
       setTitle("");
       setDescription("");
       setTags([]);
+      setEditorsInput("");
     }
+    setReplacementFile(null);
     setExtraction(null);
     setQuestions([]);
     setAnswers([]);
@@ -175,6 +197,25 @@ export function CommercialUploadDialog({
     if (draftDescription) {
       setBriefDescription((current) => current.trim() || draftDescription);
     }
+  };
+
+  /** A nova versão precisa ser do mesmo tipo: é o tipo que decide como o card abre. */
+  const handleReplacementChange = (selected: File | undefined) => {
+    if (!selected || !editing) return;
+    const validationError = validateCommercialFile(selected);
+    const mime = resolveUploadMime(selected.name, selected.type);
+    const selectedType = mime ? UPLOAD_MIME_TO_FILE_TYPE[mime] : null;
+    if (validationError || selectedType !== editing.fileType) {
+      toast({
+        title: "Arquivo não aceito",
+        description:
+          validationError ??
+          `Envie um arquivo do mesmo tipo do atual (${COMMERCIAL_FILE_TYPE_LABEL[editing.fileType]}).`,
+        variant: "destructive",
+      });
+      return;
+    }
+    setReplacementFile(selected);
   };
 
   const runAssistant = async (
@@ -264,13 +305,29 @@ export function CommercialUploadDialog({
 
     try {
       if (isEditing && editing) {
+        let replacement: CommercialFileReplacement | undefined;
+        if (replacementFile) {
+          setUploadProgress(0);
+          const uploaded = await uploadCommercialFile(replacementFile, setUploadProgress);
+          uploadedPath = uploaded.storagePath;
+          replacement = {
+            fileType: uploaded.fileType,
+            downloadUrl: uploaded.downloadUrl,
+            storagePath: uploaded.storagePath,
+            mimeType: uploaded.mimeType,
+            sizeBytes: uploaded.sizeBytes,
+          };
+        }
+
         await onUpdate({
           id: editing.id,
           title: title.trim(),
           description: description.trim(),
           tags,
+          ...(replacement ? { file: replacement } : {}),
+          ...(canManageEditors ? { editorEmails: parseEmailList(editorsInput) } : {}),
         });
-        toast({ title: "Documento atualizado" });
+        toast({ title: replacement ? "Nova versão publicada" : "Documento atualizado" });
         onOpenChange(false);
         return;
       }
@@ -563,6 +620,46 @@ export function CommercialUploadDialog({
                 </div>
               )}
             </div>
+
+            {isEditing && editing?.sourceType === "upload" && (
+              <div className="space-y-2">
+                <Label htmlFor="commercial-replacement" className="font-body">
+                  Substituir arquivo{" "}
+                  <span className="font-normal text-muted-foreground">(opcional)</span>
+                </Label>
+                <Input
+                  id="commercial-replacement"
+                  type="file"
+                  accept={UPLOAD_ACCEPT_ATTRIBUTE}
+                  onChange={(event) => handleReplacementChange(event.target.files?.[0])}
+                  className="font-body"
+                />
+                <p className="font-body text-xs text-muted-foreground">
+                  {replacementFile
+                    ? `Nova versão: ${replacementFile.name}. O arquivo atual será apagado ao salvar.`
+                    : "Para atualizar o material (ex.: dados do mês), envie a nova versão aqui. O link e os favoritos continuam os mesmos."}
+                </p>
+              </div>
+            )}
+
+            {isEditing && canManageEditors && (
+              <div className="space-y-2">
+                <Label htmlFor="commercial-editors" className="font-body">
+                  Quem mais pode atualizar este documento{" "}
+                  <span className="font-normal text-muted-foreground">(opcional)</span>
+                </Label>
+                <Input
+                  id="commercial-editors"
+                  value={editorsInput}
+                  onChange={(event) => setEditorsInput(event.target.value)}
+                  placeholder="nome.sobrenome@venetomfo.com.br, outro@venetomfo.com.br"
+                  className="font-body"
+                />
+                <p className="font-body text-xs text-muted-foreground">
+                  Essas pessoas editam e trocam o arquivo só deste documento. Não podem excluí-lo.
+                </p>
+              </div>
+            )}
 
             {uploadProgress !== null && (
               <div className="space-y-1">
