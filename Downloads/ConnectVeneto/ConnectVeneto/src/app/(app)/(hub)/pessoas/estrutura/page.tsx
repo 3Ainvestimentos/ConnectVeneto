@@ -135,7 +135,7 @@ function NewUnit({ parent, onCreated, onCancel }: { parent: OrgUnit | null; onCr
 }
 
 function UnitPanel({ unit, units, byId, people, onDeleted, onSelect }: { unit: OrgUnit; units: OrgUnit[]; byId: Map<string, OrgUnit>; people: HubPerson[]; onDeleted: () => void; onSelect: (id: string) => void }) {
-  const { updateUnit, deleteUnit, setPersonUnit, setUnitOrder } = useOrgUnitActions();
+  const { updateUnit, deleteUnit, setPersonUnit, setUnitOrder, setPersonExtraUnits } = useOrgUnitActions();
   const { busy, run } = useRun();
   const [name, setName] = useState(unit.name);
   const [creating, setCreating] = useState(false);
@@ -144,8 +144,9 @@ function UnitPanel({ unit, units, byId, people, onDeleted, onSelect }: { unit: O
     setCreating(false);
   }, [unit.id, unit.name]);
 
-  const members = people.filter((p) => p.unitId === unit.id).sort((a, b) => a.name.localeCompare(b.name, 'pt-BR'));
-  const outside = people.filter((p) => p.unitId !== unit.id);
+  const members = people.filter((p) => p.unitId === unit.id || p.extraUnitIds.includes(unit.id)).sort((a, b) => a.name.localeCompare(b.name, 'pt-BR'));
+  const outside = people.filter((p) => p.unitId !== unit.id && !p.extraUnitIds.includes(unit.id));
+  const extraIn = (p: (typeof people)[number]) => p.unitId !== unit.id;
   const validParents = units.filter((u) => u.id !== unit.id && !isSameOrDescendant(byId, u.id, unit.id) && canBeChildOf(unit.type, u.type));
   const leader = people.find((p) => p.idVeneto && p.idVeneto === unit.leaderIdVeneto);
   const children = childUnits(units, unit.id);
@@ -240,6 +241,18 @@ function UnitPanel({ unit, units, byId, people, onDeleted, onSelect }: { unit: O
               }}
             />
           </div>
+          <div className="w-full max-w-xs">
+            <PersonSelect
+              people={outside.filter((p) => p.unitId)}
+              value=""
+              disabled={busy}
+              placeholder="+ adicionar também (sem tirar da equipe principal)…"
+              onChange={(idVeneto) => {
+                const p = outside.find((x) => x.idVeneto === idVeneto);
+                if (p) void run(() => setPersonExtraUnits(p.id, [...p.extraUnitIds, unit.id]), `${p.name.split(' ')[0]} também está em ${unit.name}`);
+              }}
+            />
+          </div>
         </div>
         {members.length === 0 && <p className="text-sm text-muted-foreground">Ninguém ainda. Adicione acima ou pela bandeja &quot;Sem unidade&quot;.</p>}
         <ul className="grid gap-1">
@@ -247,13 +260,30 @@ function UnitPanel({ unit, units, byId, people, onDeleted, onSelect }: { unit: O
             <li key={p.id} className="flex flex-wrap items-center gap-3 rounded-lg border px-3 py-2">
               <PersonAvatar person={p} size="sm" link />
               <span className="min-w-0 flex-1">
-                <span className="block truncate font-medium">{p.name}</span>
+                <span className="block truncate font-medium">
+                  {p.name}
+                  {extraIn(p) && <span className="ml-2 rounded bg-muted px-1.5 py-0.5 text-[11px] font-semibold text-muted-foreground">adicional · principal: {byId.get(p.unitId ?? '')?.name ?? '—'}</span>}
+                </span>
                 <span className="block truncate text-sm text-muted-foreground">{p.position}</span>
               </span>
-              <div className="w-56">
-                <UnitSelect units={units} byId={byId} value="" exclude={unit.id} disabled={busy} placeholder="mover para…" onChange={(to) => to && void run(() => setPersonUnit(p.id, to), `${p.name.split(' ')[0]} movido(a)`)} />
-              </div>
-              <Button size="icon" variant="ghost" className="h-9 w-9" aria-label={`Tirar ${p.name} da unidade`} disabled={busy} onClick={() => void run(() => setPersonUnit(p.id, ''), `${p.name.split(' ')[0]} ficou sem unidade`)}>
+              {!extraIn(p) && (
+                <div className="w-56">
+                  <UnitSelect units={units} byId={byId} value="" exclude={unit.id} disabled={busy} placeholder="mover para…" onChange={(to) => to && void run(() => setPersonUnit(p.id, to), `${p.name.split(' ')[0]} movido(a)`)} />
+                </div>
+              )}
+              <Button
+                size="icon"
+                variant="ghost"
+                className="h-9 w-9"
+                aria-label={extraIn(p) ? `Tirar ${p.name} desta equipe adicional` : `Tirar ${p.name} da unidade`}
+                disabled={busy}
+                onClick={() =>
+                  void run(
+                    () => (extraIn(p) ? setPersonExtraUnits(p.id, p.extraUnitIds.filter((x) => x !== unit.id)) : setPersonUnit(p.id, '')),
+                    extraIn(p) ? `${p.name.split(' ')[0]} saiu de ${unit.name}` : `${p.name.split(' ')[0]} ficou sem unidade`,
+                  )
+                }
+              >
                 <UserMinus className="h-4 w-4" />
               </Button>
             </li>

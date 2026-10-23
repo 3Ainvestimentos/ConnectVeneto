@@ -34,7 +34,8 @@ function buildTree(units: OrgUnit[], people: HubPerson[]): { roots: UnitNode[]; 
   const byId = new Map<string, UnitNode>();
   const make = (unit: OrgUnit, parentId: string | null, parentLeader: string | null): UnitNode => {
     const leader = unit.leaderIdVeneto ? byIdVeneto.get(unit.leaderIdVeneto) : undefined;
-    const own = people.filter((p) => p.unitId === unit.id);
+    // Quem tem a unidade como adicional aparece igual a um membro normal.
+    const own = people.filter((p) => p.unitId === unit.id || p.extraUnitIds.includes(unit.id));
     const children = childUnits(units, unit.id)
       .filter((c) => !byId.has(c.id))
       .map((c) => make(c, unit.id, unit.leaderIdVeneto ?? parentLeader));

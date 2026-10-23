@@ -57,6 +57,7 @@ const profilePatchSchema = z
     team: z.string().trim().max(120),
     leaderIdVeneto: z.string().trim().max(60),
     unitId: z.string().trim().max(80),
+    extraUnitIds: z.array(z.string().trim().min(1).max(80)).max(10),
     managerOverrideIdVeneto: z.string().trim().max(60),
     hubHidden: z.boolean(),
     birthDate: optionalDate,
@@ -141,6 +142,12 @@ export async function PATCH(request: Request) {
     if (payload.unitId) {
       const unit = await db.collection('orgUnits').doc(payload.unitId).get();
       if (!unit.exists) return invalidRequest('A unidade escolhida não existe mais.');
+    }
+    if (payload.extraUnitIds) {
+      const unique = [...new Set(payload.extraUnitIds)].filter((u) => u !== (payload.unitId ?? previous.unitId));
+      const found = await Promise.all(unique.map((u) => db.collection('orgUnits').doc(u).get()));
+      if (found.some((d) => !d.exists)) return invalidRequest('Uma das equipes adicionais não existe mais.');
+      payload.extraUnitIds = unique;
     }
 
     const changes = Object.entries(payload)
