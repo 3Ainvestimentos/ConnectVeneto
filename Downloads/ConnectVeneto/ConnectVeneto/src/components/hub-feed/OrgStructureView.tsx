@@ -511,9 +511,10 @@ function UnitPanel({ node, byId, onSelect }: { node: UnitNode; byId: Map<string,
             {node.members.length === 0 ? (
               <p className="px-1.5 text-sm text-muted-foreground">Ninguém cadastrado diretamente aqui.</p>
             ) : (
-              <ul className="grid items-start gap-x-2 gap-y-0.5 sm:grid-cols-2">
+              <ul className="gap-x-4 sm:columns-2">
+                {/* Colunas que fluem (não grade): um comercial com assistente não abre buraco ao lado. */}
                 {groupAssistants(node.members).map(({ person, assistants }) => (
-                  <li key={person.id}>
+                  <li key={person.id} className="mb-0.5 break-inside-avoid">
                     <PersonRow person={person} detail={[person.position, person.city].filter(Boolean).join(' · ') || undefined} />
                     {assistants.length > 0 && (
                       <ul className="ml-5 border-l pl-1.5" aria-label={`Assistentes de ${person.name}`}>
