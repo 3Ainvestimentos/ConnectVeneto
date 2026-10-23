@@ -105,7 +105,7 @@ function LeaderLine({ person }: { person: HubPerson }) {
       <PersonAvatar person={person} size="sm" />
       <span className="min-w-0 flex-1">
         <span className="block truncate text-sm font-semibold leading-tight">{person.name}</span>
-        <span className="block text-xs leading-tight text-muted-foreground">Responsável</span>
+        {person.position && <span className="block truncate text-xs leading-tight text-muted-foreground">{person.position}</span>}
       </span>
     </div>
   );
@@ -147,7 +147,7 @@ function UnitPreview({ node }: { node: UnitNode }) {
         <div className="font-headline text-sm font-bold leading-tight">{node.unit.name}</div>
         <div className="text-xs text-muted-foreground">{summary(node)}</div>
       </div>
-      {node.leader && <PersonRow person={node.leader} detail={['Responsável', node.leader.position].filter(Boolean).join(' · ')} />}
+      {node.leader && <PersonRow person={node.leader} detail={node.leader.position || ''} />}
       {node.children.length > 0 && (
         <ul className="grid gap-0.5 border-t pt-2">
           {node.children.map((c) => (
