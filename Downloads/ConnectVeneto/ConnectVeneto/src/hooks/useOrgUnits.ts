@@ -89,6 +89,11 @@ export function useOrgUnitActions() {
       await call(`/api/admin/collaborators?id=${encodeURIComponent(collaboratorId)}`, 'PATCH', { unitId });
       await refresh();
     },
+    /** Equipes adicionais da pessoa (lista completa). */
+    setPersonExtraUnits: async (collaboratorId: string, extraUnitIds: string[]) => {
+      await call(`/api/admin/collaborators?id=${encodeURIComponent(collaboratorId)}`, 'PATCH', { extraUnitIds });
+      await refresh();
+    },
     /** Gestor fora da regra da estrutura ('' remove a exceção). */
     setManagerOverride: async (collaboratorId: string, managerIdVeneto: string) => {
       await call(`/api/admin/collaborators?id=${encodeURIComponent(collaboratorId)}`, 'PATCH', { managerOverrideIdVeneto: managerIdVeneto });

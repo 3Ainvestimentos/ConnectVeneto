@@ -28,6 +28,8 @@ export interface CollaboratorLike {
   leaderIdVeneto?: string;
   /** Unidade da estrutura (ADR 0004), normalmente uma Equipe. */
   unitId?: string;
+  /** Equipes adicionais (a pessoa aparece nelas; gestor e Área/Equipe seguem a principal). */
+  extraUnitIds?: string[];
   /** Gestor fora da regra da estrutura (exceção manual), pelo idVeneto. */
   managerOverrideIdVeneto?: string;
   /** Fora do Hub (contas de teste, quem saiu): não entra em nenhuma lista nem resolve gestor. */
@@ -58,6 +60,8 @@ export interface HubPerson {
   team?: string;
   /** Unidade da estrutura (ou undefined, se ainda não encaixada). */
   unitId?: string;
+  /** Equipes adicionais válidas (sem a principal). */
+  extraUnitIds: string[];
   /** `id` do gestor no Hub (null = sem gestor encontrado). */
   managerId: string | null;
   /** Como o gestor foi encontrado: exceção manual, estrutura, ID legado ou nome. */
@@ -149,6 +153,7 @@ export function buildPeople(allCollaborators: CollaboratorLike[], orgUnits: OrgU
       // Na estrutura, a equipe é a unidade do tipo Equipe da cadeia; sem estrutura, o texto do cadastro.
       team: unitChain(units, unitId).find((u) => u.type === 'equipe')?.name ?? blankToUndef(c.team),
       unitId,
+      extraUnitIds: [...new Set(c.extraUnitIds ?? [])].filter((id) => id !== unitId && units.has(id)),
       managerId: manager?.id ?? null,
       managerMatch,
       birthDate: blankToUndef(c.birthDate),

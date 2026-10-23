@@ -54,6 +54,7 @@ export interface Collaborator {
   team?: string;            // Equipe: derivada da estrutura para quem tem unidade (org-derived)
   leaderIdVeneto?: string;  // Gestor pelo idVeneto (ADR 0001, legado); `leader` fica como nome legado
   unitId?: string;          // Unidade da estrutura (ADR 0004): o gestor vem do responsável dela
+  extraUnitIds?: string[];  // Equipes adicionais: aparece nelas no organograma; o gestor segue a principal
   managerOverrideIdVeneto?: string; // Gestor fora da regra da estrutura (exceção manual)
   hubHidden?: boolean;
   accessProfileId?: string; // Perfil de acesso próprio (ADR 0005); sem ele, vale o da unidade
@@ -132,7 +133,7 @@ const bumpCollaboratorTableVersion = async (): Promise<void> => {
  */
 const PROFILE_FIELDS = [
   'idVeneto', 'name', 'email', 'photoURL', 'position', 'leader', 'city',
-  'leaderIdVeneto', 'birthDate', 'admissionDate', 'careerHistory', 'unitId', 'managerOverrideIdVeneto', 'hubHidden',
+  'leaderIdVeneto', 'birthDate', 'admissionDate', 'careerHistory', 'unitId', 'extraUnitIds', 'managerOverrideIdVeneto', 'hubHidden',
 ] as const satisfies ReadonlyArray<keyof Collaborator>;
 
 const defaultPermissions: CollaboratorPermissions = DEFAULT_PERMISSIONS;
