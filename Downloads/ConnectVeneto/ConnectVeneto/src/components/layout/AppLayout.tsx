@@ -289,6 +289,8 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
             <SidebarContent className="flex-1 p-2">
               <SidebarMenu>
                 {hubModules.map((item) => {
+                  // O Painel Inicial redireciona para o Início; só fica no menu para quem não tem o Início.
+                  if (item.href === '/dashboard' && (hubPilot.loading || hubPilot.allowed)) return null;
                   if (!canSeeHubModule(item, {
                     permissions,
                     modulePermissions: currentUserCollab?.modulePermissions,
