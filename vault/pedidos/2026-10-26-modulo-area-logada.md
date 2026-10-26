@@ -6,7 +6,7 @@ alvo: connect
 data: 2026-10-26
 tipo-pedido: modulo-connect
 prioridade: normal
-status: em-andamento
+status: concluido
 ---
 
 # Pedido — Cadastrar a área logada como módulo `area-logada` (+ segredo do hub)
@@ -103,3 +103,9 @@ O handshake já foi testado localmente contra um hub simulado, com o segredo de 
 `https://app.venetomfo.com.br/embed/` responde 404. Até o merge e o deploy dele, o iframe mostra
 erro. O backend#131 já está mergeado. Depois disso: colocar o `HUB_JWT_SECRET` na App Setting do
 backend e testar no Chrome e no iPhone. O pedido fecha com o teste.
+
+2026-10-26 — **Concluído.** O Victor testou e o módulo funciona. A pedido dele, a Área Logada foi
+movida no menu para logo abaixo do Portal do Cliente (`order` 5; os módulos seguintes subiram uma
+posição). Em seguida o ícone passa a ser `FileChartLine` (relatórios de rentabilidade), depois do
+deploy do [ConnectVeneto#74](https://github.com/3Ainvestimentos/ConnectVeneto/pull/74).
+A liberação aos comerciais segue num pedido `acesso-connect`.
