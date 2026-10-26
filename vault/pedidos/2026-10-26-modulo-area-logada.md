@@ -94,3 +94,12 @@ O handshake já foi testado localmente contra um hub simulado, com o segredo de 
 - **Rollback:** apagar `hubModules/area-logada` (ou deixar `enabled: false`), tirar
   `modulePermissions.area-logada` do Victor e reverter o #73.
 - Changelog: `connect` vault/changelog/2026-10.md (2026-10-26).
+
+2026-10-26 (tarde): **lado do hub concluído.** O #73 foi mergeado e o deploy de produção terminou
+às 15:41 (`/rankings` não redireciona mais). `hubModules/area-logada` agora está com
+`enabled: true` (`--apply --ativar`). Ele aparece só para o Victor.
+**Ainda falta, do lado da área logada:** o
+[area-logada-cliente#200](https://github.com/venetomfo/area-logada-cliente/pull/200) está aberto, e
+`https://app.venetomfo.com.br/embed/` responde 404. Até o merge e o deploy dele, o iframe mostra
+erro. O backend#131 já está mergeado. Depois disso: colocar o `HUB_JWT_SECRET` na App Setting do
+backend e testar no Chrome e no iPhone. O pedido fecha com o teste.
