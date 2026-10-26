@@ -6,7 +6,7 @@ alvo: connect
 data: 2026-10-26
 tipo-pedido: modulo-connect
 prioridade: normal
-status: aberto
+status: em-andamento
 ---
 
 # Pedido — Cadastrar a área logada como módulo `area-logada` (+ segredo do hub)
@@ -70,4 +70,27 @@ O handshake já foi testado localmente contra um hub simulado, com o segredo de 
 
 ## Resposta do dono
 
-_(preenchido por quem processa: o que foi feito, rollback, links para changelog)_
+2026-10-26 — **Em andamento: itens 2 e 4 feitos; o item 1 aguarda o merge do PR e o item 3 depende de pessoa.**
+
+- **Item 1 (slug + redirect):** [3Ainvestimentos/ConnectVeneto#73](https://github.com/3Ainvestimentos/ConnectVeneto/pull/73)
+  tira `area-logada` de `RESERVED_SLUGS` e o redirect `/rankings → /area-logada`. Aguarda merge e
+  deploy (Vercel). A CSP já cobre `app.venetomfo.com.br` (`frame-src *.venetomfo.com.br`), então
+  ela não precisa mudar.
+- **Item 2:** `hubModules/area-logada` foi gravado **desativado** (`enabled: false`) via
+  `scripts/add-area-logada-module.mjs --apply`, com os campos do pedido: embedded, ordem 13,
+  `https://app.venetomfo.com.br` + `/embed/`, explicit, fullscreen, sem `skeletonTheme`, catálogo
+  `area-logada:view` (Acessar), admin `area-logada:view`. **Uma mudança:** o ícone é `Briefcase`,
+  porque `BriefcaseBusiness` não está no `iconMap` do hub e apareceria como "?".
+- **Item 4:** `area-logada:view` foi concedido só ao Victor (`--acessos`). Com `accessMode: explicit`,
+  mais ninguém vê o módulo.
+- **Item 3 (`HUB_JWT_SECRET`):** não foi entregue por aqui. O segredo não passa por chat nem pelo
+  agente. O Victor copia o valor do `.env.local` do Connect (ou da env da Vercel) para a App
+  Setting do `backend-area-logada`, pelo canal seguro.
+- **Para fechar:** depois do deploy do #73, rodar
+  `node --env-file=.env.local scripts/add-area-logada-module.mjs --apply --ativar`, que só faz o
+  `enabled: true`. Em seguida, testar no Chrome e no Safari do iPhone: o handshake e
+  `/area-logada?to=/portfolio`, que chega ao portal como `/embed/?next=%2Fportfolio`.
+  **Atenção:** o hub repassa o deep link como `?next=` (protocolo §5.3), e não como `?to=`.
+- **Rollback:** apagar `hubModules/area-logada` (ou deixar `enabled: false`), tirar
+  `modulePermissions.area-logada` do Victor e reverter o #73.
+- Changelog: `connect` vault/changelog/2026-10.md (2026-10-26).

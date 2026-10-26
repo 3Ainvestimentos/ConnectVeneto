@@ -6,7 +6,7 @@ alvo: connect
 data: 2026-10-21
 tipo-pedido: modulo-connect
 prioridade: normal
-status: aberto
+status: concluido
 ---
 
 # Pedido — cadastrar o módulo `cadastro` (interface da base cadastral) no hub + entregar o HUB_JWT_SECRET
@@ -69,4 +69,15 @@ App Settings do web app; o segredo nunca passa por chat, repositório nem vault.
 
 ## Resposta do dono
 
-_(preenchido por quem processa: o que foi feito, rollback, links para changelog)_
+2026-10-22 — **Concluído (item 1, com o id atualizado).** O domínio renomeou o módulo para
+`hub-cadastro` ("Hub de Cadastro"); o código do módulo usa `aud=hub-cadastro`.
+
+- Gravado `hubModules/hub-cadastro` via `scripts/add-hub-cadastro-module.mjs --apply` (Admin SDK):
+  embedded, `/hub-cadastro`, url `https://vnt-interface-cadastro.azurewebsites.net`, `/embed`,
+  `explicit`, ícone `ClipboardList`, ordem 12, fullscreen/light. Catálogo: `hub-cadastro:manage`
+  (Admin Módulo); admin: `hub-cadastro:view` + `hub-cadastro:manage`.
+- **Acessos (item 2) não concedidos**: ficam em Admin → Módulos/Permissões ou
+  `--apply --acessos` (Victor). A Letycia não existe na coleção `collaborators`: precisa ser
+  cadastrada antes.
+- Item 3 (`HUB_JWT_SECRET`): já está no `.env.local` do módulo (hot.md do domínio).
+- Rollback: apagar o doc `hubModules/hub-cadastro` (ou `enabled: false` em Admin → Módulos).
