@@ -1,6 +1,6 @@
 ---
 tipo: nota
-atualizado: 2026-10-21
+atualizado: 2026-10-26
 tags: [hot-cache]
 ---
 
@@ -30,3 +30,7 @@ tags: [hot-cache]
   cheia. 🟢 PR #61: acesso pessoa a pessoa com tela nova (perfis ADR 0005 dormentes); cadastro sem Eixo/Área/Segmento/Líder/Equipe/Liderança; Área/Equipe/Líder derivados do organograma (59 gravados). Eixo não é mais editado: FAB/Auditoria filtram axis=Comercial. PR #62: eventos só na Agenda (fora de /publicacoes e do Resumo), Publicações fora do menu, ordem das unidades em Editar estrutura; relacionamento@ com inicio:view para teste. PR #63: equipes adicionais (`extraUnitIds`); Patrick em CX + Marketing. PR #64: "Excluir evento" à vista + lista da equipe em colunas. PR #65: Agenda sem os eventos do Google Agenda (desligado a pedido; religar = SHOW_COMPANY_CALENDAR em AgendaCard.tsx). PRs #66/#67: responsável mostra só o cargo no organograma. PR #70: botão "Erros e sugestões" no menu (padrão BotaoErrosESugestoes dos módulos; /api/feedback, coleção connectFeedback; super admin responde na própria janela); "Guias e FAQ" fora do menu (SHOW_GUIDES). 🟢 **PR #71: nova Home para todos** (inicio/pessoas accessMode all; login → /inicio; Resumo diário no lugar do Daily Fin).
 - 2026-10-21 — Pendências de dados: campo Eixo só tem lixo; Área Comercial e Canal 3ARiva sem
   responsável; team vazio (birthDate/admissão importados em 22/10, falta Fernanda Adami); confirmar o nome "Operações" (Corporativo virou "Estratégia e Governança").
+- 2026-10-26 — 🟡 **Área logada como módulo** (pedido `2026-10-26-modulo-area-logada`, em andamento):
+  `hubModules/area-logada` gravado **desativado**, com `area-logada:view` só para o Victor. PR #73 libera
+  o slug. Depois do deploy, rodar `add-area-logada-module.mjs --apply --ativar` e testar no Chrome e no
+  iPhone. O `HUB_JWT_SECRET` do backend-area-logada fica com o Victor (canal seguro).
