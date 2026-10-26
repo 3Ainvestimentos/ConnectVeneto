@@ -32,4 +32,4 @@ tags: [hot-cache]
   responsável; team vazio (birthDate/admissão importados em 22/10, falta Fernanda Adami); confirmar o nome "Operações" (Corporativo virou "Estratégia e Governança").
 - 2026-10-26 — 🟢 **Área logada como módulo** (pedido concluído): `/area-logada` testado pelo Victor e
   funcionando; só ele tem `area-logada:view` (a liberação aos comerciais virá por `acesso-connect`).
-  No menu, fica abaixo do Portal do Cliente. Ícone `FileChartLine` quando o PR #74 for ao ar.
+  No menu, fica abaixo do Portal do Cliente, com o ícone `FileChartLine` (PR #74).
