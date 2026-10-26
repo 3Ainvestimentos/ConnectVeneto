@@ -35,11 +35,6 @@ const nextConfig: NextConfig = {
         permanent: true,
       },
       {
-        source: "/rankings",
-        destination: "/area-logada",
-        permanent: true,
-      },
-      {
         source: "/portal-repasse",
         destination: "/dados-estrategicos",
         permanent: true,

@@ -31,7 +31,6 @@ export const RESERVED_SLUGS = [
   'admin',
   'api',
   'applications',
-  'area-logada',
   'audit',
   'bi',
   'bob-v2',
