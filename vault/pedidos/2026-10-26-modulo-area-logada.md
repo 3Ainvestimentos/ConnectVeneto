@@ -54,7 +54,8 @@ O handshake já foi testado localmente contra um hub simulado, com o segredo de 
 
    As permissões internas, como o que cada comercial vê e se pode liberar relatórios, continuam
    sendo da área logada (`permissoes_usuario`). Do Connect só se usa o acesso ao módulo.
-3. **`HUB_JWT_SECRET` por Bitwarden ao Victor.** Ele vai para a App Setting do
+3. **`HUB_JWT_SECRET` ao Victor**, pelo canal seguro que o time de plataforma já usa para
+   segredos (a Vêneto não usa Bitwarden). Ele vai direto para a App Setting do
    `backend-area-logada`. Nunca por chat ou e-mail.
 4. **Liberar `area-logada:view` só para `victor.santos@venetomfo.com.br`** até o teste em Chrome
    e Safari do iPhone. A liberação aos comerciais vem num pedido seguinte, tipo `acesso-connect`.
@@ -65,7 +66,7 @@ O handshake já foi testado localmente contra um hub simulado, com o segredo de 
   mais ninguém.
 - O handshake completa: o portal sai do skeleton por `CV_MODULE_READY` e não mostra tela de login.
 - `?to=/portfolio` abre a página certa (deep link).
-- O segredo foi entregue por Bitwarden e não aparece em nenhum arquivo, commit ou nota.
+- O segredo foi entregue por canal seguro e não aparece em nenhum arquivo, commit ou nota.
 
 ## Resposta do dono
 
