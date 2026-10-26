@@ -31,6 +31,6 @@ tags: [hot-cache]
 - 2026-10-21 — Pendências de dados: campo Eixo só tem lixo; Área Comercial e Canal 3ARiva sem
   responsável; team vazio (birthDate/admissão importados em 22/10, falta Fernanda Adami); confirmar o nome "Operações" (Corporativo virou "Estratégia e Governança").
 - 2026-10-26 — 🟡 **Área logada como módulo** (pedido `2026-10-26-modulo-area-logada`, em andamento):
-  `hubModules/area-logada` gravado **desativado**, com `area-logada:view` só para o Victor. PR #73 libera
-  o slug. Depois do deploy, rodar `add-area-logada-module.mjs --apply --ativar` e testar no Chrome e no
-  iPhone. O `HUB_JWT_SECRET` do backend-area-logada fica com o Victor (canal seguro).
+  PR #73 em produção; `hubModules/area-logada` **ativo**, com `area-logada:view` só para o Victor.
+  Depende do area-logada-cliente#200 (`/embed/` ainda 404) e do `HUB_JWT_SECRET` no backend.
+  Depois, testar no Chrome e no iPhone e fechar o pedido.
