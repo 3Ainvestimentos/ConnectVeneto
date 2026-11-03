@@ -191,6 +191,17 @@ service cloud.firestore {
       allow write: if isSuperAdmin();
     }
 
+    /**
+     * Áreas e links da página Solicitações (/applications), editados em
+     * Admin › Conteúdo › Solicitações. Um único documento: solicitacoesConfig/areas.
+     */
+    match /solicitacoesConfig/{docId} {
+      allow read: if isAuthenticated();
+      allow write: if isSuperAdmin()
+        && docId == 'areas'
+        && request.resource.data.areas is list;
+    }
+
     match /newsItems/{docId} {
       allow read: if isAuthenticated();
       allow write: if isSuperAdmin();

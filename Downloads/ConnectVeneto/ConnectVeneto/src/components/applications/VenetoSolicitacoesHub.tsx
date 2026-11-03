@@ -7,11 +7,12 @@ import {
   SolicitationItem,
   SolicitationItemExternal,
   SolicitationItemInfo,
-  venetoSolicitacoesAreas,
 } from "@/config/veneto-solicitacoes";
+import { useSolicitacoesConfig } from "@/hooks/useSolicitacoesConfig";
 import { Card, CardContent } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Input } from "@/components/ui/input";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   Dialog,
   DialogContent,
@@ -121,7 +122,8 @@ export default function VenetoSolicitacoesHub() {
   const [activeInfo, setActiveInfo] = React.useState<SolicitationItemInfo | null>(null);
   const [searchTerm, setSearchTerm] = React.useState("");
 
-  const sortedAreas = React.useMemo(() => venetoSolicitacoesAreas, []);
+  // Enquanto carrega, não mostra a lista padrão para não piscar links que já foram trocados.
+  const { areas: sortedAreas, loading } = useSolicitacoesConfig();
 
   const query = searchTerm.trim().toLowerCase();
 
@@ -182,6 +184,12 @@ export default function VenetoSolicitacoesHub() {
               Nenhum resultado para &quot;{searchTerm.trim()}&quot;.
             </p>
           )}
+        </div>
+      ) : loading ? (
+        <div className="mx-auto grid w-full max-w-7xl grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4 lg:gap-6">
+          {Array.from({ length: 8 }).map((_, idx) => (
+            <Skeleton key={idx} className="h-32 w-full rounded-lg" />
+          ))}
         </div>
       ) : (
         <div className="mx-auto grid w-full max-w-7xl grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4 lg:gap-6">
