@@ -13,6 +13,7 @@ import { ManageNews } from '@/components/admin/ManageNews';
 import { ManageQuickLinks } from '@/components/admin/ManageQuickLinks';
 import { ManageNewsletter } from '@/components/admin/ManageNewsletter';
 import { ManageContacts } from '@/components/admin/ManageContacts';
+import { ManageSolicitacoes } from '@/components/admin/ManageSolicitacoes';
 
 export default function AdminContentPage() {
     const [activeTab, setActiveTab] = useState("news");
@@ -44,18 +45,19 @@ export default function AdminContentPage() {
                         <AlertTitle>Você pode publicar notícias</AlertTitle>
                         <AlertDescription>
                             Sua permissão de conteúdo libera a aba <strong>Notícias</strong>, incluindo o
-                            envio de imagens e vídeos. As abas Documentos, Links Rápidos, Newsletter e
-                            Contatos continuam restritas a super administradores.
+                            envio de imagens e vídeos. As abas Documentos, Links Rápidos, Newsletter,
+                            Contatos e Solicitações continuam restritas a super administradores.
                         </AlertDescription>
                     </Alert>
                 ) : null}
                 <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-                    <TabsList className="grid w-full grid-cols-2 sm:grid-cols-3 lg:grid-cols-5">
+                    <TabsList className="grid w-full grid-cols-2 sm:grid-cols-3 lg:grid-cols-6">
                         <TabsTrigger value="news">Notícias</TabsTrigger>
                         <TabsTrigger value="documents">Documentos</TabsTrigger>
                         <TabsTrigger value="quicklinks">Links Rápidos</TabsTrigger>
                         <TabsTrigger value="newsletter">Newsletter</TabsTrigger>
                         <TabsTrigger value="contacts">Contatos</TabsTrigger>
+                        <TabsTrigger value="solicitacoes">Solicitações</TabsTrigger>
                     </TabsList>
                     <TabsContent value="news">
                         <ManageNews />
@@ -71,6 +73,9 @@ export default function AdminContentPage() {
                     </TabsContent>
                      <TabsContent value="contacts">
                         <ManageContacts />
+                    </TabsContent>
+                    <TabsContent value="solicitacoes">
+                        <ManageSolicitacoes />
                     </TabsContent>
                 </Tabs>
             </div>
