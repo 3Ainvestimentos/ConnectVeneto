@@ -110,3 +110,16 @@ O lado TrackFlow está pronto na branch `feat/fluxos-no-connect` do trackflow (P
 - **Falta, com aprovação:** merge do PR e deploy do Connect. Depois do deploy, conferir os critérios de
   aceite logado como alguém do piloto e como alguém de fora dele. A entrada no
   `vault/changelog/` fica para quando o merge e o deploy forem aplicados.
+
+**2026-11-04 (connect): em produção.**
+
+- Merge do #76 em `main` com OK do Victor (`c89cbc6`, merge commit como os anteriores). Deploy de
+  produção da Vercel verde; o preview do PR já tinha construído com os segredos, o que cobre o build
+  que não rodou localmente.
+- Produção: `/applications` 200; `/api/modules/trackflow/fluxos` sem login 401 (rota nova no ar).
+  No TrackFlow, o fluxo de teste `TT` foi arquivado antes: o catálogo traz só o `SGT`.
+- **Falta:** o Victor conferir logado (piloto vê a área "Tecnologia e Dados" com o SGT e abre no iframe;
+  fora do piloto, página igual à de antes). Status fica `em-andamento` até esse teste.
+- Este repo local não tem `vault/changelog/` (o kit está em `chore/adota-veneto-agentes`): o registro
+  fica neste pedido e no changelog do trackflow.
+- Rollback: `git revert -m 1 c89cbc6` em `main` e push (a Vercel republica). Nada de dado a desfazer.
