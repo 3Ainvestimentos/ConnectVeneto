@@ -9,6 +9,8 @@ import {
   SolicitationItemInfo,
 } from "@/config/veneto-solicitacoes";
 import { useSolicitacoesConfig } from "@/hooks/useSolicitacoesConfig";
+import { useTrackFlowFluxos } from "@/hooks/useTrackFlowFluxos";
+import { mergeFluxosIntoAreas } from "@/lib/trackflow/fluxos";
 import { Card, CardContent } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Input } from "@/components/ui/input";
@@ -108,7 +110,11 @@ function SolicitationTile({
         trackSolicitacaoEvent("subitem_click", {
           areaId,
           itemKey: item.trackingKey || item.title,
-          hrefType: item.href.startsWith("mailto:") ? "mailto" : "external",
+          hrefType: item.href.startsWith("mailto:")
+            ? "mailto"
+            : item.href.startsWith("/")
+              ? "internal"
+              : "external",
         })
       }
     >
@@ -123,7 +129,14 @@ export default function VenetoSolicitacoesHub() {
   const [searchTerm, setSearchTerm] = React.useState("");
 
   // Enquanto carrega, não mostra a lista padrão para não piscar links que já foram trocados.
-  const { areas: sortedAreas, loading } = useSolicitacoesConfig();
+  const { areas: configuredAreas, loading } = useSolicitacoesConfig();
+  // Fluxos do TrackFlow entram como cartões extras. A busca não bloqueia a página: sem resposta
+  // (TrackFlow fora do ar, lento ou pessoa fora do piloto), a lista fica só com as áreas configuradas.
+  const fluxos = useTrackFlowFluxos();
+  const sortedAreas = React.useMemo(
+    () => mergeFluxosIntoAreas(configuredAreas, fluxos),
+    [configuredAreas, fluxos]
+  );
 
   const query = searchTerm.trim().toLowerCase();
 
