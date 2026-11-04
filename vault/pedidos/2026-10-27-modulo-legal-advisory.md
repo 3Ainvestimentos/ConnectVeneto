@@ -6,7 +6,7 @@ alvo: connect
 data: 2026-10-27
 tipo-pedido: modulo-connect
 prioridade: normal
-status: em-andamento
+status: concluido
 substitui: assistente-comercial/vault/pedidos/enviados/2026-10-19-permissoes-legal-no-modulo-atividade-comercial.md
 ---
 
@@ -80,3 +80,7 @@ Id do módulo confirmado: **`legal-advisory`** (slug e rota `/legal-advisory`).
 - **Rollback:** `enabled: false` (ou apagar `hubModules/legal-advisory`) e tirar `modulePermissions.legal-advisory`
   do Victor.
 - Changelog: `connect` vault/changelog/2026-11.md (2026-11-04).
+
+2026-11-04 — **Concluído.** O Victor testou `connect.venetomfo.com.br/legal-advisory` e o módulo funciona (handshake,
+sessão e telas). Segue visível só para ele; a liberação para a equipe do Legal entra por `/legal-advisory/admin` ou por
+um pedido `acesso-connect`, com `legal-advisory:manage` só para o head.
