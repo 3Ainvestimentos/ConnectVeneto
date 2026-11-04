@@ -9,7 +9,7 @@ export default function ApplicationsPage() {
     <div className="space-y-6 p-6 md:p-8">
       <PageHeader
         title="Solicitações"
-        description="Inicie processos e acesse formularios e materiais da instituicao. O acompanhamento de cada pedido fica no canal correspondente (formulario ou equipe), pois esta pagina apenas direciona aos links."
+        description="Inicie processos e acesse formulários e materiais da instituição. O acompanhamento de cada pedido fica no canal correspondente (formulário ou equipe); os pedidos abertos pelo TrackFlow são acompanhados no próprio TrackFlow, em Meus tickets."
       />
       <div className="w-full max-w-none">
         <VenetoSolicitacoesHub />
