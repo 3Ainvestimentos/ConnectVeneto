@@ -6,7 +6,7 @@ alvo: connect
 data: 2026-10-27
 tipo-pedido: modulo-connect
 prioridade: normal
-status: aberto
+status: em-andamento
 substitui: assistente-comercial/vault/pedidos/enviados/2026-10-19-permissoes-legal-no-modulo-atividade-comercial.md
 ---
 
@@ -50,3 +50,33 @@ e nenhum `X-Frame-Options`. Detalhes em `crm-legal/docs/connect-modulo.md`.
 ## Retorno esperado
 
 Status no próprio arquivo e o id do módulo confirmado.
+
+## Resposta do dono
+
+2026-11-04 — **Em andamento: módulo no ar e ativo, visível só ao Victor; falta o segredo no app e o teste.**
+Id do módulo confirmado: **`legal-advisory`** (slug e rota `/legal-advisory`).
+
+- **Item 1:** `hubModules/legal-advisory` gravado pelo `scripts/add-legal-advisory-module.mjs`
+  (`--apply --acessos`, depois `--apply --ativar`): embedded, `https://vnt-crm-legal.azurewebsites.net` + `/embed`,
+  `accessMode: explicit`, `layout: fullscreen`, `skeletonTheme: light`, `noZoom`, `adminPermissions`
+  `[legal-advisory:view, legal-advisory:manage]`, **`enabled: true`**. Três ajustes em relação ao pedido:
+  - **Ícone `ShieldCheck`**: `Scale` não está em `MODULE_ICONS` (`src/components/layout/module-icons.ts`) e
+    apareceria como o ícone genérico (Puzzle). Trocar por `Scale` é um PR de duas linhas + deploy, como o #74.
+  - **`order` 14**, último do menu (abaixo do `hub-cadastro`, 13). O 10 sugerido é do `portal-repasse`.
+  - **`permissionCatalog` só com `legal-advisory:manage` (Head do Legal)**: o `:view` é a coluna de acesso
+    própria da página `/legal-advisory/admin` (o `AccessManager` tira o `:view` do catálogo), como no
+    `portal-cliente` e na `atividade-comercial`.
+  - O slug não está em `RESERVED_SLUGS` e a CSP do hub já cobre o domínio (`frame-src https://*.azurewebsites.net`),
+    então **não houve PR nem deploy do Connect**.
+- **Item 3 (acesso):** só `victor.santos@venetomfo.com.br`, com `legal-advisory:view` e `legal-advisory:manage`
+  (testa como head). Com `explicit`, mais ninguém vê o item no menu. A equipe do Legal entra depois, com a lista do
+  Victor (`:manage` só para o head) — pode ser pela própria `/legal-advisory/admin` ou por pedido `acesso-connect`.
+- **Item 2 (`HUB_JWT_SECRET`):** não passou por aqui. O domínio `seguranca` está gravando a App Setting do
+  `vnt-crm-legal` a partir da App Setting do `vnt-debriefing-reunioes` (é o mesmo segredo do hub para todos os
+  módulos). Até isso terminar, o handshake recusa o token e o iframe não sai do skeleton.
+- **Para fechar:** com o segredo no `vnt-crm-legal`, o Victor abre `connect.venetomfo.com.br/legal-advisory`
+  (Chrome e iPhone) e confere que o app sai do skeleton por `CV_MODULE_READY`, sem tela de login, e que ele
+  entra como head (vê a equipe e as Configurações).
+- **Rollback:** `enabled: false` (ou apagar `hubModules/legal-advisory`) e tirar `modulePermissions.legal-advisory`
+  do Victor.
+- Changelog: `connect` vault/changelog/2026-11.md (2026-11-04).

@@ -6,7 +6,7 @@ alvo: connect
 data: 2026-10-28
 tipo-pedido: modulo-connect
 prioridade: normal
-status: aberto
+status: concluido
 complementa: 2026-10-27-modulo-legal-advisory.md
 ---
 
@@ -21,3 +21,10 @@ https://connect.venetomfo.com.br` e sem `X-Frame-Options`; fora do Connect, as p
 
 Falta só o `HUB_JWT_SECRET` (pelo canal seguro, para o Victor gravar na App Setting do `vnt-crm-legal`);
 sem ele o handshake recusa todo token. O módulo pode continuar desativado até o Victor testar.
+
+## Resposta do dono
+
+2026-11-04 — **Concluído.** `hubModules/legal-advisory` tem `url: https://vnt-crm-legal.azurewebsites.net` e
+`embedPath: /embed`. Conferido de novo hoje: `/embed` responde 200 com `frame-ancestors 'self'
+https://connect.venetomfo.com.br` e sem `X-Frame-Options`; a CSP do hub já libera `*.azurewebsites.net`. O
+acompanhamento (segredo e teste) segue no pedido [[2026-10-27-modulo-legal-advisory]].
