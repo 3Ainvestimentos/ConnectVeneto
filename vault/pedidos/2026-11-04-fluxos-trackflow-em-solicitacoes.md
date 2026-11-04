@@ -6,7 +6,7 @@ alvo: connect
 data: 2026-11-04
 tipo-pedido: outro
 prioridade: normal
-status: aberto
+status: em-andamento
 ---
 
 # Pedido — Fluxos do TrackFlow na página Solicitações (/applications)
@@ -80,4 +80,33 @@ O lado TrackFlow está pronto na branch `feat/fluxos-no-connect` do trackflow (P
 
 ## Resposta do dono
 
-_(preenchido por quem processa: o que foi feito, rollback, links para changelog)_
+**2026-11-04 (connect): implementado em PR, aguardando merge e deploy.**
+
+- **PR:** https://github.com/3Ainvestimentos/ConnectVeneto/pull/76 (branch
+  `feat/fluxos-trackflow-em-solicitacoes`, a partir de `origin/main`, commit `5290ef8`).
+- **Proxy** `GET /api/modules/trackflow/fluxos` → `${TRACKFLOW_URL}/api/hub/fluxos`, com o mesmo hub JWT de
+  60 s e o mesmo `requireCorporateUser`, e timeout de 8 s. A assinatura do token e o encaminhamento
+  saíram para `src/lib/trackflow/hub-proxy.ts`, que o `/summary` também passou a usar. O contrato
+  dele não mudou; a única diferença é que falha de rede agora volta 504 em vez de 500.
+- **Mesclagem** em `src/lib/trackflow/fluxos.ts` (funções puras com testes). O arquivo valida a resposta
+  e descarta entradas incompletas ou com `path` inseguro. Cada fluxo vira o cartão especificado:
+  `/trackflow?to=<path>`, `newTab: false`, `trackingKey: trackflow_<sigla>`. O cartão entra na área de
+  mesmo título (a comparação ignora acento e caixa). Se não houver, nasce a área `trackflow-<areaId>`
+  no fim da lista, com o ícone `Laptop`. Um cartão com o mesmo `trackingKey` já cadastrado em
+  Admin › Conteúdo não é duplicado. A lista mesclada é só de exibição e nunca é salva.
+- **Página:** `useTrackFlowFluxos` (React Query, sem retry) transforma qualquer falha em lista vazia.
+  A página não espera essa busca, e os cartões entram quando a resposta chega. A busca da página
+  também acha os cartões novos. O cabeçalho de `/applications` agora diz que os pedidos do TrackFlow
+  são acompanhados em "Meus tickets".
+- **Verificação:**
+  - `typecheck:gate`: sem erros.
+  - `lint`: o único aviso é um que já existia em `AuthContext.tsx`, vindo de `main`. Os arquivos novos
+    passam limpos.
+  - `test:ci`: 226 testes passam, 20 deles novos. Duas suítes (`ManageCollaborators.import`,
+    `WorkflowSubmissionModal`) não sobem sem `.env` (`auth/invalid-api-key`) e não tocam este código.
+  - `build`: compila e passa nos tipos. Para no prerender por falta de `.env` do Firebase.
+  - Sem teste manual no navegador.
+- **Rollback:** fechar o PR, ou reverter o merge. Não há dado nem configuração de produção envolvidos.
+- **Falta, com aprovação:** merge do PR e deploy do Connect. Depois do deploy, conferir os critérios de
+  aceite logado como alguém do piloto e como alguém de fora dele. A entrada no
+  `vault/changelog/` fica para quando o merge e o deploy forem aplicados.
