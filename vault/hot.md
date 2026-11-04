@@ -1,6 +1,6 @@
 ---
 tipo: nota
-atualizado: 2026-10-26
+atualizado: 2026-11-04
 tags: [hot-cache]
 ---
 
@@ -8,10 +8,6 @@ tags: [hot-cache]
 
 > Máximo ~10 bullets. Ao adicionar um novo, remova o mais antigo. Nunca contém segredos.
 
-- 2026-10-15 — 🟢 **Domínio `connect` adotado** (tier médio). Até hoje os pedidos ao "dono do
-  ConnectVeneto" (cadastro de módulo, `HUB_JWT_SECRET`, Sandbox, notificações) eram só por canal
-  humano. Os do `projeto-trader-rf` (itens A e B do pedido de 15/10 ao db-guardian) seguem com o
-  Victor.
 - 2026-10-21 — 🟢 **Hub com dados reais** (PRs #43–#50): viagens, férias (`hubVacations`),
   Indicadores Estratégicos (API do dados-estrategicos, pedido concluído), gestor por ID (66/84) e
   estrutura `orgUnits` (18 Áreas sem responsável, ADR 0004). Piloto ainda sem `inicio:view`.
@@ -33,3 +29,6 @@ tags: [hot-cache]
 - 2026-10-26 — 🟢 **Área logada como módulo** (pedido concluído): `/area-logada` testado pelo Victor e
   funcionando; só ele tem `area-logada:view` (a liberação aos comerciais virá por `acesso-connect`).
   No menu, fica abaixo do Portal do Cliente, com o ícone `FileChartLine` (PR #74).
+- 2026-11-04 — 🟡 **Legal Advisory como módulo** (`legal-advisory`, CRM do Legal em `vnt-crm-legal`): ativo, ordem 14,
+  ícone `ShieldCheck`, visível só ao Victor (`:view` + `:manage`). Falta o `HUB_JWT_SECRET` no app (com o
+  `seguranca`) e o teste do Victor; depois, a equipe do Legal (`:manage` só para o head). Pedido 10-27 em andamento.
