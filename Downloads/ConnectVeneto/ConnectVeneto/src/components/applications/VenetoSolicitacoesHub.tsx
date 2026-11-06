@@ -23,6 +23,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Link2, Info, Search, ChevronRight } from "lucide-react";
+import { solicitationHrefType, solicitationLinkTarget } from "@/lib/solicitacoes-href";
 import Image from "next/image";
 
 function trackSolicitacaoEvent(eventName: string, payload: Record<string, string>) {
@@ -38,9 +39,7 @@ function isInfoItem(item: SolicitationItem): item is SolicitationItemInfo {
 }
 
 function linkTarget(item: SolicitationItemExternal): "_blank" | undefined {
-  if (item.newTab === false) return undefined;
-  if (item.newTab === true) return "_blank";
-  return item.href.startsWith("mailto:") ? undefined : "_blank";
+  return solicitationLinkTarget(item);
 }
 
 function linkRel(item: SolicitationItemExternal): string | undefined {
@@ -110,11 +109,7 @@ function SolicitationTile({
         trackSolicitacaoEvent("subitem_click", {
           areaId,
           itemKey: item.trackingKey || item.title,
-          hrefType: item.href.startsWith("mailto:")
-            ? "mailto"
-            : item.href.startsWith("/")
-              ? "internal"
-              : "external",
+          hrefType: solicitationHrefType(item.href),
         })
       }
     >
