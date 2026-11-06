@@ -28,6 +28,7 @@ import {
   Save,
   Trash2,
 } from "lucide-react";
+import { isValidSolicitationHref } from "@/lib/solicitacoes-href";
 
 const cloneAreas = (areas: SolicitationArea[]): SolicitationArea[] =>
   JSON.parse(JSON.stringify(areas));
@@ -40,18 +41,14 @@ function moveInList<T>(list: T[], index: number, delta: number): T[] {
   return next;
 }
 
-function isValidHref(href: string): boolean {
-  return /^(https?:\/\/\S+|mailto:\S+)$/i.test(href.trim());
-}
-
 /** Primeiro problema encontrado, para o toast. Nulo quando está tudo certo. */
 function findValidationError(areas: SolicitationArea[]): string | null {
   for (const area of areas) {
     if (!area.title.trim()) return "Há uma área sem nome.";
     for (const item of area.items) {
       if (!item.title.trim()) return `Há um item sem nome em "${area.title}".`;
-      if (item.kind === "external" && !isValidHref(item.href)) {
-        return `O link de "${item.title}" (${area.title}) precisa começar com https:// ou mailto:.`;
+      if (item.kind === "external" && !isValidSolicitationHref(item.href)) {
+        return `O link de "${item.title}" (${area.title}) precisa ser https://, mailto: ou um caminho do Connect (ex.: /formularios-cadastro).`;
       }
       if (item.kind === "info" && !item.infoText.trim()) {
         return `O texto informativo de "${item.title}" (${area.title}) está vazio.`;
@@ -308,7 +305,7 @@ export function ManageSolicitacoes() {
                   <div className="space-y-3">
                     {area.items.map((item, itemIndex) => {
                       const titleInvalid = !item.title.trim();
-                      const hrefInvalid = item.kind === "external" && !isValidHref(item.href);
+                      const hrefInvalid = item.kind === "external" && !isValidSolicitationHref(item.href);
                       return (
                         <div key={itemIndex} className="space-y-3 rounded-md border bg-muted/30 p-3">
                           <div className="grid gap-3 sm:grid-cols-[140px_1fr_1fr_auto] sm:items-end">
@@ -387,7 +384,7 @@ export function ManageSolicitacoes() {
                               <Label>Link</Label>
                               <Input
                                 value={item.href}
-                                placeholder="https://..."
+                                placeholder="https://... ou /formularios-cadastro"
                                 onChange={(e) =>
                                   updateItem(areaIndex, itemIndex, { ...item, href: e.target.value })
                                 }
