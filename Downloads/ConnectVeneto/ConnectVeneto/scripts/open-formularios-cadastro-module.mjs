@@ -1,13 +1,13 @@
 /**
- * Abre o módulo "Formulários de Cadastro" (id `formularios-cadastro`) a todos os colaboradores
- * e coloca o link na pasta Cadastro da página Solicitações. O piloto criado por
- * `add-formularios-cadastro-module.mjs` deixa de ser necessário: a demanda é da área de Cadastro e
- * qualquer pessoa pode responder o formulário.
+ * Abre o módulo "Formulários de Cadastro" (id `formularios-cadastro`) a todos os colaboradores:
+ * qualquer pessoa autenticada no Connect abre https://connect.venetomfo.com.br/formularios-cadastro.
+ * O piloto criado por `add-formularios-cadastro-module.mjs` deixa de ser necessário: a demanda é da
+ * área de Cadastro e qualquer pessoa pode responder o formulário.
  *
  * 1. `hubModules/formularios-cadastro`: accessMode `all`, defaultPermissions [`formularios-cadastro:view`].
  *    Continua fora do menu lateral (showInNav false).
- * 2. `solicitacoesConfig/areas`: acrescenta o item interno `/formularios-cadastro` (mesma aba) na área
- *    cujo título é "Cadastro" (sem acento, sem caixa). Se a área não existir, só avisa.
+ * 2. A página Solicitações NÃO é alterada. Uma versão anterior deste script acrescentava o item
+ *    "Formulário KYC" na área Cadastro; aqui ele é removido (pelo trackingKey) se ainda existir.
  *
  * Idempotente. Dry-run por padrão.
  *
@@ -22,14 +22,8 @@ const APPLY = process.argv.includes('--apply');
 const ID = 'formularios-cadastro';
 const VIEW = `${ID}:view`;
 const AREA_TITLE = 'cadastro';
-const ITEM = {
-  kind: 'external',
-  title: 'Formulário KYC',
-  subtitle: 'Cadastro de clientes',
-  href: `/${ID}`,
-  newTab: false,
-  trackingKey: 'cadastro_formulario_kyc',
-};
+/** Item que uma versão anterior deste script criou em Solicitações › Cadastro. */
+const LEGACY_TRACKING_KEY = 'cadastro_formulario_kyc';
 const BY = 'scripts/open-formularios-cadastro-module.mjs';
 
 const normalize = (s) =>
@@ -79,30 +73,26 @@ if (mod.accessMode === 'all' && defaults.includes(VIEW)) {
   }
 }
 
-// 2. Link em Solicitações › Cadastro
+// 2. Solicitações fica como estava: remove o item criado por engano numa versão anterior.
 const solRef = db.collection('solicitacoesConfig').doc('areas');
 const solSnap = await solRef.get();
 const areas = solSnap.exists ? solSnap.data().areas : null;
-if (!Array.isArray(areas)) {
-  console.log('  ! solicitacoesConfig/areas não existe (a página usa a lista fixa do código) — link não criado');
-} else {
-  console.log(`\nÁreas em Solicitações: ${areas.map((a) => a.title).join(' | ')}`);
+if (Array.isArray(areas)) {
   const idx = areas.findIndex((a) => normalize(a.title) === AREA_TITLE);
-  if (idx === -1) {
-    console.log(`  ! nenhuma área com título "Cadastro" — link não criado`);
+  const items = idx === -1 ? [] : areas[idx].items ?? [];
+  const kept = items.filter((it) => it.trackingKey !== LEGACY_TRACKING_KEY);
+  if (kept.length === items.length) {
+    console.log('  = Solicitações sem o item criado por este script (nada a remover)');
   } else {
-    const area = areas[idx];
-    const items = area.items ?? [];
-    const already = items.some((it) => it.href === ITEM.href || it.trackingKey === ITEM.trackingKey);
-    if (already) {
-      console.log(`  = "${area.title}" já tem o link ${ITEM.href}`);
-    } else {
-      console.log(`  + "${area.title}": novo item "${ITEM.title}" → ${ITEM.href} (posição ${items.length + 1})`);
-      if (APPLY) {
-        const next = areas.map((a, i) => (i === idx ? { ...a, items: [...items, ITEM] } : a));
-        await solRef.update({ areas: next, updatedAt: now, updatedBy: BY });
-      }
+    console.log(`  - "${areas[idx].title}": remove "Formulário KYC" (${items.length} → ${kept.length} itens)`);
+    if (APPLY) {
+      const next = areas.map((a, i) => (i === idx ? { ...a, items: kept } : a));
+      await solRef.update({ areas: next, updatedAt: now, updatedBy: BY });
     }
+  }
+  if (idx !== -1) {
+    console.log(`\nItens de "${areas[idx].title}" ${APPLY ? 'após' : 'depois de aplicar'}:`);
+    for (const it of kept) console.log(`    ${it.title} → ${it.href ?? '(info)'}`);
   }
 }
 
