@@ -99,6 +99,12 @@ export interface CommercialDocument {
   sizeBytes?: number;
   /** Reservado para RAG: vira true quando o conteúdo do arquivo for indexado. */
   contentIndexed: boolean;
+  /**
+   * E-mails (minúsculos) que podem atualizar este documento — metadados e arquivo —
+   * sem ser gestor da biblioteca. Ex.: quem mantém um simulador atualizado todo mês.
+   * Excluir continua só com os gestores.
+   */
+  editorEmails?: string[];
   uploadedByUid: string;
   uploadedByName: string;
   createdAt: string;
@@ -118,6 +124,13 @@ export interface DocumentFavorites {
   favoriteIds: string[];
   updatedAt: string;
 }
+
+/** Quem pode editar o documento: gestor da biblioteca ou editor listado nele. */
+export const canEditCommercialDocument = (
+  document: Pick<CommercialDocument, 'editorEmails'>,
+  email: string | null | undefined,
+  isManager: boolean
+): boolean => isManager || (!!email && (document.editorEmails ?? []).includes(email.trim().toLowerCase()));
 
 export const formatFileSize = (bytes: number | undefined): string => {
   if (!bytes || bytes <= 0) return '—';
