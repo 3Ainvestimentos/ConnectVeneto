@@ -111,16 +111,6 @@ export const venetoRepositoryDocuments: DocumentType[] = [
       "https://drive.google.com/file/d/1WQezq7VrEa4r5uFjgKA2t_gXapgrt6Qz/view?usp=sharing",
   },
   {
-    id: "lamina-multi-selection",
-    name: "Lamina Asset — MULTI SELECTION FIC FIM",
-    category: "Laminas Asset",
-    type: "pdf",
-    size: "—",
-    lastModified: VENETO_REPOSITORY_SORT_SENTINEL_ISO,
-    downloadUrl:
-      "https://drive.google.com/file/d/1S7JQgDXHpinAFT9difYD-aOO2zAizdmL/view?usp=sharing",
-  },
-  {
     id: "lamina-vp-equities",
     name: "Lamina Asset — VP EQUITIES FIA",
     category: "Laminas Asset",
@@ -139,16 +129,6 @@ export const venetoRepositoryDocuments: DocumentType[] = [
     lastModified: VENETO_REPOSITORY_SORT_SENTINEL_ISO,
     downloadUrl:
       "https://drive.google.com/file/d/1P3xncnVOfybRx6iBDGTx0ma6qx0h62am/view?usp=sharing",
-  },
-  {
-    id: "lamina-veneto70-icatu-previdenciario",
-    name: "Lamina Asset — VENETO 70 ICATU PREVIDENCIARIO FIM",
-    category: "Laminas Asset",
-    type: "pdf",
-    size: "—",
-    lastModified: VENETO_REPOSITORY_SORT_SENTINEL_ISO,
-    downloadUrl:
-      "https://drive.google.com/file/d/1kb0d5lHDfZtow90YFoLWxXiZf6K5xS-1/view?usp=sharing",
   },
   {
     id: "lamina-vp-credit-selection",
