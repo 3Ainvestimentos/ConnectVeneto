@@ -15,10 +15,12 @@ import { TripsBirthdaysProvider } from "@/contexts/TripsBirthdaysContext";
 import { VacationProvider } from "@/contexts/VacationContext";
 import { VacationApproversProvider } from "@/contexts/VacationApproversContext";
 import { VacationRequestsProvider } from "@/contexts/VacationRequestsContext";
+import { OwnPhotoSync } from "@/components/providers/OwnPhotoSync";
 
 export default function AppProviders({ children }: { children: React.ReactNode }) {
   return (
     <CollaboratorsProvider>
+      <OwnPhotoSync />
       <WorkflowAreasProvider>
         <ApplicationsProvider>
           <NewsProvider>

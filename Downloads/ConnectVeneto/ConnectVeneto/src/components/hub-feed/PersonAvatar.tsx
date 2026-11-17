@@ -1,3 +1,6 @@
+"use client";
+
+import { useState } from 'react';
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
 import type { HubPerson } from '@/lib/hub/people';
@@ -33,9 +36,20 @@ export function PersonAvatar({
   className?: string;
 }) {
   const base = cn('inline-flex shrink-0 select-none items-center justify-center overflow-hidden rounded-full font-headline font-bold text-white', SIZES[size], className);
-  const avatar = person.photoURL ? (
+  // Foto do Google pode falhar (link vencido, limite de acesso): cai para as iniciais.
+  const [broken, setBroken] = useState<string | null>(null);
+  const photo = person.photoURL && person.photoURL !== broken ? person.photoURL : undefined;
+  const avatar = photo ? (
     // eslint-disable-next-line @next/next/no-img-element
-    <img src={person.photoURL} alt="" title={person.name} className={cn(base, 'bg-muted object-cover')} referrerPolicy="no-referrer" />
+    <img
+      src={photo}
+      alt=""
+      title={person.name}
+      className={cn(base, 'bg-muted object-cover')}
+      referrerPolicy="no-referrer"
+      loading="lazy"
+      onError={() => setBroken(photo)}
+    />
   ) : (
     <span title={person.name} className={cn(base, toneFor(person.email || person.name))}>
       {initialsOf(person.name)}
