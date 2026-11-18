@@ -252,6 +252,14 @@ export function parseLocalDate(value: string | undefined | null): Date | null {
   return Number.isNaN(d.getTime()) ? null : d;
 }
 
+/**
+ * Chave de uma viagem para juntar registros repetidos: mesma pessoa, mesma cidade (com ou sem UF,
+ * maiúsculas e acentos à parte) e mesmas datas.
+ */
+export function tripKey(t: { leaderName: string; destinationBranch: string; startDate: string; endDate: string }): string {
+  return [normalizeName(t.leaderName), normalizeCity(t.destinationBranch), t.startDate, t.endDate].join('|');
+}
+
 /** Aniversário neste dia (compara dia e mês, no fuso local). */
 export function isBirthdayOn(birthDate: string | undefined, day = new Date()): boolean {
   const d = parseLocalDate(birthDate);

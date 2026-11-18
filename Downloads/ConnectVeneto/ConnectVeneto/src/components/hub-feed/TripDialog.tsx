@@ -7,10 +7,11 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { useAuth } from '@/contexts/AuthContext';
 import { useTripsBirthdays, type LeaderTripType } from '@/contexts/TripsBirthdaysContext';
 import { toast } from '@/hooks/use-toast';
 import { useHubPeople } from '@/hooks/useHubPeople';
-import { normalizeCity } from '@/lib/hub/people';
+import { normalizeCity, tripKey } from '@/lib/hub/people';
 import { TRIP_DESTINATIONS } from '@/lib/trips';
 
 const OTHER = '__outra';
@@ -26,7 +27,8 @@ const br = (iso: string) => iso.split('-').reverse().slice(0, 2).join('/');
  * Viagens). Serve para os colegas do destino saberem quem vem e marcarem um encontro.
  */
 export function TripDialog({ open, onOpenChange, trip }: { open: boolean; onOpenChange: (open: boolean) => void; trip?: LeaderTripType }) {
-  const { addTrip, updateTrip } = useTripsBirthdays();
+  const { trips, addTrip, updateTrip } = useTripsBirthdays();
+  const { user, currentUserCollab } = useAuth();
   const { me } = useHubPeople();
   const [unit, setUnit] = useState<string>(TRIP_DESTINATIONS[0]);
   const [otherCity, setOtherCity] = useState('');
@@ -51,14 +53,21 @@ export function TripDialog({ open, onOpenChange, trip }: { open: boolean; onOpen
     if (!destinationBranch) return setError('Informe a cidade de destino.');
     if (!start || !end) return setError('Informe a ida e a volta.');
     if (end < start) return setError('A volta precisa ser depois da ida.');
-    if (!me) return setError('Seu cadastro de colaborador não foi encontrado.');
+    if (!user) return setError('Sua sessão expirou. Entre de novo para registrar a viagem.');
+    // Sem cadastro de colaborador (ou fora do Hub) também pode registrar: usa o nome do login.
+    const leaderName = trip?.leaderName ?? (me?.name || currentUserCollab?.name?.trim() || user.displayName?.trim() || user.email || '');
+    if (!leaderName) return setError('Não encontramos o seu nome. Fale com o RH para completar o cadastro.');
+    const key = tripKey({ leaderName, destinationBranch, startDate: start, endDate: end });
+    if (trips.some((t) => t.id !== trip?.id && t.responsavelUid === user.uid && tripKey(t) === key)) {
+      return setError('Você já registrou esta viagem. Ela aparece no quadro Viagens da página inicial.');
+    }
     setSaving(true);
     try {
       if (trip) await updateTrip({ ...trip, destinationBranch, startDate: start, endDate: end });
-      else await addTrip({ leaderName: me.name, destinationBranch, startDate: start, endDate: end });
+      else await addTrip({ leaderName, destinationBranch, startDate: start, endDate: end });
       toast({
         title: trip ? 'Viagem atualizada' : 'Viagem registrada',
-        description: `Quem está em ${destinationBranch.split(' - ')[0]} vai ver que você estará lá de ${br(start)} a ${br(end)}.`,
+        description: `Ela já aparece no quadro Viagens da página inicial. Quem está em ${destinationBranch.split(' - ')[0]} vai ver que você estará lá de ${br(start)} a ${br(end)}.`,
       });
       onOpenChange(false);
     } catch (e) {
