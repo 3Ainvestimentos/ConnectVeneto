@@ -33,7 +33,7 @@ import { toast } from "@/hooks/use-toast";
 import { useCommercialDocuments } from "@/hooks/useCommercialDocuments";
 import { useDocumentFavorites } from "@/hooks/useDocumentFavorites";
 import { useDocumentSearch } from "@/hooks/useDocumentSearch";
-import type { CommercialDocument } from "@/config/biblioteca-comercial";
+import { canEditCommercialDocument, type CommercialDocument } from "@/config/biblioteca-comercial";
 import { CommercialDocumentCard } from "@/components/documents/CommercialDocumentCard";
 import { CommercialUploadDialog } from "@/components/documents/CommercialUploadDialog";
 import { DocumentPreviewDialog } from "@/components/documents/DocumentPreviewDialog";
@@ -168,23 +168,28 @@ export default function CommercialLibraryClient({
       onOpen: () => handleOpen(document),
     }));
 
-  const renderCard = (document: UnifiedDocument) => (
-    <CommercialDocumentCard
-      key={document.key}
-      document={document}
-      isFavorite={isFavorite(document.segment, document.id)}
-      onToggleFavorite={() => void toggleFavorite(document.segment, document.id)}
-      onOpen={handleOpen}
-      canManage={canManage}
-      onEdit={(target) => {
-        const original = documents.find((item) => item.id === target.id);
-        if (!original) return;
-        setEditingDocument(original);
-        setUploadOpen(true);
-      }}
-      onDelete={setPendingDeletion}
-    />
-  );
+  const renderCard = (document: UnifiedDocument) => {
+    const original = documents.find((item) => item.id === document.id);
+    // Editores de um documento atualizam só ele; excluir continua com os gestores.
+    const canEdit = !!original && canEditCommercialDocument(original, user?.email, canManage);
+
+    return (
+      <CommercialDocumentCard
+        key={document.key}
+        document={document}
+        isFavorite={isFavorite(document.segment, document.id)}
+        onToggleFavorite={() => void toggleFavorite(document.segment, document.id)}
+        onOpen={handleOpen}
+        canManage={canEdit}
+        onEdit={() => {
+          if (!original) return;
+          setEditingDocument(original);
+          setUploadOpen(true);
+        }}
+        onDelete={canManage ? setPendingDeletion : undefined}
+      />
+    );
+  };
 
   return (
     <div className="space-y-4">
@@ -288,6 +293,7 @@ export default function CommercialLibraryClient({
           if (!open) setEditingDocument(null);
         }}
         editing={editingDocument}
+        canManageEditors={canManage}
         onCreate={createDocument}
         onUpdate={updateDocument}
       />

@@ -208,13 +208,23 @@ export async function requireBibliotecaComercialManager(
 ): Promise<AuthenticatedRequestContext> {
   const context = await requireCorporateUser(authorizationHeader);
 
-  if (await isSuperAdminEmail(context.email)) {
-    return context;
-  }
-
-  if (await collaboratorHasPermission(context, 'canManageBibliotecaComercial')) {
+  if (await isBibliotecaComercialManager(context)) {
     return context;
   }
 
   throw new Error('FORBIDDEN_BIBLIOTECA_COMERCIAL_MANAGER_REQUIRED');
+}
+
+/**
+ * Gestor de toda a Biblioteca Comercial, sem lançar. A edição de um documento
+ * também aceita os editores listados nele (`editorEmails`) — por isso a rota
+ * precisa da resposta, não só do 403.
+ */
+export async function isBibliotecaComercialManager(
+  context: AuthenticatedRequestContext
+): Promise<boolean> {
+  return (
+    (await isSuperAdminEmail(context.email)) ||
+    (await collaboratorHasPermission(context, 'canManageBibliotecaComercial'))
+  );
 }

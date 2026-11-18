@@ -21,6 +21,16 @@ export type CommercialDocumentDraft = {
   storagePath?: string;
   mimeType?: string;
   sizeBytes?: number;
+  editorEmails?: string[];
+};
+
+/** Nova versão do arquivo, já enviada ao Storage. */
+export type CommercialFileReplacement = {
+  fileType: CommercialDocument['fileType'];
+  downloadUrl: string;
+  storagePath: string;
+  mimeType: string;
+  sizeBytes: number;
 };
 
 export type CommercialDocumentEdit = {
@@ -28,11 +38,17 @@ export type CommercialDocumentEdit = {
   title: string;
   description: string;
   tags: string[];
+  file?: CommercialFileReplacement;
+  /** Só gestores enviam; a API recusa de editores. */
+  editorEmails?: string[];
 };
 
 const API_PATH = '/api/biblioteca-comercial/documents';
 
-/** Toda escrita passa pela API route, que valida `canManageBibliotecaComercial`. */
+/**
+ * Toda escrita passa pela API route, que valida `canManageBibliotecaComercial` ou,
+ * na edição, se a pessoa está em `editorEmails` do documento.
+ */
 const authorizedRequest = async (
   url: string,
   init: { method: string; body?: unknown }
