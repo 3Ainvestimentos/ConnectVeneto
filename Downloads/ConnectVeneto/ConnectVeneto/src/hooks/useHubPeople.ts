@@ -46,7 +46,7 @@ export interface HubVacation extends HubVacationItem {
 }
 
 /**
- * Férias aprovadas de todo mundo nos próximos 60 dias, lidas pelo servidor (`/api/feed/vacations`):
+ * Férias aprovadas de todo mundo que ainda não terminaram, lidas pelo servidor (`/api/feed/vacations`):
  * o registro oficial (`vacations`) não é legível pelo navegador de quem não é o dono.
  */
 export function useApprovedVacations() {
