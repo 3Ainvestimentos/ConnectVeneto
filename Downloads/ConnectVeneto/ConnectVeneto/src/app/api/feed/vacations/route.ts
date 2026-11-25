@@ -4,23 +4,17 @@ import { hubRoute, jsonOk } from '@/lib/hub/http';
 import type { HubVacationItem } from '@/lib/hub/people';
 import { VACATION_REQUESTS_COLLECTION } from '@/types/vacation';
 
-const DAY = 24 * 60 * 60 * 1000;
-const MAX_DAYS = 120;
-
 const iso = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 
 /**
- * Férias aprovadas de todo mundo numa janela (padrão: de hoje até 60 dias), para a Home e os Perfis.
- * Lê pelo servidor porque o registro oficial (`vacations`) só é legível pelo dono e pelo super
- * admin; junta as solicitações aprovadas que ainda não viraram registro e as férias informadas só
- * para exibição no Hub (`hubVacations`, fora do saldo de férias). Só nome e datas saem daqui.
+ * Férias aprovadas de todo mundo que ainda não terminaram (em andamento ou futuras, sem limite de
+ * data), para a Home e os Perfis. Lê pelo servidor porque o registro oficial (`vacations`) só é
+ * legível pelo dono e pelo super admin; junta as solicitações aprovadas que ainda não viraram
+ * registro e as férias informadas só para exibição no Hub (`hubVacations`, fora do saldo de
+ * férias). Só nome e datas saem daqui.
  */
-export const GET = hubRoute('vacations:list', async ({ request }) => {
-  const days = Math.min(MAX_DAYS, Math.max(1, Number(new URL(request.url).searchParams.get('days')) || 60));
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  const from = iso(today);
-  const to = iso(new Date(today.getTime() + days * DAY));
+export const GET = hubRoute('vacations:list', async () => {
+  const from = iso(new Date());
 
   const db = getFirestore(getFirebaseAdminApp());
   // Filtro de data em memória: as duas coleções são pequenas e assim não exige índice composto.
@@ -49,7 +43,7 @@ export const GET = hubRoute('vacations:list', async ({ request }) => {
   }
 
   const vacations = [...items.values()]
-    .filter((v) => v.startDate && v.endDate && v.endDate >= from && v.startDate <= to)
+    .filter((v) => v.startDate && v.endDate && v.endDate >= from)
     .sort((a, b) => a.startDate.localeCompare(b.startDate));
   return jsonOk({ vacations });
 });

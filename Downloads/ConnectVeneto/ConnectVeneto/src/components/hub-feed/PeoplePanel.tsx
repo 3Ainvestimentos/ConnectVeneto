@@ -24,17 +24,12 @@ import { TripDialog } from './TripDialog';
 import { initialsOf } from './UserAvatar';
 
 const DAY = 24 * 60 * 60 * 1000;
-const MAX_ROWS = 4;
 /** Viagens que entram no quadro: em andamento ou começando nos próximos 90 dias (a lista rola). */
 const TRIP_WINDOW_DAYS = 90;
 
 /** "AAAA-MM-DD" → "dd/mm" no fuso local. */
 const dm = (iso: string) => parseLocalDate(iso)?.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }) ?? '';
 const span = (a: string, b: string) => (a === b ? dm(a) : `${dm(a)} a ${dm(b)}`);
-const dayAfter = (iso: string) => {
-  const d = parseLocalDate(iso);
-  return d ? new Date(d.getTime() + DAY).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }) : '';
-};
 
 function Section({ icon: Icon, title, action, children }: { icon: LucideIcon; title: string; action?: React.ReactNode; children: React.ReactNode }) {
   return (
@@ -112,7 +107,7 @@ const joinNames = (names: string[]) => (names.length <= 1 ? (names[0] ?? '') : `
 /**
  * Pessoas e equipes na Home: aniversariantes do dia (faixa, só quando há), viagens nos próximos 90
  * dias (quem vem para a sua cidade primeiro; as suas também aparecem, para você ver que registrou e
- * poder excluir) e férias aprovadas nos próximos 30 dias.
+ * poder excluir) e todas as férias aprovadas que ainda não terminaram (a lista rola).
  */
 export function PeoplePanel() {
   const { user, permissions } = useAuth();
@@ -124,7 +119,6 @@ export function PeoplePanel() {
   const [toDelete, setToDelete] = useState<HubTrip | null>(null);
 
   const now = new Date();
-  const in30 = new Date(now.getTime() + 30 * DAY);
   const tripLimit = new Date(now.getTime() + TRIP_WINDOW_DAYS * DAY);
 
   const birthdaysToday = people.filter((p) => isBirthdayOn(p.birthDate, now));
@@ -160,10 +154,10 @@ export function PeoplePanel() {
     }
   };
 
+  // Todas as que ainda não terminaram (em andamento ou futuras), sem limite de data.
   const away = vacations
-    .filter((v) => overlapsRange(v.startDate, v.endDate, now, in30))
-    .sort((a, b) => a.startDate.localeCompare(b.startDate));
-  const awayShown = away.slice(0, MAX_ROWS);
+    .filter((v) => overlapsRange(v.startDate, v.endDate, now, new Date(8.64e15)))
+    .sort((a, b) => a.startDate.localeCompare(b.startDate) || a.endDate.localeCompare(b.endDate));
 
   return (
     <Card className="shadow-sm">
@@ -230,20 +224,22 @@ export function PeoplePanel() {
             )
           }
         >
-          {away.length === 0 && <Empty>Ninguém de férias nos próximos 30 dias.</Empty>}
-          {awayShown.map((v) => {
-            const started = (parseLocalDate(v.startDate)?.getTime() ?? 0) <= now.getTime();
-            return (
-              <Row
-                key={v.id}
-                left={v.person ? <PersonAvatar person={v.person} size="md" link /> : <NameAvatar name={v.name} />}
-                title={v.person?.name ?? v.name}
-                subtitle={v.person ? [v.person.area, v.person.city].filter(Boolean).join(' · ') : undefined}
-                detail={started ? `volta ${dayAfter(v.endDate)}` : `a partir de ${dm(v.startDate)}`}
-              />
-            );
-          })}
-          {away.length > awayShown.length && <Empty>+ {away.length - awayShown.length} de férias no período</Empty>}
+          {away.length === 0 ? (
+            <Empty>Ninguém com férias programadas.</Empty>
+          ) : (
+            <ul className="-mr-2 grid max-h-[16.5rem] gap-3 overflow-y-auto overscroll-contain pr-2" aria-label="Férias">
+              {away.map((v) => (
+                <li key={v.id}>
+                  <Row
+                    left={v.person ? <PersonAvatar person={v.person} size="md" link /> : <NameAvatar name={v.name} />}
+                    title={v.person?.name ?? v.name}
+                    subtitle={v.person ? [v.person.area, v.person.city].filter(Boolean).join(' · ') : undefined}
+                    detail={span(v.startDate, v.endDate)}
+                  />
+                </li>
+              ))}
+            </ul>
+          )}
         </Section>
       </div>
 
