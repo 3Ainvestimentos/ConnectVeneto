@@ -233,7 +233,6 @@ export function PeoplePanel() {
                   <Row
                     left={v.person ? <PersonAvatar person={v.person} size="md" link /> : <NameAvatar name={v.name} />}
                     title={v.person?.name ?? v.name}
-                    subtitle={v.person ? [v.person.area, v.person.city].filter(Boolean).join(' · ') : undefined}
                     detail={span(v.startDate, v.endDate)}
                   />
                 </li>
