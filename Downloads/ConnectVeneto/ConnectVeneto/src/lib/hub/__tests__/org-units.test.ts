@@ -47,15 +47,15 @@ describe('hub/org-units', () => {
 });
 
 describe('unitEmailList', () => {
-  it('põe a chave primeiro e junta os individuais como no convite do Google', () => {
-    expect(unitEmailList(['Ana@Veneto.com', 'bruno@veneto.com'], 'Comercial@Veneto.com')).toBe('comercial@veneto.com, ana@veneto.com, bruno@veneto.com');
+  it('junta os e-mails como no convite do Google, na ordem recebida', () => {
+    expect(unitEmailList(['Ana@Veneto.com', 'bruno@veneto.com'])).toBe('ana@veneto.com, bruno@veneto.com');
   });
 
-  it('sem chave, tira vazios, inválidos e repetidos', () => {
-    expect(unitEmailList(['ana@veneto.com', '', undefined, 'sem-arroba', ' ANA@veneto.com '], null)).toBe('ana@veneto.com');
+  it('tira vazios, inválidos e repetidos', () => {
+    expect(unitEmailList(['ana@veneto.com', '', undefined, null, 'sem-arroba', ' ANA@veneto.com '])).toBe('ana@veneto.com');
   });
 
   it('ninguém com e-mail: string vazia', () => {
-    expect(unitEmailList([], undefined)).toBe('');
+    expect(unitEmailList([])).toBe('');
   });
 });

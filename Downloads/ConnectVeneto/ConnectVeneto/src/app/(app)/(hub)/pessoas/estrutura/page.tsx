@@ -238,7 +238,7 @@ function UnitPanel({ unit, units, byId, people, onDeleted, onSelect }: { unit: O
               Salvar
             </Button>
           </div>
-          <p className="text-xs text-muted-foreground">Opcional. Entra junto com os e-mails de cada pessoa no &quot;Copiar e-mails&quot; do organograma.</p>
+          <p className="text-xs text-muted-foreground">Opcional. No organograma, o &quot;Copiar e-mails&quot; passa a oferecer a chave ou os e-mails das pessoas.</p>
         </div>
       </div>
 

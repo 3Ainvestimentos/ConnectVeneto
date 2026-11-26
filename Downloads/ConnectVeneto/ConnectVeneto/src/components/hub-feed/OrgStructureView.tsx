@@ -3,9 +3,10 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import { Anchor as PopoverAnchor } from '@radix-ui/react-popover';
-import { ArrowUp, Check, ChevronRight, Copy, Maximize2, Minus, Plus } from 'lucide-react';
+import { ArrowUp, Check, ChevronDown, ChevronRight, Copy, Maximize2, Minus, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Popover, PopoverContent } from '@/components/ui/popover';
 import { toast } from '@/hooks/use-toast';
 import { childUnits, unitEmailList, type OrgUnit } from '@/lib/hub/org-units';
@@ -26,8 +27,9 @@ interface UnitNode {
   /** Pessoas da unidade e das de baixo, com os responsáveis (quem está em duas equipes conta uma vez). */
   total: number;
   peopleIds: Set<string>;
-  /** Chave da unidade + e-mails de todo mundo dela e das de baixo, pronto para colar num convite. */
+  /** E-mails de todo mundo da unidade e das de baixo, pronto para colar num convite. */
   emails: string;
+  emailCount: number;
 }
 
 const byName = (a: HubPerson, b: HubPerson) => a.name.localeCompare(b.name, 'pt-BR');
@@ -45,6 +47,13 @@ function buildTree(units: OrgUnit[], people: HubPerson[]): { roots: UnitNode[]; 
       .map((c) => make(c, unit.id, unit.leaderIdVeneto ?? parentLeader));
     // O responsável conta mesmo cadastrado em outra unidade (ex.: sócio que responde pela Expansão).
     const peopleIds = new Set([...own.map((p) => p.id), ...(leader ? [leader.id] : []), ...children.flatMap((c) => [...c.peopleIds])]);
+    const emails = unitEmailList(
+      [...peopleIds]
+        .map((id) => personById.get(id))
+        .filter((p): p is HubPerson => !!p)
+        .sort(byName)
+        .map((p) => p.email),
+    );
     const node: UnitNode = {
       unit,
       parentId,
@@ -54,14 +63,8 @@ function buildTree(units: OrgUnit[], people: HubPerson[]): { roots: UnitNode[]; 
       children,
       peopleIds,
       total: peopleIds.size,
-      emails: unitEmailList(
-        [...peopleIds]
-          .map((id) => personById.get(id))
-          .filter((p): p is HubPerson => !!p)
-          .sort(byName)
-          .map((p) => p.email),
-        unit.groupEmail,
-      ),
+      emails,
+      emailCount: emails ? emails.split(', ').length : 0,
     };
     byId.set(unit.id, node);
     return node;
@@ -117,50 +120,71 @@ async function writeClipboard(text: string): Promise<boolean> {
   }
 }
 
-/** Copia a chave da unidade e os e-mails de cada pessoa de uma vez, como no convite do Google. */
+/**
+ * Copia os e-mails da unidade como no convite do Google. Com chave cadastrada, o botão abre um menu
+ * para escolher entre a chave e os e-mails das pessoas; sem chave, copia as pessoas direto.
+ */
 function CopyEmailsButton({ node, compact = false, className }: { node: UnitNode; compact?: boolean; className?: string }) {
   const [copied, setCopied] = useState(false);
   const timer = useRef<number>();
   useEffect(() => () => window.clearTimeout(timer.current), []);
-  const n = node.emails ? node.emails.split(', ').length : 0;
-  if (n === 0) return null;
-  const label = `Copiar ${n === 1 ? 'o e-mail' : `os ${n} e-mails`} de ${node.unit.name}`;
+  const n = node.emailCount;
+  const groupEmail = node.unit.groupEmail || null;
+  if (n === 0 && !groupEmail) return null;
 
-  const copy = async (e: React.MouseEvent) => {
-    e.stopPropagation();
-    if (!(await writeClipboard(node.emails))) {
+  const copy = async (text: string, title: string) => {
+    if (!(await writeClipboard(text))) {
       toast({ title: 'Não foi possível copiar', description: 'O navegador bloqueou a área de transferência.', variant: 'destructive' });
       return;
     }
     setCopied(true);
     window.clearTimeout(timer.current);
     timer.current = window.setTimeout(() => setCopied(false), 2000);
-    toast({ title: `${n} ${n === 1 ? 'e-mail copiado' : 'e-mails copiados'}`, description: `${node.unit.name}: é só colar nos convidados do convite.` });
+    toast({ title, description: `${node.unit.name}: é só colar nos convidados do convite.` });
   };
+  const copyPeople = () => copy(node.emails, `${n} ${n === 1 ? 'e-mail copiado' : 'e-mails copiados'}`);
+  const copyGroup = () => groupEmail && copy(groupEmail, 'Chave copiada');
 
+  const peopleLabel = `Copiar ${n === 1 ? 'o e-mail' : `os ${n} e-mails`} de ${node.unit.name}`;
+  const label = groupEmail ? `Copiar e-mails de ${node.unit.name}` : peopleLabel;
   const Icon = copied ? Check : Copy;
-  if (compact) {
-    return (
-      <button
-        type="button"
-        onClick={copy}
-        aria-label={label}
-        title={label}
-        className={cn(
-          'inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
-          copied && 'text-primary',
-          className,
-        )}
-      >
-        <Icon className="h-4 w-4" />
-      </button>
-    );
-  }
-  return (
-    <Button type="button" variant="outline" size="sm" onClick={copy} title={label} className={className}>
+  const trigger = compact ? (
+    <button
+      type="button"
+      aria-label={label}
+      title={label}
+      onClick={groupEmail ? undefined : () => void copyPeople()}
+      className={cn(
+        'inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+        copied && 'text-primary',
+        className,
+      )}
+    >
+      <Icon className="h-4 w-4" />
+    </button>
+  ) : (
+    <Button type="button" variant="outline" size="sm" title={label} onClick={groupEmail ? undefined : () => void copyPeople()} className={className}>
       <Icon className={cn('mr-2 h-4 w-4', copied && 'text-primary')} />
-      {copied ? 'Copiado!' : `Copiar e-mails (${n})`}
+      {copied ? 'Copiado!' : groupEmail ? 'Copiar e-mails' : `Copiar e-mails (${n})`}
+      {groupEmail && !copied && <ChevronDown className="ml-1.5 h-4 w-4 opacity-60" />}
     </Button>
+  );
+  if (!groupEmail) return trigger;
+
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>{trigger}</DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="w-72">
+        <DropdownMenuItem onSelect={() => void copyGroup()} className="flex-col items-start gap-0">
+          <span className="font-medium">Copiar a chave</span>
+          <span className="max-w-full truncate text-xs text-muted-foreground">{groupEmail}</span>
+        </DropdownMenuItem>
+        <DropdownMenuItem onSelect={() => void copyPeople()} disabled={n === 0} className="flex-col items-start gap-0">
+          <span className="font-medium">Copiar e-mails das pessoas</span>
+          <span className="text-xs text-muted-foreground">{n === 0 ? 'Ninguém com e-mail cadastrado' : `${n} ${n === 1 ? 'e-mail' : 'e-mails'}, um a um`}</span>
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 }
 
@@ -561,7 +585,7 @@ function UnitPanel({ node, byId, onSelect }: { node: UnitNode; byId: Map<string,
           <CopyEmailsButton node={node} />
           {node.unit.groupEmail && (
             <span className="text-xs text-muted-foreground">
-              inclui a chave <b className="font-medium text-foreground">{node.unit.groupEmail}</b>
+              chave <b className="font-medium text-foreground">{node.unit.groupEmail}</b>
             </span>
           )}
         </div>
