@@ -33,6 +33,11 @@ import { toast } from "@/hooks/use-toast";
 import { useCommercialDocuments } from "@/hooks/useCommercialDocuments";
 import { useDocumentFavorites } from "@/hooks/useDocumentFavorites";
 import { useDocumentSearch } from "@/hooks/useDocumentSearch";
+import {
+  newDocumentViewId,
+  useDocumentViewTime,
+  type DocumentView,
+} from "@/hooks/useDocumentViewTime";
 import type { CommercialDocument } from "@/config/biblioteca-comercial";
 import { CommercialDocumentCard } from "@/components/documents/CommercialDocumentCard";
 import { CommercialUploadDialog } from "@/components/documents/CommercialUploadDialog";
@@ -63,6 +68,9 @@ export default function CommercialLibraryClient({
   const [query, setQuery] = useState("");
   const [previewDocument, setPreviewDocument] = useState<UnifiedDocument | null>(null);
   const [interactiveDocument, setInteractiveDocument] = useState<UnifiedDocument | null>(null);
+  /** Abertura em curso no visualizador (PDF, imagem ou HTML), para medir o tempo. */
+  const [activeView, setActiveView] = useState<DocumentView | null>(null);
+  useDocumentViewTime(activeView);
   const [uploadOpen, setUploadOpen] = useState(false);
   const [editingDocument, setEditingDocument] = useState<CommercialDocument | null>(null);
   const [pendingDeletion, setPendingDeletion] = useState<UnifiedDocument | null>(null);
@@ -85,15 +93,27 @@ export default function CommercialLibraryClient({
   const isSearchActive = query.trim().length >= 2;
   const displayedDocuments = isSearchActive ? results : commercialUnified;
 
-  const logAccess = (document: UnifiedDocument) => {
+  /** Registra a abertura; devolve a abertura para medir o tempo no visualizador. */
+  const logAccess = (document: UnifiedDocument): DocumentView | null => {
     const currentUserCollab = findCollaboratorByEmail(collaborators, user?.email);
-    if (!user || !currentUserCollab) return;
-    void addDocumentToCollection("audit_logs", {
-      eventType: "document_download",
+    if (!user || !currentUserCollab) return null;
+    const view: DocumentView = {
+      viewId: newDocumentViewId(),
+      documentId: document.id,
+      documentName: document.title,
+      contentType: document.kind,
+      source: "biblioteca_comercial",
+      segment: document.segment,
       userId: getCollaboratorUserId(currentUserCollab),
       userName: currentUserCollab.name,
+    };
+    void addDocumentToCollection("audit_logs", {
+      eventType: "document_download",
+      userId: view.userId,
+      userName: view.userName,
       timestamp: new Date().toISOString(),
       details: {
+        viewId: view.viewId,
         documentId: document.id,
         documentName: document.title,
         contentId: document.id,
@@ -103,6 +123,7 @@ export default function CommercialLibraryClient({
         segment: document.segment,
       },
     });
+    return view;
   };
 
   /**
@@ -125,17 +146,19 @@ export default function CommercialLibraryClient({
       return;
     }
 
-    logAccess(document);
+    const view = logAccess(document);
 
     if (
       (document.kind === "pdf" || document.kind === "image") &&
       document.sourceType === "upload"
     ) {
       setPreviewDocument(document);
+      setActiveView(view);
       return;
     }
     if (document.kind === "html" && document.sourceType === "upload") {
       setInteractiveDocument(document);
+      setActiveView(view);
       return;
     }
     if (document.kind === "audio" && document.sourceType === "upload") {
@@ -271,14 +294,20 @@ export default function CommercialLibraryClient({
         description={previewDocument?.description}
         url={previewDocument?.downloadUrl ?? null}
         kind={previewDocument?.kind === "image" ? "image" : "pdf"}
-        onClose={() => setPreviewDocument(null)}
+        onClose={() => {
+          setPreviewDocument(null);
+          setActiveView(null);
+        }}
       />
 
       <InteractiveHtmlDialog
         title={interactiveDocument?.title ?? ""}
         description={interactiveDocument?.description}
         url={interactiveDocument?.downloadUrl ?? null}
-        onClose={() => setInteractiveDocument(null)}
+        onClose={() => {
+          setInteractiveDocument(null);
+          setActiveView(null);
+        }}
       />
 
       <CommercialUploadDialog
