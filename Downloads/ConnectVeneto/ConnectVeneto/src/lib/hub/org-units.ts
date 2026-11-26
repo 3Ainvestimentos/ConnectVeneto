@@ -21,6 +21,24 @@ export interface OrgUnit {
   accessProfileId?: string | null;
   /** Posição entre as irmãs (Editar estrutura › ordem); sem valor, vai depois, por nome. */
   order?: number | null;
+  /** E-mail de grupo da unidade (a "chave", ex.: comercial@…); o organograma oferece copiá-la. */
+  groupEmail?: string | null;
+}
+
+/**
+ * Lista para colar num convite (como o "copiar e-mails dos convidados" do Google): minúsculas,
+ * sem vazios nem repetidos, na ordem recebida, separados por ", ".
+ */
+export function unitEmailList(emails: (string | null | undefined)[]): string {
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const raw of emails) {
+    const email = (raw ?? '').trim().toLowerCase();
+    if (!email.includes('@') || seen.has(email)) continue;
+    seen.add(email);
+    out.push(email);
+  }
+  return out.join(', ');
 }
 
 /** Quem pode ser mãe de quem: Diretoria no topo, Área sob Diretoria (ou no topo), Equipe sob Área ou Diretoria. */

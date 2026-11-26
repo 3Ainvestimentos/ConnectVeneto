@@ -20,6 +20,16 @@ const fields = {
   accessProfileId: z.string().trim().max(80).nullable().optional(),
   /** Posição entre as irmãs no organograma. */
   order: z.number().int().min(0).max(10000).nullable().optional(),
+  /** E-mail de grupo (a "chave") da unidade; vazio apaga. */
+  groupEmail: z
+    .string()
+    .trim()
+    .toLowerCase()
+    .max(200)
+    .refine((v) => v === '' || z.string().email().safeParse(v).success, 'E-mail do grupo inválido.')
+    .transform((v) => v || null)
+    .nullable()
+    .optional(),
 };
 const createSchema = z.object(fields).strict();
 const updateSchema = z.object({ id: z.string().trim().min(1), ...fields }).partial().required({ id: true }).strict();

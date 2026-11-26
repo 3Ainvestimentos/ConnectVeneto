@@ -17,6 +17,7 @@ export async function readOrgUnits(): Promise<OrgUnit[]> {
       leaderIdVeneto: v.leaderIdVeneto ? String(v.leaderIdVeneto) : null,
       accessProfileId: v.accessProfileId ? String(v.accessProfileId) : null,
       order: typeof v.order === 'number' ? v.order : null,
+      groupEmail: v.groupEmail ? String(v.groupEmail) : null,
     };
   });
 }

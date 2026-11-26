@@ -139,10 +139,12 @@ function UnitPanel({ unit, units, byId, people, onDeleted, onSelect }: { unit: O
   const { busy, run } = useRun();
   const [name, setName] = useState(unit.name);
   const [creating, setCreating] = useState(false);
+  const [groupEmail, setGroupEmail] = useState(unit.groupEmail ?? '');
   useEffect(() => {
     setName(unit.name);
     setCreating(false);
   }, [unit.id, unit.name]);
+  useEffect(() => setGroupEmail(unit.groupEmail ?? ''), [unit.id, unit.groupEmail]);
 
   const members = people.filter((p) => p.unitId === unit.id || p.extraUnitIds.includes(unit.id)).sort((a, b) => a.name.localeCompare(b.name, 'pt-BR'));
   const outside = people.filter((p) => p.unitId !== unit.id && !p.extraUnitIds.includes(unit.id));
@@ -221,6 +223,22 @@ function UnitPanel({ unit, units, byId, people, onDeleted, onSelect }: { unit: O
           <p className="text-xs text-muted-foreground">
             {leader ? `Quem está aqui reporta a ${leader.name.split(' ')[0]}.` : 'Sem responsável, quem está aqui reporta ao responsável da unidade de cima.'}
           </p>
+        </div>
+        <div className="grid gap-1.5">
+          <Label htmlFor="unit-group-email">E-mail do grupo (chave)</Label>
+          <div className="flex gap-2">
+            <Input id="unit-group-email" type="email" value={groupEmail} placeholder="ex.: comercial@venetomfo.com.br" onChange={(e) => setGroupEmail(e.target.value)} />
+            <Button
+              size="sm"
+              variant="outline"
+              className="h-10"
+              disabled={busy || groupEmail.trim().toLowerCase() === (unit.groupEmail ?? '')}
+              onClick={() => void run(() => updateUnit(unit.id, { groupEmail: groupEmail.trim() || null }), groupEmail.trim() ? 'E-mail do grupo salvo' : 'E-mail do grupo removido')}
+            >
+              Salvar
+            </Button>
+          </div>
+          <p className="text-xs text-muted-foreground">Opcional. No organograma, o &quot;Copiar e-mails&quot; passa a oferecer a chave ou os e-mails das pessoas.</p>
         </div>
       </div>
 
