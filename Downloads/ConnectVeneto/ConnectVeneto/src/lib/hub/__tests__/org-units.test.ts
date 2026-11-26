@@ -1,4 +1,4 @@
-import { canBeChildOf, isSameOrDescendant, managerFromStructure, unitPathLabel, type OrgUnit } from '@/lib/hub/org-units';
+import { canBeChildOf, isSameOrDescendant, managerFromStructure, unitEmailList, unitPathLabel, type OrgUnit } from '@/lib/hub/org-units';
 import { buildPeople } from '@/lib/hub/people';
 
 const units: OrgUnit[] = [
@@ -43,5 +43,19 @@ describe('hub/org-units', () => {
     expect(by.b).toMatchObject({ managerId: 'ceo', managerMatch: 'override' });
     expect(by.t).toMatchObject({ managerId: 'ceo', managerMatch: 'structure', team: undefined });
     expect(by.z).toMatchObject({ managerId: 't', managerMatch: 'id', team: 'Texto livre', unitId: undefined });
+  });
+});
+
+describe('unitEmailList', () => {
+  it('põe a chave primeiro e junta os individuais como no convite do Google', () => {
+    expect(unitEmailList(['Ana@Veneto.com', 'bruno@veneto.com'], 'Comercial@Veneto.com')).toBe('comercial@veneto.com, ana@veneto.com, bruno@veneto.com');
+  });
+
+  it('sem chave, tira vazios, inválidos e repetidos', () => {
+    expect(unitEmailList(['ana@veneto.com', '', undefined, 'sem-arroba', ' ANA@veneto.com '], null)).toBe('ana@veneto.com');
+  });
+
+  it('ninguém com e-mail: string vazia', () => {
+    expect(unitEmailList([], undefined)).toBe('');
   });
 });

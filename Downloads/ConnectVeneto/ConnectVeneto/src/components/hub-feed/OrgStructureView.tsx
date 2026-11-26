@@ -3,11 +3,12 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import { Anchor as PopoverAnchor } from '@radix-ui/react-popover';
-import { ArrowUp, ChevronRight, Maximize2, Minus, Plus } from 'lucide-react';
+import { ArrowUp, Check, ChevronRight, Copy, Maximize2, Minus, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Popover, PopoverContent } from '@/components/ui/popover';
-import { childUnits, type OrgUnit } from '@/lib/hub/org-units';
+import { toast } from '@/hooks/use-toast';
+import { childUnits, unitEmailList, type OrgUnit } from '@/lib/hub/org-units';
 import { groupAssistants, type HubPerson } from '@/lib/hub/people';
 import { cn } from '@/lib/utils';
 import { PersonAvatar } from './PersonAvatar';
@@ -25,12 +26,15 @@ interface UnitNode {
   /** Pessoas da unidade e das de baixo, com os responsáveis (quem está em duas equipes conta uma vez). */
   total: number;
   peopleIds: Set<string>;
+  /** Chave da unidade + e-mails de todo mundo dela e das de baixo, pronto para colar num convite. */
+  emails: string;
 }
 
 const byName = (a: HubPerson, b: HubPerson) => a.name.localeCompare(b.name, 'pt-BR');
 
 function buildTree(units: OrgUnit[], people: HubPerson[]): { roots: UnitNode[]; byId: Map<string, UnitNode> } {
   const byIdVeneto = new Map(people.filter((p) => p.idVeneto).map((p) => [p.idVeneto, p]));
+  const personById = new Map(people.map((p) => [p.id, p]));
   const byId = new Map<string, UnitNode>();
   const make = (unit: OrgUnit, parentId: string | null, parentLeader: string | null): UnitNode => {
     const leader = unit.leaderIdVeneto ? byIdVeneto.get(unit.leaderIdVeneto) : undefined;
@@ -50,6 +54,14 @@ function buildTree(units: OrgUnit[], people: HubPerson[]): { roots: UnitNode[]; 
       children,
       peopleIds,
       total: peopleIds.size,
+      emails: unitEmailList(
+        [...peopleIds]
+          .map((id) => personById.get(id))
+          .filter((p): p is HubPerson => !!p)
+          .sort(byName)
+          .map((p) => p.email),
+        unit.groupEmail,
+      ),
     };
     byId.set(unit.id, node);
     return node;
@@ -86,6 +98,72 @@ function useMediaQuery(query: string): boolean | undefined {
 
 /* ───────────── Peças comuns ───────────── */
 
+async function writeClipboard(text: string): Promise<boolean> {
+  try {
+    await navigator.clipboard.writeText(text);
+    return true;
+  } catch {
+    // Sem permissão da Clipboard API (ex.: página embarcada): cai no jeito antigo.
+    const area = document.createElement('textarea');
+    area.value = text;
+    area.setAttribute('readonly', '');
+    area.style.position = 'fixed';
+    area.style.opacity = '0';
+    document.body.appendChild(area);
+    area.select();
+    const done = document.execCommand('copy');
+    area.remove();
+    return done;
+  }
+}
+
+/** Copia a chave da unidade e os e-mails de cada pessoa de uma vez, como no convite do Google. */
+function CopyEmailsButton({ node, compact = false, className }: { node: UnitNode; compact?: boolean; className?: string }) {
+  const [copied, setCopied] = useState(false);
+  const timer = useRef<number>();
+  useEffect(() => () => window.clearTimeout(timer.current), []);
+  const n = node.emails ? node.emails.split(', ').length : 0;
+  if (n === 0) return null;
+  const label = `Copiar ${n === 1 ? 'o e-mail' : `os ${n} e-mails`} de ${node.unit.name}`;
+
+  const copy = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!(await writeClipboard(node.emails))) {
+      toast({ title: 'Não foi possível copiar', description: 'O navegador bloqueou a área de transferência.', variant: 'destructive' });
+      return;
+    }
+    setCopied(true);
+    window.clearTimeout(timer.current);
+    timer.current = window.setTimeout(() => setCopied(false), 2000);
+    toast({ title: `${n} ${n === 1 ? 'e-mail copiado' : 'e-mails copiados'}`, description: `${node.unit.name}: é só colar nos convidados do convite.` });
+  };
+
+  const Icon = copied ? Check : Copy;
+  if (compact) {
+    return (
+      <button
+        type="button"
+        onClick={copy}
+        aria-label={label}
+        title={label}
+        className={cn(
+          'inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+          copied && 'text-primary',
+          className,
+        )}
+      >
+        <Icon className="h-4 w-4" />
+      </button>
+    );
+  }
+  return (
+    <Button type="button" variant="outline" size="sm" onClick={copy} title={label} className={className}>
+      <Icon className={cn('mr-2 h-4 w-4', copied && 'text-primary')} />
+      {copied ? 'Copiado!' : `Copiar e-mails (${n})`}
+    </Button>
+  );
+}
+
 function PersonRow({ person, size = 'sm', detail }: { person: HubPerson; size?: 'xs' | 'sm'; detail?: string }) {
   return (
     <Link href={`/pessoas/${person.id}`} className="flex min-w-0 items-center gap-2 rounded-md px-1.5 py-1 hover:bg-muted">
@@ -116,9 +194,12 @@ function TopBand({ node, onSelect }: { node: UnitNode; onSelect: (id: string) =>
   const people = [node.leader, ...node.members].filter((p): p is HubPerson => !!p);
   return (
     <section className="w-full max-w-2xl rounded-xl border border-primary/30 bg-card p-4 text-center shadow-sm">
-      <button type="button" onClick={() => onSelect(node.unit.id)} className="text-xs font-bold uppercase tracking-wider text-primary hover:underline">
-        {node.unit.name}
-      </button>
+      <div className="flex items-center justify-center gap-1">
+        <button type="button" onClick={() => onSelect(node.unit.id)} className="text-xs font-bold uppercase tracking-wider text-primary hover:underline">
+          {node.unit.name}
+        </button>
+        <CopyEmailsButton node={node} compact />
+      </div>
       <div className="mt-3 flex flex-wrap justify-center gap-3">
         {people.map((p) => (
           <Link key={p.id} href={`/pessoas/${p.id}`} className="flex items-center gap-3 rounded-lg border bg-background py-2 pl-2 pr-4 text-left hover:bg-muted">
@@ -207,31 +288,35 @@ function UnitBox({ node, selected, dragging, onSelect }: { node: UnitNode; selec
   const hover = useHoverPreview(dragging || selected);
   return (
     <Popover open={hover.open}>
-      <PopoverAnchor asChild>
-        <button
-          type="button"
-          onPointerEnter={hover.show}
-          onPointerLeave={hover.hide}
-          onClick={() => {
-            hover.close();
-            onSelect(node.unit.id);
-          }}
-          aria-pressed={selected}
-          className={cn(
-            'w-full min-w-0 overflow-hidden rounded-xl border p-3 text-left transition-colors hover:border-primary/50 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
-            node.unit.type === 'equipe' ? 'bg-background' : 'bg-card shadow-sm',
-            selected && 'border-primary ring-4 ring-primary/10',
-          )}
-        >
-          <div className={cn('font-headline font-bold leading-tight', node.unit.type === 'equipe' ? 'text-sm' : 'text-[15px]')}>{node.unit.name}</div>
-          {node.showLeader && node.leader && (
-            <div className="mt-2">
-              <LeaderLine person={node.leader} />
-            </div>
-          )}
-          <div className="mt-2 text-xs text-muted-foreground">{summary(node)}</div>
-        </button>
-      </PopoverAnchor>
+      <div className="relative min-w-0">
+        <PopoverAnchor asChild>
+          <button
+            type="button"
+            onPointerEnter={hover.show}
+            onPointerLeave={hover.hide}
+            onClick={() => {
+              hover.close();
+              onSelect(node.unit.id);
+            }}
+            aria-pressed={selected}
+            className={cn(
+              'w-full min-w-0 overflow-hidden rounded-xl border p-3 text-left transition-colors hover:border-primary/50 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+              node.unit.type === 'equipe' ? 'bg-background' : 'bg-card shadow-sm',
+              selected && 'border-primary ring-4 ring-primary/10',
+            )}
+          >
+            <div className={cn('pr-7 font-headline font-bold leading-tight', node.unit.type === 'equipe' ? 'text-sm' : 'text-[15px]')}>{node.unit.name}</div>
+            {node.showLeader && node.leader && (
+              <div className="mt-2">
+                <LeaderLine person={node.leader} />
+              </div>
+            )}
+            <div className="mt-2 text-xs text-muted-foreground">{summary(node)}</div>
+          </button>
+        </PopoverAnchor>
+        {/* Irmão da caixa (botão não pode ficar dentro de botão), no canto de cima. */}
+        <CopyEmailsButton node={node} compact className="absolute right-1.5 top-1.5" />
+      </div>
       <PopoverContent
         side="right"
         align="start"
@@ -427,6 +512,7 @@ function TreeView({ roots, onSelect }: { roots: UnitNode[]; onSelect: (id: strin
             <span className="shrink-0 text-xs text-muted-foreground">{node.total}</span>
             <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
           </button>
+          <CopyEmailsButton node={node} compact className="mr-1 h-9 w-9" />
         </div>
         {isOpen && hasChildren && (
           <ul>
@@ -471,6 +557,14 @@ function UnitPanel({ node, byId, onSelect }: { node: UnitNode; byId: Map<string,
         )}
         <DialogTitle className="font-headline text-xl">{node.unit.name}</DialogTitle>
         <DialogDescription>{summary(node)}</DialogDescription>
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 pt-1">
+          <CopyEmailsButton node={node} />
+          {node.unit.groupEmail && (
+            <span className="text-xs text-muted-foreground">
+              inclui a chave <b className="font-medium text-foreground">{node.unit.groupEmail}</b>
+            </span>
+          )}
+        </div>
       </DialogHeader>
 
       <div className="grid gap-5">
