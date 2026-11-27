@@ -183,7 +183,7 @@ Chegou: trouxemos o pedido da sua outbox (`f75e911`) pelo GitHub API. O pedido d
 7. **Teste:** o Victor simula (`simulateAs` de super admin) o Rodrigo e um membro. O membro deve ver só os núcleos
    dele e não ver a aba Passivos. O Rodrigo deve ver todos os núcleos e a Administração.
 
-**Dependência paralela (não decidida aqui):** está em aberto se o Trader RF entra como seção do módulo `gestao`
+**Dependência paralela (decidida em 27/11, ver abaixo):** estava em aberto se o Trader RF entra como seção do módulo `gestao`
 (fundos-asset) ou fica módulo separado (pedido `2026-11-26-fundos-asset-secoes-gestao-de-investimentos`, do
 ia-gestor). Ela não bloqueia este pedido. Se a decisão for "seção do `gestao`", as chaves trocam de prefixo e as
 concessões são refeitas. Para cerca de 10 pessoas, o custo é baixo.
@@ -192,3 +192,34 @@ concessões são refeitas. Para cerca de 10 pessoas, o custo é baixo.
 (mais `portal-gestao:view` de quem não tinha antes), voltando ao estado do dry-run. Os logs ficam em
 `collaborator_logs` com `source: pedido-portal-gestao-nucleos`. A entrada no changelog do connect é feita quando
 aplicar.
+
+### Atualização 2026-11-27: dependência decidida
+
+**Decisão do Victor Santos (dono, 27/11).** A "Gestão de Investimentos" é o próprio módulo `portal-gestao` (repo
+`venetomfo/modulo-connect-trader-rf`, do Gustavo): um módulo guarda-chuva que agrupa os submódulos Trader RF/Passivos,
+Núcleos, Quartis e Dados Macro. O ACL de usuário (quem vê qual aba) fica dentro do módulo, pelas chaves
+`portal-gestao:*` do catálogo. O Connect só configura se a pessoa tem acesso ou não, e grava as chaves que o módulo
+lê. O módulo `gestao` do repo `fundos-asset` (Lâmina dos fundos asset) continua separado e não absorve nada. Quartis e
+Macro também serão telas do `portal-gestao`, com chaves novas quando o Gustavo pedir.
+
+**O que muda neste pedido:**
+
+- **Vale o desfecho "módulo separado":** o `portal-gestao` é o guarda-chuva e Núcleos segue como submódulo dele, como
+  no ADR-0006 do `gestao-nucleos`. O plano acima fica como está: mesmas 8 chaves com prefixo `portal-gestao:`, mesmas
+  concessões.
+- **O desfecho "seção do `gestao`" está descartado.** As chaves não trocam de prefixo, as concessões não são
+  refeitas e as telas de Passivos **não** passam para o `fundos-asset`.
+- Quando Quartis e Dados Macro chegarem, entram como chaves novas `portal-gestao:*` no mesmo catálogo, por pedido do
+  Gustavo.
+
+**Próximo passo (continua aguardando o Victor; nada foi gravado):**
+
+1. Dry-run do script `scripts/portal-gestao-nucleos.mjs` (ainda não está escrito em nenhuma branch). Além do estado
+   das pessoas, ele confere o `hubModules/portal-gestao`: `enabled`, `url` `https://vnt-trader-rf.azurewebsites.net`
+   e `embedPath` `/embed`.
+2. `--apply` (catálogo) e depois `--apply --acessos` (concessões).
+3. E-mails de Rodrigo, Lucas P. e Túlio, se ainda faltarem.
+4. Conferir se o `HUB_JWT_SECRET` está na App Setting do `vnt-trader-rf` (item B1 do pedido
+   [[2026-10-15-modulo-connect-passivos-dependencias-plataforma]]); se faltar, `/pedir seguranca`.
+
+Status segue `em-andamento`.

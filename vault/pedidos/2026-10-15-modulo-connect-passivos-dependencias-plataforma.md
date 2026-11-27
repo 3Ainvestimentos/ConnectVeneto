@@ -9,7 +9,7 @@ prioridade: normal
 status: em-andamento
 encaminhado-por: db-guardian (itens A e B, 2026-10-15)
 alvo-original: db-guardian
-depende-de: "resposta à pergunta 1 de ia-gestor → fundos-asset 2026-11-26-fundos-asset-secoes-gestao-de-investimentos (Trader RF como seção do gestao ou módulo separado)"
+depende-de: "resposta à pergunta 1 de ia-gestor → fundos-asset 2026-11-26-fundos-asset-secoes-gestao-de-investimentos (Trader RF como seção do gestao ou módulo separado) — decidida pelo Victor em 2026-11-27: portal-gestao é o guarda-chuva"
 via: outbox
 entregue-em: 2026-11-26
 outbox-repo: venetomfo/Projeto_Trader_RF
@@ -123,7 +123,7 @@ Processado pelo connect (subagente, a pedido do Victor Santos). Nada foi gravado
     no do `seguranca`.
   - O pedido do ia-gestor de 26/11 diz que o Trader RF está "aguardando cadastro", o que diverge do registro acima.
 
-### Dependência (não decidida aqui)
+### Dependência (decidida em 27/11, ver abaixo)
 
 Pergunta 1 do pedido `2026-11-26-fundos-asset-secoes-gestao-de-investimentos` (do ia-gestor para o fundos-asset,
 commit `69cf364` do `venetomfo/IA_Gestor_Veneto`): **o Trader RF entra como seção do módulo `gestao`
@@ -167,3 +167,35 @@ dessa pergunta em paralelo. Este pedido segue `em-andamento` até ela ser respon
 
 **Rollback:** nada foi aplicado. Cada passo acima, quando aprovado, gera uma entrada no changelog do connect com o
 rollback dele.
+
+### Atualização 2026-11-27: dependência decidida
+
+**Decisão do Victor Santos (dono, 27/11).** A "Gestão de Investimentos" é o próprio módulo `portal-gestao` (repo
+`venetomfo/modulo-connect-trader-rf`, do Gustavo): um módulo guarda-chuva que agrupa os submódulos Trader RF/Passivos,
+Núcleos, Quartis e Dados Macro. O ACL de usuário (quem vê qual aba) fica dentro do módulo, pelas chaves
+`portal-gestao:*` do catálogo. O Connect só configura se a pessoa tem acesso ou não, e grava as chaves que o módulo
+lê. O módulo `gestao` do repo `fundos-asset` (Lâmina dos fundos asset) continua separado e não absorve nada. Quartis e
+Macro também serão telas do `portal-gestao`, com chaves novas quando o Gustavo pedir.
+
+**O que muda neste pedido:**
+
+- **Vale o desfecho (a):** módulo separado, mantendo o `portal-gestao` como guarda-chuva. O `moduleId` segue
+  `portal-gestao` e o catálogo segue com o prefixo `portal-gestao:`.
+- **O desfecho (b) está descartado.** As telas de Passivos **não** passam para o `fundos-asset`, o catálogo do
+  `gestao` não ganha chaves de Passivos, nenhuma concessão migra para `gestao:*`, o `hubModules/portal-gestao` não
+  vai para `enabled: false` e o login de leitura do `gestao` não precisa de acesso ao schema `trader_rf`.
+- O "mesmo menu" deixa de ser questão de agrupar dois itens no hub: o agrupamento acontece dentro do
+  `portal-gestao`, pelas abas. O campo `group` no `embeddedModuleSchema` não é necessário para isto.
+- B1 (`HUB_JWT_SECRET`) volta a valer, porque o desfecho é o (a): se a pré-checagem mostrar que falta no
+  `vnt-trader-rf`, sai um `/pedir seguranca` para copiar a App Setting.
+
+**Próximo passo (continua aguardando o Victor; nada foi gravado):**
+
+1. Dry-run do script `scripts/portal-gestao-nucleos.mjs` do pedido [[2026-11-11-connect-submodulo-nucleos-portal-gestao]]
+   (o script ainda não está escrito em nenhuma branch). Ele confere o `hubModules/portal-gestao`: `enabled`, `url`
+   `https://vnt-trader-rf.azurewebsites.net` e `embedPath` `/embed`.
+2. `--apply` (catálogo) e depois `--apply --acessos` (concessões de Núcleos), conforme aquele pedido.
+3. E-mails de Rodrigo, Lucas P. e Túlio, se ainda faltarem.
+4. Conferir se o `HUB_JWT_SECRET` está na App Setting do `vnt-trader-rf`; se faltar, `/pedir seguranca`.
+
+Status segue `em-andamento`.
